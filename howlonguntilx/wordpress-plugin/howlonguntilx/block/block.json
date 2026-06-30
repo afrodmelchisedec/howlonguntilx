@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "hlu/countdown",
+  "title": "HowLongUntil Countdown",
+  "category": "embeds",
+  "attributes": {
+    "event":  { "type": "string", "default": "christmas" },
+    "theme":  { "type": "string", "default": "light" },
+    "width":  { "type": "number", "default": 300 },
+    "height": { "type": "number", "default": 160 }
+  },
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}
