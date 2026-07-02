@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,16 +14,18 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  paypalId      String?   @unique
   plan          Plan      @default(FREE)
+  eventCount    Int       @default(0)
   role          Role      @default(USER)
-  apiKey        String?   @unique @default(cuid())
   createdAt     DateTime  @default(now())
   lastSeen      DateTime?
 
-  accounts Account[]
-  sessions Session[]
-  timers   Timer[]
-  apiUsage ApiUsage[]
+  accounts  Account[]
+  sessions  Session[]
+  timers    Timer[]
+  likes     Like[]
+  follows   Follow[]
 }
 
 enum Plan {
@@ -36,6 +38,19 @@ enum Role {
   ADMIN
 }
 
+model Category {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  emoji       String
+  description String
+  parentId    String?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children    Category[] @relation("SubCategories")
+  events      Event[]
+  createdAt   DateTime   @default(now())
+}
+
 model Timer {
   id         String   @id @default(cuid())
   userId     String
@@ -45,26 +60,55 @@ model Timer {
   isPublic   Boolean  @default(false)
   slug       String?  @unique
   createdAt  DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {
-  id         String   @id @default(cuid())
-  slug       String   @unique
-  name       String
-  targetDate DateTime
-  category   String
-  locale     String   @default("en")
-  views      Int      @default(0)
-  createdAt  DateTime @default(now())
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  targetDate  DateTime
+  type        EventType @default(COUNTDOWN)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categorySlug String   @default("leisure")
+  published   Boolean   @default(true)
+  userId      String?
+  locale      String    @default("en")
+  views       Int       @default(0)
+  likeCount   Int       @default(0)
+  followCount Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  likes   Like[]
+  follows Follow[]
 }
 
-model ApiUsage {
+enum EventType {
+  COUNTDOWN
+  ELAPSED
+}
+
+model Like {
   id        String   @id @default(cuid())
   userId    String
-  endpoint  String
+  eventId   String
   createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@unique([userId, eventId])
+}
+
+model Follow {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@unique([userId, eventId])
 }
 
 model Account {
@@ -73,14 +117,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.LongText
-  access_token      String? @db.LongText
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.LongText
+  id_token          String?
   session_state     String?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
 }
 
@@ -89,7 +133,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
