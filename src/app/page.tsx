@@ -11,11 +11,16 @@ import { CommunityBarRace } from '@/components/countdown/CommunityBarRace';
 import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
 import { getPopularEvents } from '@/lib/events';
 import { CategoryPills } from '@/components/ui/CategoryPills';
+import { FaqSection } from '@/components/ui/FaqSection';
+import { getLiveFaqs } from '@/lib/faqs';
 
 
 
 export default async function HomePage() {
-  const events = await getPopularEvents(8);
+  const [events, faqs] = await Promise.all([
+    getPopularEvents(8),
+    getLiveFaqs(),
+  ]);
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
@@ -132,6 +137,11 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* ══════════════════════════════════════════════════════
+            FAQ — live slider + paginated archive
+        ══════════════════════════════════════════════════════ */}
+        <FaqSection initialFaqs={faqs} />
 
         {/* ══════════════════════════════════════════════════════
             WHY US
