@@ -1,95 +1,137 @@
 import { SearchBar } from '@/components/countdown/SearchBar';
 import { PopularGrid } from '@/components/countdown/PopularGrid';
-import { CategoryStrip } from '@/components/ui/CategoryStrip';
 import { WhyUs } from '@/components/ui/WhyUs';
 import { RecentlyViewed } from '@/components/countdown/RecentlyViewed';
 import { HeroTicker } from '@/components/countdown/HeroTicker';
+import { StarField } from '@/components/ui/StarField';
 import { SpinTheClock } from '@/components/countdown/SpinTheClock';
 import { LiveTickerFeed } from '@/components/countdown/LiveTickerFeed';
 import { InteractiveGlobe } from '@/components/countdown/InteractiveGlobe';
 import { CommunityBarRace } from '@/components/countdown/CommunityBarRace';
 import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
 import { getPopularEvents } from '@/lib/events';
+import { CategoryPills } from '@/components/ui/CategoryPills';
+
+
 
 export default async function HomePage() {
   const events = await getPopularEvents(8);
 
   return (
     <div>
-      {/* ── HERO ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden" style={{ minHeight: '580px', display: 'flex', alignItems: 'center' }}>
-        <div className="hero-blob" style={{ width: 700, height: 700, top: -200, left: -200, background: 'radial-gradient(circle, #534AB7, #8B7CF8)', animationDelay: '-2s', opacity: 0.10 }} />
-        <div className="hero-blob" style={{ width: 450, height: 450, top: 80, right: -100, background: 'radial-gradient(circle, #C084FC, #534AB7)', animationDelay: '-4s', animationDuration: '9s', opacity: 0.07 }} />
-        <div className="hero-blob" style={{ width: 350, height: 350, bottom: -50, left: '45%', background: 'radial-gradient(circle, #1D9E75, #378ADD)', animationDelay: '-6s', animationDuration: '11s', opacity: 0.06 }} />
+      {/* ══════════════════════════════════════════════════════
+          HERO — full bleed, uniform dark bg, starfield
+      ══════════════════════════════════════════════════════ */}
+      <div className="relative overflow-hidden" style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-base)',
+      }}>
+        {/* Animated starfield canvas */}
+        <StarField />
 
-        <div className="relative z-10 w-full max-w-2xl mx-auto px-4 py-20 text-center">
+        {/* Soft blob accents */}
+        <div className="hero-blob" style={{ width: 800, height: 800, top: -300, left: -300, background: 'radial-gradient(circle, #534AB7, #8B7CF8)', opacity: 0.07 }} />
+        <div className="hero-blob" style={{ width: 500, height: 500, top: 100, right: -150, background: 'radial-gradient(circle, #C084FC, #534AB7)', animationDuration: '9s', opacity: 0.05 }} />
+        <div className="hero-blob" style={{ width: 400, height: 400, bottom: -100, left: '40%', background: 'radial-gradient(circle, #1D9E75, #378ADD)', animationDuration: '11s', opacity: 0.04 }} />
+
+        {/* Content */}
+        <div className="relative z-10 w-full px-4 py-16 text-center" style={{ maxWidth: 760 }}>
           <div className="sg">
-            <p className="anim-fade-up text-caption mb-4" style={{ color: 'rgb(var(--accent-brand))' }}>LIVE · REAL-TIME · TO THE SECOND</p>
-            <h1 className="anim-fade-up" style={{ fontSize: 'clamp(42px, 8vw, 72px)', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.02em', marginBottom: 12 }}>
+
+            {/* Eyebrow */}
+            <p className="anim-fade-up text-caption mb-4" style={{ color: 'rgb(var(--accent-brand))' }}>
+              LIVE · REAL-TIME · TO THE SECOND
+            </p>
+
+            {/* Headline */}
+            <h1 className="anim-fade-up" style={{
+              fontSize: 'clamp(52px, 9vw, 88px)',
+              fontWeight: 900,
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              marginBottom: 8,
+            }}>
               How long<br />
               <span className="gradient-text">until…?</span>
             </h1>
-            <div className="anim-fade-up"><HeroTicker /></div>
-            <p className="anim-fade-up text-callout max-w-sm mx-auto mb-8" style={{ color: 'var(--text-secondary)' }}>
+
+            {/* Subtext */}
+            <p className="anim-fade-up text-callout mb-2" style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto 24px' }}>
               Not an AI guess — a live clock ticking to your exact moment.
             </p>
-            <div className="anim-fade-up"><SearchBar /></div>
-            <p className="anim-fade-up mt-4 text-caption" style={{ color: 'var(--text-tertiary)' }}>
+
+            {/* Wider search bar */}
+            <div className="anim-fade-up w-full mx-auto mb-2" style={{ maxWidth: 680 }}>
+              <SearchBar />
+            </div>
+
+            <p className="anim-fade-up text-caption mb-6" style={{ color: 'var(--text-tertiary)' }}>
               Try: "Christmas" · "FIFA World Cup" · "Solar Eclipse" · "Salary Day"
             </p>
+
+            {/* Hero Ticker — wide, swipeable */}
+            <div className="anim-fade-up">
+              <HeroTicker />
+            </div>
+
+            <CategoryPills />
+
           </div>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="text-caption">Scroll to explore</p>
+          <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, var(--text-tertiary), transparent)' }} />
         </div>
       </div>
 
-      {/* ── CATEGORY STRIP ──────────────────────────────────── */}
-      <CategoryStrip />
-
-      {/* ── POPULAR COUNTDOWNS ──────────────────────────────── */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 16px 0' }}>
-        <PopularGrid events={events} />
-      </div>
-
-      {/* ── RECENTLY VIEWED ─────────────────────────────────── */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '8px 16px 32px' }}>
-        <RecentlyViewed />
+      {/* ══════════════════════════════════════════════════════
+          POPULAR COUNTDOWNS
+      ══════════════════════════════════════════════════════ */}
+      <div style={{ background: 'var(--bg-base)' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 16px 16px' }}>
+          <PopularGrid events={events} />
+        </div>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px 32px' }}>
+          <RecentlyViewed />
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          ADDICTIVE WIDGETS SECTION
+          ADDICTIVE WIDGETS
       ══════════════════════════════════════════════════════ */}
-      <div style={{ borderTop: '1px solid var(--border-hairline)', background: 'var(--bg-elevated-2)' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 16px' }}>
-
-          {/* Section header */}
+      <div style={{ background: 'var(--bg-elevated-2)', borderTop: '1px solid var(--border-hairline)' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '56px 16px' }}>
           <div className="text-center mb-10 anim-fade-up">
             <p className="text-caption mb-2" style={{ color: 'rgb(var(--accent-brand))' }}>INTERACTIVE</p>
             <h2 className="text-title1 mb-2">Play with time</h2>
-            <p className="text-callout max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-callout" style={{ color: 'var(--text-secondary)', maxWidth: 420, margin: '0 auto' }}>
               Explore, discover, and track what matters to you.
             </p>
           </div>
 
-          {/* Widget 1 + 2 — side by side on desktop */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
             <SpinTheClock />
             <CommunityBarRace />
           </div>
-
-          {/* Widget 3 — Globe full width */}
           <div className="mb-5">
             <InteractiveGlobe />
           </div>
-
-          {/* Widget 4 + 5 — side by side */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <LiveTickerFeed />
             <CountdownBuilder />
           </div>
-
         </div>
       </div>
 
-      {/* ── WHY US ──────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          WHY US
+      ══════════════════════════════════════════════════════ */}
       <WhyUs />
     </div>
   );
