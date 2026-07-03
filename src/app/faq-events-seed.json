@@ -1,0 +1,143 @@
+{
+  "events": [
+    {
+      "slug": "tooth-infection-danger-window",
+      "name": "Untreated tooth infection — danger window",
+      "description": "General example only, not medical advice. An untreated dental abscess can spread and become life-threatening in as little as a few days if bacteria enter the bloodstream.",
+      "targetDate": "2026-07-07T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "An untreated dental abscess can spread beyond the tooth and become a medical emergency. This is a general example countdown, not personalized medical advice.",
+        "quickFacts": [
+          "Facial swelling, fever, or difficulty swallowing/breathing are emergency warning signs.",
+          "Bacteria can spread to the jaw, sinuses, or bloodstream if left untreated.",
+          "Seek a dentist or emergency room immediately if symptoms worsen — don't wait for antibiotics alone to resolve it."
+        ],
+        "faqAnswer": "There's no fixed timeline — severity varies by person and infection. In serious untreated cases, complications can escalate within days. If you suspect a spreading infection, seek care immediately rather than waiting.",
+        "disclaimer": "Educational example only. Not a diagnosis or medical advice."
+      }
+    },
+    {
+      "slug": "alcohol-out-of-your-system",
+      "name": "Alcohol leaving your system — typical example",
+      "description": "General example based on average metabolism (~1 standard drink per hour). Actual time varies by body weight, amount consumed, food intake, and test type.",
+      "targetDate": "2026-07-05T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "The body metabolizes alcohol at a fairly steady rate, roughly one standard drink per hour, though this varies by person.",
+        "quickFacts": [
+          "Body weight, sex, food intake, and hydration all affect metabolism speed.",
+          "Breath and blood tests detect alcohol for a shorter window than urine tests (EtG tests can detect it up to ~80 hours later).",
+          "There's no safe way to speed up alcohol metabolism — coffee, cold showers, and exercise don't work."
+        ],
+        "faqAnswer": "For an average drinking session, most people clear the bulk of the alcohol from their system within 24 hours, though trace metabolites can be detected longer depending on the test.",
+        "disclaimer": "Educational example only. Not personalized medical advice."
+      }
+    },
+    {
+      "slug": "august",
+      "name": "August",
+      "description": "Live countdown to the first day of August.",
+      "targetDate": "2026-08-01T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "A simple live countdown to August 1st.",
+        "quickFacts": [
+          "August is the 8th month of the year and has 31 days.",
+          "In the Northern Hemisphere, August marks late summer; in the Southern Hemisphere, late winter."
+        ],
+        "faqAnswer": "This countdown ticks down to midnight (UTC) on August 1st.",
+        "disclaimer": null
+      }
+    },
+    {
+      "slug": "car-seat-expires",
+      "name": "Car seat expiration — typical example",
+      "description": "Most car seats expire 6–10 years from their manufacture date, depending on the brand. Always check the expiration date molded into or printed on your specific seat.",
+      "targetDate": "2032-07-04T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Car seats expire because the plastic degrades over time and safety standards evolve. This example uses a common 6-year window.",
+        "quickFacts": [
+          "The expiration date is usually molded into the plastic shell or printed on a sticker.",
+          "Expiration windows range roughly 6–10 years depending on the manufacturer.",
+          "Never use a car seat past its expiration date, even if it looks undamaged."
+        ],
+        "faqAnswer": "Check the specific expiration date on your seat — this countdown uses a common 6-year example, but your seat's actual date may be different.",
+        "disclaimer": "Example only — always defer to the date printed on your specific car seat."
+      }
+    },
+    {
+      "slug": "sunburn-goes-away",
+      "name": "Sunburn healing — typical example",
+      "description": "Mild to moderate sunburn typically heals within 3–7 days. Severe burns (blistering) can take longer and may need medical attention.",
+      "targetDate": "2026-07-11T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Sunburn is skin inflammation from UV overexposure. Most mild cases heal on their own within about a week.",
+        "quickFacts": [
+          "Cool compresses and moisturizer can ease discomfort during healing.",
+          "Peeling skin a few days in is normal as damaged cells shed.",
+          "Blistering, severe pain, fever, or chills warrant medical attention."
+        ],
+        "faqAnswer": "Mild to moderate sunburn generally fades within 3–7 days. This example uses 7 days as a typical upper-range estimate.",
+        "disclaimer": "Educational example only. Not personalized medical advice."
+      }
+    },
+    {
+      "slug": "antibiotics-work-for-uti",
+      "name": "Antibiotics working for a UTI — typical example",
+      "description": "Most people notice symptom improvement within 1–3 days of starting antibiotics for a UTI. Complete the full prescribed course even after symptoms improve.",
+      "targetDate": "2026-07-07T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Antibiotics typically start reducing UTI symptoms within a couple of days, though the full course matters for clearing the infection completely.",
+        "quickFacts": [
+          "Symptom relief often begins within 24–72 hours of the first dose.",
+          "A full course is usually 3–7 days depending on the antibiotic prescribed.",
+          "Stopping early, even if you feel better, can lead to recurrence or resistance."
+        ],
+        "faqAnswer": "Most people feel noticeably better within 1–3 days. If symptoms haven't improved after 3 days, or worsen, contact your doctor.",
+        "disclaimer": "Educational example only. Not personalized medical advice — follow your prescribing doctor's instructions."
+      }
+    },
+    {
+      "slug": "pregnancy-test-is-accurate",
+      "name": "Pregnancy test accuracy — typical example",
+      "description": "Home pregnancy tests are most reliable from the first day of a missed period, roughly 14 days after ovulation/conception. Testing earlier increases the chance of a false negative.",
+      "targetDate": "2026-07-18T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "COUNTDOWN",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Home pregnancy tests detect hCG, a hormone that rises steadily after implantation. Accuracy improves the closer you test to your missed period.",
+        "quickFacts": [
+          "Testing too early is the most common cause of a false negative.",
+          "First-morning urine tends to have the most concentrated hCG.",
+          "A positive result is rarely wrong; a negative result taken early is less reliable."
+        ],
+        "faqAnswer": "For the most reliable result, wait until the first day of your missed period — about 14 days after ovulation.",
+        "disclaimer": "Educational example only. Not personalized medical advice."
+      }
+    }
+  ]
+}
