@@ -9,7 +9,7 @@ const PTS=[
 
 export function WhyUs(){
   return(
-    <div className="mt-8 py-16" style={{ borderTop: '1px solid var(--border-hairline)', background: 'var(--bg-elevated-2)' }}>
+    <div className="mt-8 py-16">
       <div className="max-w-3xl mx-auto px-4">
         <p className="text-caption mb-2 anim-fade-up" style={{ color: 'rgb(var(--accent-brand))' }}>Why not just ask AI?</p>
         <h2 className="text-title1 mb-8 anim-fade-up">6 things we do that AI cannot</h2>
