@@ -1,6 +1,7 @@
 // FILE: src/lib/events-admin.ts
 
 import { prisma } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 
 export interface EventUploadItem {
   slug: string;
@@ -21,14 +22,6 @@ export interface UpsertResult {
   error?: string;
 }
 
-/**
- * Single source of truth for writing an Event. Always resolves categoryId
- * from categorySlug via a real lookup, then writes BOTH categoryId and
- * categorySlug from that same resolved category — so the two fields your
- * sitemap routes rely on (relation vs. denormalized string) can never
- * disagree. Never use prisma.event.create/update directly for
- * admin-authored events; always go through this.
- */
 export async function upsertEventFromJson(item: EventUploadItem): Promise<UpsertResult> {
   if (!item.slug || !item.name || !item.targetDate || !item.categorySlug) {
     return {
@@ -62,14 +55,14 @@ export async function upsertEventFromJson(item: EventUploadItem): Promise<Upsert
     const data = {
       name: item.name,
       description: item.description ?? null,
-      content: item.content ?? undefined,
       targetDate,
       categoryId: category.id,
-      categorySlug: category.slug, // always derived from the same lookup as categoryId
+      categorySlug: category.slug,
       published: item.published ?? true,
       archived: item.archived ?? false,
       locale: item.locale ?? 'en',
       ...(item.type ? { type: item.type } : {}),
+      ...(item.content !== undefined ? { content: item.content as Prisma.InputJsonValue } : {}),
     };
 
     if (existing) {

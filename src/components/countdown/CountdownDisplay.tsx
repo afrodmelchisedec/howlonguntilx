@@ -3,7 +3,7 @@ import { useCountdown } from '@/hooks/useCountdown';
 import { ProgressBar } from './ProgressBar';
 
 interface Props {
-  event: { name: string; targetDate: Date | string; category?: string };
+  event: { name: string; targetDate: Date | string; category?: unknown };
 }
 
 export function CountdownDisplay({ event }: Props) {
