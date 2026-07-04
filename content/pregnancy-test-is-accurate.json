@@ -1,0 +1,10 @@
+{
+  "heroFact": "Home pregnancy tests are most accurate starting the first day of a missed period — testing too early is the most common cause of a false negative.",
+  "timeline": [
+    { "offset": "7–10 days after conception", "label": "hCG hormone may become detectable with some sensitive early tests" },
+    { "offset": "Day of missed period", "label": "Most tests reach their highest advertised accuracy around this point" },
+    { "offset": "1 week after missed period", "label": "Accuracy is highest and false-negative risk is lowest" }
+  ],
+  "sources": [{ "label": "Mayo Clinic", "url": "https://www.mayoclinic.org" }],
+  "lastReviewed": "2026-06-01"
+}

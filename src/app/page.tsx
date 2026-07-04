@@ -13,7 +13,7 @@ import { getPopularEvents } from '@/lib/events';
 import { CategoryPills } from '@/components/ui/CategoryPills';
 import { FaqSection } from '@/components/ui/FaqSection';
 import { getLiveFaqs } from '@/lib/faqs';
-
+import Link from 'next/link';
 
 
 export default async function HomePage() {
@@ -131,6 +131,22 @@ export default async function HomePage() {
             <div className="mb-5">
               <InteractiveGlobe />
             </div>
+
+<div className="mb-5">
+  <Link href="/calendar" className="ios-card interactive glow gc-travel block p-6 group">
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-caption mb-1" style={{ color: 'rgb(var(--accent-brand))' }}>NEW</p>
+        <div className="text-headline group-hover:text-brand-500 transition-colors">📅 Event Calendar</div>
+        <p className="text-footnote mt-1" style={{ color: 'var(--text-secondary)' }}>
+          Click any day, anywhere in the year, for a random fact.
+        </p>
+      </div>
+      <span className="text-2xl" style={{ color: 'var(--text-tertiary)' }}>›</span>
+    </div>
+  </Link>
+</div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <LiveTickerFeed />
               <CountdownBuilder />

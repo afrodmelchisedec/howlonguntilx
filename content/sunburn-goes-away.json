@@ -1,0 +1,11 @@
+{
+  "heroFact": "Mild sunburn typically starts fading within 3–5 days, but peeling and full healing can take up to two weeks.",
+  "timeline": [
+    { "offset": "Day 1", "label": "Redness and pain typically peak within the first 24 hours" },
+    { "offset": "Day 2–3", "label": "Swelling and discomfort often begin easing" },
+    { "offset": "Day 3–5", "label": "Skin may start to peel as damaged cells shed" },
+    { "offset": "Day 7–14", "label": "Skin generally returns to normal color and texture" }
+  ],
+  "sources": [{ "label": "American Academy of Dermatology", "url": "https://www.aad.org" }],
+  "lastReviewed": "2026-06-01"
+}

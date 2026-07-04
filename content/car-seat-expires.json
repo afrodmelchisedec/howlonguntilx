@@ -1,0 +1,10 @@
+{
+  "heroFact": "Most car seats expire 6–10 years after their manufacture date — check the label on the seat itself, not the purchase date.",
+  "timeline": [
+    { "offset": "Manufacture date", "label": "Expiration is calculated from this date, found on a label on the seat" },
+    { "offset": "6 years", "label": "Many booster and convertible seats begin expiring around this mark" },
+    { "offset": "8–10 years", "label": "Most infant and convertible seats fully expire by this range" }
+  ],
+  "sources": [{ "label": "NHTSA", "url": "https://www.nhtsa.gov" }],
+  "lastReviewed": "2026-06-01"
+}

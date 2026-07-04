@@ -1,0 +1,11 @@
+{
+  "heroFact": "Most people start feeling relief within 1–2 days of starting antibiotics for a UTI — but finishing the full course matters even after symptoms improve.",
+  "timeline": [
+    { "offset": "Day 1", "label": "Symptoms may still feel the same as antibiotics begin working" },
+    { "offset": "Day 2", "label": "Many people notice reduced pain and urgency" },
+    { "offset": "Day 3", "label": "Most symptoms should be significantly improved" },
+    { "offset": "Full course (3–7 days)", "label": "Completing every prescribed dose is essential even after feeling better", "note": "Stopping early increases the risk of the infection returning or antibiotic resistance." }
+  ],
+  "sources": [{ "label": "CDC", "url": "https://www.cdc.gov" }],
+  "lastReviewed": "2026-06-01"
+}
