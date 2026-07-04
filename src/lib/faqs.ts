@@ -1,50 +1,73 @@
+// FILE: src/lib/faqs.ts
+
 import { prisma } from '@/lib/db';
+
+const LIVE_LIMIT = 50;
 
 export interface FaqItem {
   id: string;
   question: string;
   slug: string;
   targetDate: string;
+  type: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE';
+  archived: boolean;
 }
-
-const LIVE_LIMIT = 50; // 5 slider pages × 10 per page
 
 export async function getLiveFaqs(): Promise<FaqItem[]> {
-  const faqs = await prisma.faq.findMany({
-    where: { status: 'LIVE' },
-    orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+  const events = await prisma.event.findMany({
+    where: { published: true },
+    orderBy: { createdAt: 'desc' },
     take: LIVE_LIMIT,
-    include: { event: { select: { slug: true, targetDate: true } } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      targetDate: true,
+      type: true,
+      archived: true,
+    },
   });
 
-  return faqs.map(f => ({
-    id: f.id,
-    question: f.question,
-    slug: f.event.slug,
-    targetDate: f.event.targetDate.toISOString(),
+  return events.map(e => ({
+    id: e.id,
+    question: e.name,
+    slug: e.slug,
+    targetDate: e.targetDate.toISOString(),
+    type: e.type as 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE',
+    archived: e.archived,
   }));
 }
 
-export async function getArchivedFaqs(page: number, limit: number) {
-  const skip = (page - 1) * limit;
+export async function getArchiveFaqs(
+  page: number,
+  limit: number
+): Promise<{ faqs: FaqItem[]; hasMore: boolean }> {
+  const skip = page * limit;
+  const events = await prisma.event.findMany({
+    where: { published: true },
+    orderBy: { createdAt: 'desc' },
+    take: limit + 1,
+    skip,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      targetDate: true,
+      type: true,
+      archived: true,
+    },
+  });
 
-  const [faqs, total] = await Promise.all([
-    prisma.faq.findMany({
-      where: { status: 'ARCHIVE' },
-      orderBy: { updatedAt: 'desc' },
-      skip,
-      take: limit,
-      include: { event: { select: { slug: true, targetDate: true } } },
-    }),
-    prisma.faq.count({ where: { status: 'ARCHIVE' } }),
-  ]);
-
-  const items: FaqItem[] = faqs.map(f => ({
-    id: f.id,
-    question: f.question,
-    slug: f.event.slug,
-    targetDate: f.event.targetDate.toISOString(),
-  }));
-
-  return { faqs: items, hasMore: skip + items.length < total };
+  const hasMore = events.length > limit;
+  return {
+    faqs: events.slice(0, limit).map(e => ({
+      id: e.id,
+      question: e.name,
+      slug: e.slug,
+      targetDate: e.targetDate.toISOString(),
+      type: e.type as 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE',
+      archived: e.archived,
+    })),
+    hasMore,
+  };
 }

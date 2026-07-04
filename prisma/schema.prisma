@@ -1,3 +1,5 @@
+// FILE: prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -64,24 +66,25 @@ model Timer {
 }
 
 model Event {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  name        String
-  description String?
-  targetDate  DateTime
-  type        EventType @default(COUNTDOWN)
-  categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id])
-  categorySlug String   @default("leisure")
-  published   Boolean   @default(true)
-  userId      String?
-  locale      String    @default("en")
-  views       Int       @default(0)
-  likeCount   Int       @default(0)
-  followCount Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  content     Json?
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  name         String
+  description  String?
+  targetDate   DateTime
+  type         EventType @default(COUNTDOWN)
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id])
+  categorySlug String    @default("leisure")
+  published    Boolean   @default(true)
+  archived     Boolean   @default(false)
+  userId       String?
+  locale       String    @default("en")
+  views        Int       @default(0)
+  likeCount    Int       @default(0)
+  followCount  Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  content      Json?
 
   likes   Like[]
   follows Follow[]
@@ -90,6 +93,7 @@ model Event {
 enum EventType {
   COUNTDOWN
   ELAPSED
+  RELATIVE
 }
 
 model Like {
@@ -99,6 +103,7 @@ model Like {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   @@unique([userId, eventId])
 }
 
@@ -109,6 +114,7 @@ model Follow {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   @@unique([userId, eventId])
 }
 
@@ -126,6 +132,7 @@ model Account {
   id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
 }
 
@@ -141,5 +148,6 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+
   @@unique([identifier, token])
 }

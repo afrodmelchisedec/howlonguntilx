@@ -1,0 +1,233 @@
+{
+  "events": [
+    {
+      "slug": "since-may-22-2026",
+      "name": "How long has it been since May 22 2026?",
+      "description": "Elapsed time since May 22, 2026.",
+      "targetDate": "2026-05-22T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "ELAPSED",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "May 22, 2026 was a Friday. Here's exactly how much time has passed since that date.",
+        "quickFacts": [
+          "May 22 is the 142nd day of the year.",
+          "Notable May 22 events: Pac-Man was released on May 22, 1980.",
+          "May 22 is World Goth Day and International Day for Biological Diversity."
+        ],
+        "faqAnswer": "As of July 2026, it has been around 43 days since May 22, 2026. The live counter above shows the exact elapsed time to the second.",
+        "relatedQuestions": [
+          { "slug": "since-may-22-2025", "name": "How long has it been since May 22 2025?" },
+          { "slug": "since-may-1-2026", "name": "How long has it been since May 1 2026?" },
+          { "slug": "since-june-1-2026", "name": "How long has it been since June 1 2026?" },
+          { "slug": "since-april-22-2026", "name": "How long has it been since April 22 2026?" },
+          { "slug": "since-may-22-2020", "name": "How long has it been since May 22 2020?" }
+        ],
+        "disclaimer": null
+      }
+    },
+    {
+      "slug": "since-yesterday",
+      "name": "How long has it been since yesterday?",
+      "description": "Dynamic elapsed time since yesterday midnight. Updates daily.",
+      "targetDate": "2026-07-03T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "RELATIVE",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "relativeType": "yesterday",
+        "intro": "Yesterday is always exactly 24 hours ago at the same time, or up to 48 hours ago if you mean yesterday midnight. This counter shows time elapsed since yesterday at midnight.",
+        "quickFacts": [
+          "One day = 86,400 seconds.",
+          "The concept of 'yesterday' shifts every day at midnight.",
+          "In some cultures, the day starts at sunset, making 'yesterday' begin earlier."
+        ],
+        "faqAnswer": "It has been between 24 and 48 hours since yesterday, depending on the current time. The live counter above shows the exact elapsed time since yesterday midnight.",
+        "relatedQuestions": [
+          { "slug": "since-today", "name": "How long has it been since today started?" },
+          { "slug": "since-last-week", "name": "How long has it been since last week?" },
+          { "slug": "since-last-month", "name": "How long has it been since last month?" },
+          { "slug": "since-am", "name": "How long has it been since AM (this morning)?" },
+          { "slug": "since-pm", "name": "How long has it been since PM (this afternoon)?" }
+        ],
+        "disclaimer": "This counter resets daily at midnight UTC."
+      }
+    },
+    {
+      "slug": "since-pm",
+      "name": "How long has it been since PM?",
+      "description": "Dynamic elapsed time since noon today (12:00 PM). Updates daily.",
+      "targetDate": "2026-07-04T12:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "RELATIVE",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "relativeType": "noon",
+        "intro": "PM stands for Post Meridiem — Latin for 'after midday'. This counter shows how long it has been since noon (12:00 PM) today.",
+        "quickFacts": [
+          "PM begins at 12:00:00 noon and runs until 11:59:59 PM.",
+          "The 12-hour clock system divides the day into AM and PM halves.",
+          "12:00 PM is noon; 12:00 AM is midnight — commonly confused."
+        ],
+        "faqAnswer": "It has been however many hours have passed since 12:00 PM today. The live counter above shows the exact elapsed time since noon.",
+        "relatedQuestions": [
+          { "slug": "since-am", "name": "How long has it been since AM?" },
+          { "slug": "since-yesterday", "name": "How long has it been since yesterday?" },
+          { "slug": "since-today", "name": "How long has it been since today started?" },
+          { "slug": "since-midnight", "name": "How long has it been since midnight?" },
+          { "slug": "since-last-hour", "name": "How long has it been since the last hour?" }
+        ],
+        "disclaimer": "Resets daily at 12:00 PM UTC."
+      }
+    },
+    {
+      "slug": "since-am",
+      "name": "How long has it been since AM?",
+      "description": "Dynamic elapsed time since midnight (12:00 AM today). Updates daily.",
+      "targetDate": "2026-07-04T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "RELATIVE",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "relativeType": "midnight",
+        "intro": "AM stands for Ante Meridiem — Latin for 'before midday'. This counter shows how long it has been since midnight (12:00 AM) today.",
+        "quickFacts": [
+          "AM runs from 12:00:00 midnight to 11:59:59 AM.",
+          "12:00 AM is midnight, the start of a new calendar day.",
+          "Most people sleep through early AM hours — roughly 12 AM to 6 AM."
+        ],
+        "faqAnswer": "It has been however many hours have passed since midnight today. The live counter above shows the exact elapsed time since 12:00 AM.",
+        "relatedQuestions": [
+          { "slug": "since-pm", "name": "How long has it been since PM?" },
+          { "slug": "since-yesterday", "name": "How long has it been since yesterday?" },
+          { "slug": "since-today", "name": "How long has it been since today started?" },
+          { "slug": "since-midnight", "name": "How long has it been since midnight?" },
+          { "slug": "since-sunrise", "name": "How long has it been since sunrise?" }
+        ],
+        "disclaimer": "Resets daily at 12:00 AM UTC."
+      }
+    },
+    {
+      "slug": "since-today",
+      "name": "How long has it been since today started?",
+      "description": "Dynamic elapsed time since today midnight. Shows how much of today has passed.",
+      "targetDate": "2026-07-04T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "RELATIVE",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "relativeType": "today",
+        "intro": "This counter shows exactly how much of today has elapsed since midnight UTC. A day has 86,400 seconds — see how many you've used.",
+        "quickFacts": [
+          "A standard day is exactly 86,400 seconds.",
+          "Today is July 4, 2026 — American Independence Day.",
+          "The Earth rotates once every 23 hours, 56 minutes and 4 seconds (a sidereal day)."
+        ],
+        "faqAnswer": "It has been however many hours, minutes and seconds since midnight today. The live counter above shows the exact elapsed time.",
+        "relatedQuestions": [
+          { "slug": "since-yesterday", "name": "How long has it been since yesterday?" },
+          { "slug": "since-am", "name": "How long has it been since AM?" },
+          { "slug": "since-pm", "name": "How long has it been since PM?" },
+          { "slug": "since-last-week", "name": "How long has it been since last week?" },
+          { "slug": "since-new-year-2026", "name": "How long has it been since New Year 2026?" }
+        ],
+        "disclaimer": "Resets daily at midnight UTC."
+      }
+    },
+    {
+      "slug": "since-gta-5-released",
+      "name": "How long has it been since GTA 5 released?",
+      "description": "Grand Theft Auto V was released on September 17, 2013 for PlayStation 3 and Xbox 360. One of the best-selling video games of all time.",
+      "targetDate": "2013-09-17T00:00:00.000Z",
+      "categorySlug": "entertainment",
+      "type": "ELAPSED",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Grand Theft Auto V launched on September 17, 2013, developed by Rockstar North. It remains one of the highest-grossing entertainment products in history, earning over $8 billion.",
+        "quickFacts": [
+          "GTA 5 launched on PS3 and Xbox 360 on September 17, 2013.",
+          "It was later released on PS4/Xbox One in 2014, PC in 2015, and PS5/Xbox Series X in 2022.",
+          "GTA Online, its multiplayer mode, launched October 1, 2013.",
+          "GTA 5 has sold over 195 million copies as of 2024.",
+          "GTA 6 was announced for 2025 release."
+        ],
+        "faqAnswer": "GTA 5 was released on September 17, 2013. As of July 2026, that is almost 13 years ago. The live counter above shows the exact elapsed time since launch day.",
+        "relatedQuestions": [
+          { "slug": "since-gta-online-launched", "name": "How long has it been since GTA Online launched?" },
+          { "slug": "since-gta-4-released", "name": "How long has it been since GTA 4 released?" },
+          { "slug": "since-gta-6-announced", "name": "How long has it been since GTA 6 was announced?" },
+          { "slug": "since-gta-5-on-pc", "name": "How long has it been since GTA 5 came to PC?" },
+          { "slug": "since-gta-5-on-ps5", "name": "How long has it been since GTA 5 came to PS5?" },
+          { "slug": "since-rockstar-founded", "name": "How long has it been since Rockstar Games was founded?" }
+        ],
+        "disclaimer": null
+      }
+    },
+    {
+      "slug": "since-mexico-eliminated-world-cup-2022",
+      "name": "How long has it been since Mexico was eliminated from the World Cup?",
+      "description": "Mexico was eliminated in the group stage of the 2022 FIFA World Cup in Qatar, on November 30, 2022 — ending their run of 7 consecutive Round of 16 appearances.",
+      "targetDate": "2022-11-30T00:00:00.000Z",
+      "categorySlug": "sports-games",
+      "type": "ELAPSED",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "Mexico's 2022 World Cup campaign ended in heartbreak on November 30, 2022, when they were eliminated in the group stage despite beating Saudi Arabia. It ended a historic streak of 7 consecutive Round of 16 appearances (1994–2018).",
+        "quickFacts": [
+          "Mexico beat Saudi Arabia 2-1 but it wasn't enough to advance.",
+          "Argentina and Poland progressed from Group C instead.",
+          "It was Mexico's first group-stage exit since 1978.",
+          "Mexico's best World Cup finish is the quarter-finals (1970 and 1986, both as host).",
+          "Mexico co-hosts the 2026 FIFA World Cup alongside the USA and Canada."
+        ],
+        "faqAnswer": "Mexico was eliminated from the 2022 World Cup on November 30, 2022. The live counter above shows the exact elapsed time since that date.",
+        "relatedQuestions": [
+          { "slug": "until-world-cup-2026", "name": "How long until the 2026 World Cup?" },
+          { "slug": "since-2022-world-cup-final", "name": "How long has it been since the 2022 World Cup final?" },
+          { "slug": "since-argentina-won-world-cup-2022", "name": "How long has it been since Argentina won the World Cup?" },
+          { "slug": "since-last-world-cup", "name": "How long has it been since the last World Cup?" },
+          { "slug": "since-brazil-won-world-cup", "name": "How long has it been since Brazil won the World Cup?" }
+        ],
+        "disclaimer": "Mexico has never won the FIFA World Cup. This page tracks their most recent elimination."
+      }
+    },
+    {
+      "slug": "since-slavery-ended-us",
+      "name": "How long has it been since slavery ended?",
+      "description": "Slavery in the United States was formally abolished on December 6, 1865, when the 13th Amendment to the US Constitution was ratified.",
+      "targetDate": "1865-12-06T00:00:00.000Z",
+      "categorySlug": "leisure",
+      "type": "ELAPSED",
+      "locale": "en",
+      "published": true,
+      "content": {
+        "intro": "The 13th Amendment to the United States Constitution, ratified on December 6, 1865, formally abolished slavery across the United States. The Emancipation Proclamation had declared enslaved people in Confederate states free on January 1, 1863, but the 13th Amendment made abolition constitutional and nationwide.",
+        "quickFacts": [
+          "The 13th Amendment was ratified on December 6, 1865.",
+          "The Emancipation Proclamation was issued January 1, 1863 — but only applied to Confederate states.",
+          "Juneteenth (June 19, 1865) marks the day enslaved people in Texas learned of their freedom.",
+          "Juneteenth became a US federal holiday in 2021.",
+          "The last country to legally abolish slavery was Mauritania in 1981; it was criminalized there only in 2007."
+        ],
+        "faqAnswer": "Slavery in the United States was formally abolished on December 6, 1865 — over 160 years ago. The live counter above shows the exact elapsed time since ratification of the 13th Amendment.",
+        "relatedQuestions": [
+          { "slug": "since-slavery-ended-uk", "name": "How long has it been since slavery ended in the UK?" },
+          { "slug": "since-slavery-ended-brazil", "name": "How long has it been since slavery ended in Brazil?" },
+          { "slug": "since-emancipation-proclamation", "name": "How long has it been since the Emancipation Proclamation?" },
+          { "slug": "since-juneteenth-1865", "name": "How long has it been since Juneteenth 1865?" },
+          { "slug": "since-slavery-ended-africa", "name": "How long has it been since colonial slavery ended in Africa?" },
+          { "slug": "since-civil-war-ended", "name": "How long has it been since the US Civil War ended?" },
+          { "slug": "since-13th-amendment", "name": "How long has it been since the 13th Amendment?" }
+        ],
+        "disclaimer": "Dates reflect US federal abolition. Slavery's end varied by country and region. Modern slavery and forced labour still exist globally."
+      }
+    }
+  ]
+}
