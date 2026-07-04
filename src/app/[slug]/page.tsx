@@ -20,13 +20,14 @@ interface Props { params: { slug: string } }
 
 export async function generateStaticParams() {
   const slugs = await getAllEventSlugs();
-  return slugs.map(slug => ({ slug }));
+  return slugs.map(slug => ({ slug: 'how-long-until-' + slug }));
 }
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const event = await getEventBySlug(params.slug);
+  const rawSlug = params.slug.replace('how-long-until-', '');
+  const event = await getEventBySlug(rawSlug);
   if (!event) return {};
   const { days_left } = buildCountdownResponse(event.name, new Date(event.targetDate));
   const base = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `How Long Until ${event.name} — ${days_left} Days Left`,
     description,
-    alternates: { canonical: `${base}/how-long-until-${event.slug}` },
+    alternates: { canonical: `${base}/how-long-until-${rawSlug}` },
     openGraph: {
       title: `${days_left} days until ${event.name}`,
       description,
@@ -51,9 +52,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventPage({ params }: Props) {
-  const event = await getEventBySlug(params.slug);
+  const rawSlug = params.slug.replace('how-long-until-', '');
+  const event = await getEventBySlug(rawSlug);
   if (!event) notFound();
-  await incrementViews(params.slug);
+  await incrementViews(rawSlug);
 
   const countdown = buildCountdownResponse(event.name, new Date(event.targetDate));
   const weeks = Math.floor(countdown.days_left / 7);
@@ -64,7 +66,7 @@ export default async function EventPage({ params }: Props) {
   return (
     <>
       <PageJsonLd event={event} countdown={countdown} />
-      <RecentLogger slug={event.slug} name={event.name} />
+      <RecentLogger slug={rawSlug} name={event.name} />
 
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <div className="mb-4 flex justify-center">
@@ -76,8 +78,8 @@ export default async function EventPage({ params }: Props) {
         </div>
 
         <CountdownDisplay event={event} />
-        <ShareBar name={event.name} slug={event.slug} />
-        <EmbedCta slug={event.slug} />
+        <ShareBar name={event.name} slug={rawSlug} />
+        <EmbedCta slug={rawSlug} />
       </div>
 
       {content.heroFact && (
@@ -117,7 +119,7 @@ export default async function EventPage({ params }: Props) {
       <SignupTeaser eventName={event.name} />
 
       <div className="max-w-2xl mx-auto px-4 pb-12">
-        <RelatedEvents categorySlug={event.categorySlug} currentSlug={event.slug} />
+        <RelatedEvents categorySlug={event.categorySlug} currentSlug={rawSlug} />
       </div>
     </>
   );
