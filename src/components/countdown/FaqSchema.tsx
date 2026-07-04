@@ -1,7 +1,12 @@
 import { buildFaqList, type EventContent } from '@/lib/seo';
 
 interface Props {
-  event: { name: string; targetDate: Date | string; content?: unknown };
+  event: {
+    name: string;
+    targetDate: Date | string;
+    type?: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE';
+    content?: unknown;
+  };
   countdown: { days_left: number; hours_left: number };
 }
 

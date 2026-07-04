@@ -9,10 +9,12 @@ import { QuickFacts } from '@/components/countdown/QuickFacts';
 import { EventTimeline } from '@/components/countdown/EventTimeline';
 import { SourcesFooter } from '@/components/countdown/SourcesFooter';
 import { CategoryBadge } from '@/components/countdown/CategoryBadge';
+import { CategoryTool } from '@/components/pro-tools/CategoryTool';
 import { ShareBar } from '@/components/ui/ShareBar';
 import { EmbedCta } from '@/components/embed/EmbedCta';
 import { RecentLogger } from '@/components/countdown/RecentLogger';
 import { SignupTeaser } from '@/components/ui/SignupTeaser';
+import { StarField } from '@/components/ui/StarField';
 import { buildCountdownResponse } from '@/lib/countdown';
 import type { EventContent } from '@/lib/seo';
 
@@ -64,63 +66,71 @@ export default async function EventPage({ params }: Props) {
   const content = (event.content ?? {}) as EventContent;
 
   return (
-    <>
-      <PageJsonLd event={event} countdown={countdown} />
-      <RecentLogger slug={rawSlug} name={event.name} />
+    <div className="relative" style={{ background: 'var(--bg-base)' }}>
+      <StarField />
 
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="mb-4 flex justify-center">
-          <CategoryBadge
-            categorySlug={event.categorySlug}
-            categoryName={event.category?.name}
-            emoji={event.category?.emoji}
+      <div className="relative z-10">
+        <PageJsonLd event={event} countdown={countdown} />
+        <RecentLogger slug={rawSlug} name={event.name} />
+
+        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
+          <div className="mb-4 flex justify-center">
+            <CategoryBadge
+              categorySlug={event.categorySlug}
+              categoryName={event.category?.name}
+              emoji={event.category?.emoji}
+            />
+          </div>
+
+          <CountdownDisplay event={event} />
+          <ShareBar name={event.name} slug={rawSlug} />
+          <EmbedCta slug={rawSlug} />
+        </div>
+
+        {content.heroFact && (
+          <div className="max-w-2xl mx-auto px-4 pb-8 text-left">
+            <div className="ios-card p-5" style={{ borderLeft: '3px solid rgb(var(--accent-brand))' }}>
+              <p className="text-callout">{content.heroFact}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="max-w-2xl mx-auto px-4 pb-8">
+          <QuickFacts
+            days={countdown.days_left}
+            weeks={weeks}
+            months={months}
+            hoursTotal={hoursTotal}
+            eventName={event.name}
+            targetDate={event.targetDate}
+            extra={content.quickFacts}
           />
         </div>
 
-        <CountdownDisplay event={event} />
-        <ShareBar name={event.name} slug={rawSlug} />
-        <EmbedCta slug={rawSlug} />
-      </div>
+        <div className="max-w-2xl mx-auto px-4 pb-8">
+          <CategoryTool categorySlug={event.categorySlug} eventName={event.name} />
+        </div>
 
-      {content.heroFact && (
-        <div className="max-w-2xl mx-auto px-4 pb-8 text-left">
-          <div className="ios-card p-5" style={{ borderLeft: '3px solid rgb(var(--accent-brand))' }}>
-            <p className="text-callout">{content.heroFact}</p>
+        {content.timeline && content.timeline.length > 0 && (
+          <div className="max-w-2xl mx-auto px-4 pb-8">
+            <EventTimeline items={content.timeline} />
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="max-w-2xl mx-auto px-4 pb-8">
-        <QuickFacts
-          days={countdown.days_left}
-          weeks={weeks}
-          months={months}
-          hoursTotal={hoursTotal}
-          eventName={event.name}
-          targetDate={event.targetDate}
-          extra={content.quickFacts}
-        />
+        <FaqSchema event={event} countdown={countdown} />
+
+        {(content.sources?.length || content.lastReviewed) && (
+          <div className="max-w-2xl mx-auto px-4 pb-8">
+            <SourcesFooter sources={content.sources} lastReviewed={content.lastReviewed} />
+          </div>
+        )}
+
+        <SignupTeaser eventName={event.name} />
+
+        <div className="max-w-2xl mx-auto px-4 pb-12">
+          <RelatedEvents categorySlug={event.categorySlug} currentSlug={rawSlug} />
+        </div>
       </div>
-
-      {content.timeline && content.timeline.length > 0 && (
-        <div className="max-w-2xl mx-auto px-4 pb-8">
-          <EventTimeline items={content.timeline} />
-        </div>
-      )}
-
-      <FaqSchema event={event} countdown={countdown} />
-
-      {(content.sources?.length || content.lastReviewed) && (
-        <div className="max-w-2xl mx-auto px-4 pb-8">
-          <SourcesFooter sources={content.sources} lastReviewed={content.lastReviewed} />
-        </div>
-      )}
-
-      <SignupTeaser eventName={event.name} />
-
-      <div className="max-w-2xl mx-auto px-4 pb-12">
-        <RelatedEvents categorySlug={event.categorySlug} currentSlug={rawSlug} />
-      </div>
-    </>
+    </div>
   );
 }
