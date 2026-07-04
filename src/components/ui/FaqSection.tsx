@@ -1,3 +1,4 @@
+// FILE: src/components/ui/FaqSection.tsx
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -8,6 +9,8 @@ export interface FaqItem {
   question: string;
   slug: string;
   targetDate: string;
+  type: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE';
+  archived: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -15,29 +18,98 @@ const MAX_PAGES = 5;
 const AUTO_ADVANCE_MS = 6000;
 const RESUME_AFTER_DRAG_MS = 2500;
 
-// Cycles through your existing category glow colors for visual variety per row
-const GLOW_CLASSES = ['gc-holidays', 'gc-sports', 'gc-tech', 'gc-finance', 'gc-personal', 'gc-travel', 'gc-nature', 'gc-space'];
+const GLOW_CLASSES = [
+  'gc-holidays', 'gc-sports', 'gc-tech', 'gc-finance',
+  'gc-personal', 'gc-travel', 'gc-nature', 'gc-space',
+];
 
-function daysLeft(targetDate: string): number {
-  const diff = new Date(targetDate).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / 86_400_000));
+type Tab = 'live-future' | 'archive-future' | 'live-past' | 'archive-past';
+
+const TAB_CONFIG: { id: Tab; label: string; color: string }[] = [
+  { id: 'live-future',    label: '🟢 Live',            color: '#22c55e' },
+  { id: 'archive-future', label: '🟠 Archive',         color: '#f97316' },
+  { id: 'live-past',      label: '🟣 Elapsed',         color: '#a78bfa' },
+  { id: 'archive-past',   label: '⚫ History',         color: '#64748b' },
+];
+
+// ── Classify: archived flag is the source of truth for archive tabs ──
+function classifyItem(item: FaqItem): Tab {
+  const isFuture =
+    item.type === 'COUNTDOWN' &&
+    new Date(item.targetDate).getTime() > Date.now();
+
+  if (item.archived) {
+    return isFuture ? 'archive-future' : 'archive-past';
+  }
+  return isFuture ? 'live-future' : 'live-past';
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+// ── Label helpers ─────────────────────────────────────────────────────
+function formatFutureLabel(ms: number): string {
+  const days = Math.ceil(ms / 86_400_000);
+  return `${days}d`;
 }
 
+function formatElapsedLabel(absMs: number): string {
+  const totalSeconds = Math.floor(absMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  if (days > 365) return `${Math.floor(days / 365)}y`;
+  if (days > 30)  return `${Math.floor(days / 30)}mo`;
+  if (days > 0)   return `${days}d`;
+  const hours = Math.floor(totalSeconds / 3600);
+  if (hours > 0)  return `${hours}h`;
+  return `${Math.floor(totalSeconds / 60)}m`;
+}
+
+function getRelativeMs(relativeType: string): number {
+  const now = new Date();
+  if (relativeType === 'yesterday') {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    y.setHours(0, 0, 0, 0);
+    return now.getTime() - y.getTime();
+  }
+  if (relativeType === 'noon') {
+    const n = new Date(now);
+    n.setHours(12, 0, 0, 0);
+    if (n.getTime() > now.getTime()) n.setDate(n.getDate() - 1);
+    return now.getTime() - n.getTime();
+  }
+  // today / midnight / default
+  const t = new Date(now);
+  t.setHours(0, 0, 0, 0);
+  return now.getTime() - t.getTime();
+}
+
+// ── Single row ────────────────────────────────────────────────────────
 function FaqRow({ item, index }: { item: FaqItem; index: number }) {
-  const [days, setDays] = useState(() => daysLeft(item.targetDate));
+  const [label, setLabel] = useState('…');
+  const glowClass = GLOW_CLASSES[index % GLOW_CLASSES.length];
+
+  const isPast =
+    item.type === 'ELAPSED' ||
+    item.type === 'RELATIVE' ||
+    new Date(item.targetDate).getTime() < Date.now();
 
   useEffect(() => {
-    const id = setInterval(() => setDays(daysLeft(item.targetDate)), 60_000);
+    function update() {
+      if (item.type === 'RELATIVE') {
+        // Use relativeType from content if available; fall back to targetDate diff
+        const absMs = getRelativeMs('today'); // default; detail page handles per-type
+        setLabel(formatElapsedLabel(absMs));
+        return;
+      }
+      const diff = new Date(item.targetDate).getTime() - Date.now();
+      if (item.type === 'ELAPSED' || diff < 0) {
+        setLabel(formatElapsedLabel(Math.abs(diff)));
+      } else {
+        setLabel(formatFutureLabel(diff));
+      }
+    }
+    update();
+    const id = setInterval(update, 60_000);
     return () => clearInterval(id);
-  }, [item.targetDate]);
-
-  const glowClass = GLOW_CLASSES[index % GLOW_CLASSES.length];
+  }, [item]);
 
   return (
     <Link
@@ -47,39 +119,78 @@ function FaqRow({ item, index }: { item: FaqItem; index: number }) {
     >
       <span className="faq-row-dot" style={{ background: `rgb(var(--glow))` }} />
       <span className="faq-row-question">{item.question}</span>
-      <span className="faq-row-days" style={{ color: 'rgb(var(--glow))', background: 'rgba(var(--glow), 0.12)' }}>
-        {days}d
+      <span
+        className="faq-row-days"
+        style={{
+          color: isPast ? 'rgb(var(--accent-brand))' : 'rgb(var(--glow))',
+          background: isPast
+            ? 'rgba(var(--accent-brand), 0.12)'
+            : 'rgba(var(--glow), 0.12)',
+        }}
+      >
+        {label}
       </span>
       <span className="faq-row-arrow">→</span>
     </Link>
   );
 }
 
-export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
-  const [tab, setTab] = useState<'live' | 'archive'>('live');
+// ── Helpers ───────────────────────────────────────────────────────────
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
 
-  // ── LIVE SLIDER ─────────────────────────────────────────
-  const pages = chunk(initialFaqs, PAGE_SIZE).slice(0, MAX_PAGES);
+// ── Main component ────────────────────────────────────────────────────
+export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
+  const [tab, setTab] = useState<Tab>('live-future');
+
+  // Classify all items — archived flag is the source of truth
+  const classified = initialFaqs.reduce<Record<Tab, FaqItem[]>>(
+    (acc, item) => {
+      const bucket = classifyItem(item);
+      acc[bucket].push(item);
+      return acc;
+    },
+    { 'live-future': [], 'archive-future': [], 'live-past': [], 'archive-past': [] }
+  );
+
+  const currentItems = classified[tab];
+  const pages = chunk(currentItems, PAGE_SIZE).slice(0, MAX_PAGES);
+
   const [pageIndex, setPageIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const resumeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const goTo = useCallback((i: number) => {
-    if (pages.length === 0) return;
-    setPageIndex(((i % pages.length) + pages.length) % pages.length);
-  }, [pages.length]);
+  // Reset page on tab change
+  useEffect(() => { setPageIndex(0); }, [tab]);
+
+  const goTo = useCallback(
+    (i: number) => {
+      if (pages.length === 0) return;
+      setPageIndex(((i % pages.length) + pages.length) % pages.length);
+    },
+    [pages.length]
+  );
 
   useEffect(() => {
     if (isPaused || pages.length <= 1) return;
-    const id = setInterval(() => setPageIndex(p => (p + 1) % pages.length), AUTO_ADVANCE_MS);
+    const id = setInterval(
+      () => setPageIndex(p => (p + 1) % pages.length),
+      AUTO_ADVANCE_MS
+    );
     return () => clearInterval(id);
   }, [isPaused, pages.length]);
 
   function pauseThenResume() {
     setIsPaused(true);
     if (resumeTimeout.current) clearTimeout(resumeTimeout.current);
-    resumeTimeout.current = setTimeout(() => setIsPaused(false), RESUME_AFTER_DRAG_MS);
+    resumeTimeout.current = setTimeout(
+      () => setIsPaused(false),
+      RESUME_AFTER_DRAG_MS
+    );
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -89,68 +200,72 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
     if (dragStartX.current === null) return;
     const dx = e.clientX - dragStartX.current;
     dragStartX.current = null;
-    if (dx > 50) { goTo(pageIndex - 1); pauseThenResume(); }
+    if (dx > 50)       { goTo(pageIndex - 1); pauseThenResume(); }
     else if (dx < -50) { goTo(pageIndex + 1); pauseThenResume(); }
   }
-
-  // ── ARCHIVE TAB ──────────────────────────────────────────
-  const [archiveItems, setArchiveItems] = useState<FaqItem[]>([]);
-  const [archivePage, setArchivePage] = useState(0);
-  const [archiveHasMore, setArchiveHasMore] = useState(true);
-  const [archiveLoading, setArchiveLoading] = useState(false);
-  const [archiveLoaded, setArchiveLoaded] = useState(false);
-
-  const loadArchive = useCallback(async () => {
-    setArchiveLoading(true);
-    const nextPage = archivePage + 1;
-    try {
-      const res = await fetch(`/api/faqs/archive?page=${nextPage}&limit=${PAGE_SIZE}`);
-      const data = await res.json();
-      setArchiveItems(prev => [...prev, ...(data.faqs ?? [])]);
-      setArchivePage(nextPage);
-      setArchiveHasMore(Boolean(data.hasMore));
-    } catch {
-      setArchiveHasMore(false);
-    } finally {
-      setArchiveLoading(false);
-      setArchiveLoaded(true);
-    }
-  }, [archivePage]);
-
-  useEffect(() => {
-    if (tab === 'archive' && !archiveLoaded) loadArchive();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
-
-  if (pages.length === 0 && tab === 'live') return null;
 
   return (
     <div className="py-16">
       <div className="max-w-3xl mx-auto px-4">
 
-        {/* Header + tabs */}
-        <div className="flex items-end justify-between flex-wrap gap-5 mb-8 anim-fade-up">
+        {/* Header */}
+        <div className="flex items-end justify-between flex-wrap gap-5 mb-6 anim-fade-up">
           <div>
-            <p className="text-caption mb-2" style={{ color: 'rgb(var(--accent-brand))' }}>PEOPLE ARE ASKING</p>
+            <p className="text-caption mb-2" style={{ color: 'rgb(var(--accent-brand))' }}>
+              PEOPLE ARE ASKING
+            </p>
             <h2 className="text-title1">Frequently counted questions</h2>
-          </div>
-
-          <div className="segmented">
-            <button className={`segmented-item ${tab === 'live' ? 'active' : ''}`} onClick={() => setTab('live')}>
-              Live
-            </button>
-            <button className={`segmented-item ${tab === 'archive' ? 'active' : ''}`} onClick={() => setTab('archive')}>
-              Archives
-            </button>
           </div>
         </div>
 
-        {/* LIVE SLIDER */}
-        {tab === 'live' && (
+        {/* 4-tab bar */}
+        <div className="flex gap-2 flex-wrap mb-6">
+          {TAB_CONFIG.map(t => {
+            const count = classified[t.id].length;
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="press flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                style={{
+                  background: isActive ? t.color : 'var(--bg-elevated-2)',
+                  color: isActive ? '#fff' : 'var(--text-secondary)',
+                  border: `1.5px solid ${isActive ? t.color : 'transparent'}`,
+                }}
+              >
+                {t.label}
+                {count > 0 && (
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: isActive ? 'rgba(255,255,255,0.2)' : `${t.color}22`,
+                      color: isActive ? '#fff' : t.color,
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Slider or empty state */}
+        {pages.length === 0 ? (
+          <p
+            className="text-footnote text-center py-12"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            No questions in this tab yet.
+          </p>
+        ) : (
           <div
             className="faq-slider"
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => { if (dragStartX.current === null) setIsPaused(false); }}
+            onMouseLeave={() => {
+              if (dragStartX.current === null) setIsPaused(false);
+            }}
           >
             <div
               className="faq-track"
@@ -169,7 +284,13 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
 
             {pages.length > 1 && (
               <div className="faq-controls">
-                <button className="faq-arrow-btn press" onClick={() => { goTo(pageIndex - 1); pauseThenResume(); }} aria-label="Previous page">‹</button>
+                <button
+                  className="faq-arrow-btn press"
+                  onClick={() => { goTo(pageIndex - 1); pauseThenResume(); }}
+                  aria-label="Previous page"
+                >
+                  ‹
+                </button>
                 <div className="faq-dots">
                   {pages.map((_, i) => (
                     <button
@@ -180,31 +301,14 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
                     />
                   ))}
                 </div>
-                <button className="faq-arrow-btn press" onClick={() => { goTo(pageIndex + 1); pauseThenResume(); }} aria-label="Next page">›</button>
+                <button
+                  className="faq-arrow-btn press"
+                  onClick={() => { goTo(pageIndex + 1); pauseThenResume(); }}
+                  aria-label="Next page"
+                >
+                  ›
+                </button>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* ARCHIVE LIST */}
-        {tab === 'archive' && (
-          <div className="anim-fade-up">
-            {archiveItems.length === 0 && !archiveLoading && (
-              <p className="text-footnote text-center py-8" style={{ color: 'var(--text-tertiary)' }}>
-                No archived questions yet.
-              </p>
-            )}
-
-            <div className="flex flex-col gap-2.5">
-              {archiveItems.map((item, i) => (
-                <FaqRow key={item.id} item={item} index={i} />
-              ))}
-            </div>
-
-            {archiveHasMore && (
-              <button className="faq-load-more press" onClick={loadArchive} disabled={archiveLoading}>
-                {archiveLoading ? 'Loading…' : 'Load more'}
-              </button>
             )}
           </div>
         )}

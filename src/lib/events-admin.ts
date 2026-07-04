@@ -7,11 +7,12 @@ export interface EventUploadItem {
   name: string;
   description?: string;
   content?: Record<string, unknown>;
-  targetDate: string;       // ISO string
-  categorySlug: string;     // REQUIRED — no silent default; see note below
-  type?: 'COUNTDOWN' | string; // widen if you have more EventType values
+  targetDate: string;
+  categorySlug: string;
+  type?: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE';
   locale?: string;
   published?: boolean;
+  archived?: boolean;
 }
 
 export interface UpsertResult {
@@ -30,17 +31,29 @@ export interface UpsertResult {
  */
 export async function upsertEventFromJson(item: EventUploadItem): Promise<UpsertResult> {
   if (!item.slug || !item.name || !item.targetDate || !item.categorySlug) {
-    return { slug: item.slug ?? '(missing slug)', status: 'error', error: 'Missing required field: slug, name, targetDate, and categorySlug are all required.' };
+    return {
+      slug: item.slug ?? '(missing slug)',
+      status: 'error',
+      error: 'Missing required field: slug, name, targetDate, and categorySlug are all required.',
+    };
   }
 
   const category = await prisma.category.findUnique({ where: { slug: item.categorySlug } });
   if (!category) {
-    return { slug: item.slug, status: 'error', error: `Category "${item.categorySlug}" does not exist. Create it first or fix the slug.` };
+    return {
+      slug: item.slug,
+      status: 'error',
+      error: `Category "${item.categorySlug}" does not exist. Create it first or fix the slug.`,
+    };
   }
 
   const targetDate = new Date(item.targetDate);
   if (Number.isNaN(targetDate.getTime())) {
-    return { slug: item.slug, status: 'error', error: `Invalid targetDate: "${item.targetDate}"` };
+    return {
+      slug: item.slug,
+      status: 'error',
+      error: `Invalid targetDate: "${item.targetDate}"`,
+    };
   }
 
   try {
@@ -52,9 +65,11 @@ export async function upsertEventFromJson(item: EventUploadItem): Promise<Upsert
       content: item.content ?? undefined,
       targetDate,
       categoryId: category.id,
-      categorySlug: category.slug, // ← always derived from the same lookup as categoryId, never taken separately from the payload
+      categorySlug: category.slug, // always derived from the same lookup as categoryId
       published: item.published ?? true,
+      archived: item.archived ?? false,
       locale: item.locale ?? 'en',
+      ...(item.type ? { type: item.type } : {}),
     };
 
     if (existing) {
@@ -65,6 +80,10 @@ export async function upsertEventFromJson(item: EventUploadItem): Promise<Upsert
       return { slug: item.slug, status: 'created' };
     }
   } catch (err) {
-    return { slug: item.slug, status: 'error', error: err instanceof Error ? err.message : 'Unknown error' };
+    return {
+      slug: item.slug,
+      status: 'error',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
   }
 }
