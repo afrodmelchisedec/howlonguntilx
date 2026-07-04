@@ -1,0 +1,11 @@
+{
+  "heroFact": "Alcohol leaves your bloodstream at a fairly constant rate — roughly one standard drink per hour — regardless of coffee, cold showers, or exercise.",
+  "timeline": [
+    { "offset": "0–30 min", "label": "Alcohol begins entering the bloodstream from the stomach and small intestine" },
+    { "offset": "30–90 min", "label": "Blood alcohol concentration typically peaks" },
+    { "offset": "Each hour after", "label": "The liver metabolizes roughly one standard drink per hour", "note": "Body weight, food intake, and biological sex all affect the exact rate." },
+    { "offset": "12–24 hours", "label": "Most alcohol has cleared the bloodstream", "note": "A hangover and lingering effects can still continue after alcohol itself is gone." }
+  ],
+  "sources": [{ "label": "NIAAA", "url": "https://www.niaaa.nih.gov" }],
+  "lastReviewed": "2026-06-01"
+}

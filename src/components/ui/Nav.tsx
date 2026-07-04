@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 const NAV_LINKS = [
   { label:'Categories', href:'/categories',                    cls:'gc-brand'  },
+  { label:'Calendar',   href:'/calendar',                      cls:'gc-travel' },
   { label:'Embed',      href:'/embed',                         cls:'gc-sports' },
   { label:'API',        href:'/api/countdown?event=christmas', cls:'gc-finance', ext:true },
 ];
@@ -17,7 +18,6 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-40 glass px-4 sm:px-6 py-2.5 flex items-center justify-between">
-      {/* logo */}
       <div className="flex items-center gap-4">
         <Link href="/" className="press font-black text-lg tracking-tight" style={{ color: 'var(--text-primary)' }}>
           How<span className="gradient-text">Long</span>Until
@@ -39,7 +39,6 @@ export function Nav() {
         </div>
       </div>
 
-      {/* right */}
       <div className="flex items-center gap-2">
         <ThemeToggle />
         {status==='loading' ? (

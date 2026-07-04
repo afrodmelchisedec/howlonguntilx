@@ -1,0 +1,10 @@
+{
+  "year": 2026,
+  "united_states": [
+    {"date": "Month Day", "event": "Event name (Location)", "description": "One sentence, plain language, no editorializing."}
+  ],
+  "europe": [],
+  "united_kingdom": [],
+  "africa": [],
+  "middle_east": []
+}
