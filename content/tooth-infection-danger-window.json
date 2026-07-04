@@ -1,0 +1,10 @@
+{
+  "heroFact": "A tooth infection can become dangerous within 3–5 days if untreated — it can spread to the jaw, neck, or bloodstream.",
+  "timeline": [
+    { "offset": "Day 1–2", "label": "Localized pain and swelling begin" },
+    { "offset": "Day 3–5", "label": "Infection risks spreading to surrounding tissue", "note": "Seek dental care now" },
+    { "offset": "Day 5+", "label": "Risk of sepsis or airway compromise rises sharply" }
+  ],
+  "sources": [{ "label": "American Dental Association", "url": "https://www.ada.org" }],
+  "lastReviewed": "2026-06-01"
+}

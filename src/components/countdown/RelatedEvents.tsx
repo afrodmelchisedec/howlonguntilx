@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { getRelatedEvents } from '@/lib/events';
 
-interface Props { category: string; currentSlug: string }
+interface Props { categorySlug: string; currentSlug: string }
 
-export async function RelatedEvents({ category, currentSlug }: Props) {
-  const events = await getRelatedEvents(category, currentSlug);
+export async function RelatedEvents({ categorySlug, currentSlug }: Props) {
+  const events = await getRelatedEvents(categorySlug, currentSlug);
   if (!events.length) return null;
   return (
     <div className="mt-12 text-left">
