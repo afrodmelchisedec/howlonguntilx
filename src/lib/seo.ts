@@ -10,8 +10,6 @@ export interface EventContent {
   lastReviewed?: string;
 }
 
-// Maps your real category/subcategory slugs onto the glow buckets
-// already defined in globals.css (.gc-* / --glow-*).
 const GLOW_MAP: Record<string, string> = {
   leisure: 'personal',
   tech: 'tech',
@@ -51,7 +49,7 @@ export function prettifySlug(slug: string): string {
 export interface FaqPair { q: string; a: string }
 
 export function buildFaqList(
-  event: { name: string; targetDate: Date | string },
+  event: { name: string; targetDate: Date | string; type?: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE' },
   countdown: { days_left: number; hours_left: number },
   custom?: EventContent['faqs']
 ): FaqPair[] {
@@ -59,12 +57,34 @@ export function buildFaqList(
     month: 'long', day: 'numeric', year: 'numeric',
   });
 
-  const base: FaqPair[] = [
-    { q: `How long until ${event.name}?`, a: `There are ${countdown.days_left} days and ${countdown.hours_left} hours until ${event.name} on ${dateStr}.` },
-    { q: `How many days until ${event.name}?`, a: `Exactly ${countdown.days_left} days until ${event.name}.` },
-    { q: `When is ${event.name}?`, a: `${event.name} is on ${dateStr}.` },
-    { q: `How many weeks until ${event.name}?`, a: `There are approximately ${Math.floor(countdown.days_left / 7)} weeks until ${event.name}.` },
-  ];
+  const name = event.name.trim();
+  const alreadyPhrased = name.endsWith('?');
+  const isElapsed = event.type === 'ELAPSED';
+  const days = Math.abs(countdown.days_left);
+  const hours = Math.abs(countdown.hours_left);
+  const weeks = Math.floor(days / 7);
+
+  const base: FaqPair[] = alreadyPhrased
+    ? [
+        {
+          q: name,
+          a: `${days.toLocaleString()} days and ${hours} hours ${isElapsed ? 'have passed since' : 'remain until'} ${dateStr}.`,
+        },
+        {
+          q: `How many days ${isElapsed ? 'has it been since' : 'until'} ${dateStr}?`,
+          a: `${isElapsed ? 'It has been' : 'There are'} exactly ${days.toLocaleString()} days.`,
+        },
+        {
+          q: `How many weeks ${isElapsed ? 'has it been since' : 'until'} ${dateStr}?`,
+          a: `Approximately ${weeks.toLocaleString()} weeks.`,
+        },
+      ]
+    : [
+        { q: `How long until ${name}?`, a: `There are ${days} days and ${hours} hours until ${name} on ${dateStr}.` },
+        { q: `How many days until ${name}?`, a: `Exactly ${days} days until ${name}.` },
+        { q: `When is ${name}?`, a: `${name} is on ${dateStr}.` },
+        { q: `How many weeks until ${name}?`, a: `There are approximately ${weeks} weeks until ${name}.` },
+      ];
 
   const extra: FaqPair[] = (custom ?? []).map(f => ({ q: f.question, a: f.answer }));
 
@@ -77,4 +97,21 @@ export function buildFaqList(
     merged.push(pair);
   }
   return merged;
+}
+
+export type ToolKey = 'finance' | 'scam' | 'hype';
+
+const TOOL_MAP: Record<string, ToolKey> = {
+  finance: 'finance',
+  'money-milestones': 'finance',
+  'tax-budget-deadlines': 'finance',
+  'salary-payroll': 'finance',
+  scam: 'scam',
+  'cyber-scams': 'scam',
+  'financial-fraud': 'scam',
+  'phishing-identity': 'scam',
+};
+
+export function getToolForCategory(categorySlug: string): ToolKey {
+  return TOOL_MAP[categorySlug] ?? 'hype';
 }
