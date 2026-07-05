@@ -1,12 +1,8 @@
 // FILE: src/lib/calendar.ts
+// Server-only — reads from disk. Never import this from a 'use client' file.
 import fs from 'fs';
 import path from 'path';
-
-export interface CalendarEvent {
-  region: string;
-  event: string;
-  description: string;
-}
+import type { CalendarEvent } from './calendar-shared';
 
 type CalendarMap = Record<string, CalendarEvent[]>; // "YYYY-MM-DD" -> events
 
@@ -57,30 +53,4 @@ export function getCalendarMonth(year: number, month: number): CalendarMap {
     if (date.startsWith(prefix)) filtered[date] = all[date];
   }
   return filtered;
-}
-
-export const CALENDAR_REGIONS = ['united_states', 'europe', 'united_kingdom', 'africa', 'middle_east'] as const;
-
-const REGION_LABELS: Record<string, string> = {
-  united_states: 'United States',
-  europe: 'Europe',
-  united_kingdom: 'United Kingdom',
-  africa: 'Africa',
-  middle_east: 'Middle East',
-};
-
-const REGION_GLOW: Record<string, string> = {
-  united_states: 'brand',
-  europe: 'travel',
-  united_kingdom: 'entertainment',
-  africa: 'nature',
-  middle_east: 'space',
-};
-
-export function prettifyRegion(region: string): string {
-  return REGION_LABELS[region] ?? region;
-}
-
-export function getRegionGlow(region: string): string {
-  return REGION_GLOW[region] ?? 'brand';
 }
