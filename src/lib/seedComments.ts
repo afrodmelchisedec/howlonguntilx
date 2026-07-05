@@ -46,3 +46,19 @@ export const SUBSCRIPTION_DENSITY_COMMENTS: SeedComment[] = [
   { id: 's9', author: 'Theo',    avatarColor: '250, 128, 114', text: 'Used this to finally map out every subscription I forgot I had. Cancelled two after seeing them laid out visually.', likes: 30, timeAgo: '2w ago' },
   { id: 's10', author: 'Amara',  avatarColor: '167, 222, 133', text: 'Simple concept but the heat bar recalculating instantly as you drag makes it so much more useful than a spreadsheet.', likes: 24, timeAgo: '2w ago' },
 ];
+
+
+export const RECIPE_BATCH_DIAL_COMMENTS = [
+  { id: 'c1', author: 'Priya', text: 'Scaled the cookie recipe to feed my whole office, genuinely useful.', likes: 14 },
+  { id: 'c2', author: 'Owen', text: 'The dial feels so satisfying to drag, way better than typing a number in.', likes: 9 },
+  { id: 'c3', author: 'Marcus', text: 'Hit the pancake batter for a birthday brunch, 20 servings and nobody went hungry.', likes: 22 },
+  { id: 'c4', author: 'Fatima', text: 'The oven capacity tip actually saved me from ruining a batch, didn\'t think about pan space until it warned me.', likes: 31 },
+  { id: 'c5', author: 'Devon', text: 'Wish the free tier went past 8 servings but I get why, upgraded within a week honestly.', likes: 7 },
+  { id: 'c6', author: 'Lena', text: 'Copy list button is clutch, pasted straight into my grocery app.', likes: 18 },
+  { id: 'c7', author: 'Carlos', text: 'Tried scaling the pasta sauce down to 2 servings for a solo dinner, math checked out perfectly.', likes: 5 },
+  { id: 'c8', author: 'Aisha', text: 'This is way more fun than it has any right to be, kept spinning the dial just to watch the bars move.', likes: 27 },
+  { id: 'c9', author: 'Tobias', text: 'Saved my batch size as Pro and it was still there when I came back the next day, nice touch.', likes: 11 },
+  { id: 'c10', author: 'Grace', text: 'Made 60 servings of cookies for a school fundraiser, the dial made it stupidly easy to plan.', likes: 19 },
+  { id: 'c11', author: 'Yusuf', text: 'The tactile drag is such a small thing but it makes the whole tool feel premium.', likes: 8 },
+  { id: 'c12', author: 'Naomi', text: 'Only gripe is I want more recipes in the dropdown, otherwise this is my new favorite kitchen tool.', likes: 13 },
+];
