@@ -1,4 +1,4 @@
-import { RunwayLab } from '@/components/pro-tools/RunwayLab';
+import { RunwayLabTabs } from '@/components/pro-tools/RunwayLabTabs';
 import { StarField } from '@/components/ui/StarField';
 
 export const metadata = {
@@ -18,7 +18,7 @@ export default function RunwayLabPage() {
             Drag everything. Watch the runway change instantly.
           </p>
         </div>
-        <RunwayLab />
+        <RunwayLabTabs />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ interface Props {
   previewSeconds?: number;
   title?: string;
   desc?: string;
+  onLock?: () => void;
   children: React.ReactNode;
 }
 
@@ -17,16 +18,20 @@ export function ToolProGate({
   previewSeconds = 3,
   title = 'Keep playing with Premium',
   desc = 'Unlock unlimited plays, saved history, and live updates.',
+  onLock,
   children,
 }: Props) {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     if (isPro) { setLocked(false); return; }
-    const t = setTimeout(() => setLocked(true), previewSeconds * 1000);
+    const t = setTimeout(() => {
+      setLocked(true);
+      onLock?.();
+    }, previewSeconds * 1000);
     return () => clearTimeout(t);
-  }, [isPro, previewSeconds]);
-
+  }, [isPro, previewSeconds, onLock]);
+  
   return (
     <div className="relative">
       <div className={locked ? 'opacity-30 pointer-events-none select-none transition-opacity duration-500' : 'transition-opacity duration-500'}>

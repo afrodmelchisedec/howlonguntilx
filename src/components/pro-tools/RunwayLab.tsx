@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { ToolProGate } from './ToolProGate';
 import { RUNWAY_LAB_COMMENTS } from '@/lib/seedComments';
 
 type Health = 'safe' | 'tight' | 'danger';
@@ -31,6 +32,7 @@ function fmtMoney(n: number) {
 export function RunwayLab() {
   const { data: session } = useSession();
   const { toast, showToast } = useToast();
+  const isPro = session?.user?.plan === 'PRO' || session?.user?.role === 'ADMIN';
 
   const [daysToPayday, setDaysToPayday] = useState(14);
   const [income, setIncome] = useState(2400);
@@ -181,119 +183,127 @@ export function RunwayLab() {
         className="ios-card p-6 sm:p-8 transition-all duration-500"
         style={{ boxShadow: `0 0 0 1.5px rgba(${glowRgb}, 0.35), 0 0 40px rgba(${glowRgb}, 0.15)` }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-caption mb-1" style={{ color: `rgb(${glowRgb})` }}>RUNWAY LAB</p>
-            <h2 className="text-title2">Payday Budget Simulator</h2>
-          </div>
-          <div className="pill press transition-all duration-500" style={{ background: `rgba(${glowRgb}, 0.15)`, color: `rgb(${glowRgb})` }}>
-            {healthLabel[health]}
-          </div>
-        </div>
-
-        {/* Live headline numbers */}
-        <div className="grid grid-cols-3 gap-3 mb-7">
-          {[
-            { label: 'Daily budget', value: fmtMoney(dailyBudget) },
-            { label: 'Discretionary', value: fmtMoney(discretionary) },
-            { label: 'Days left', value: String(daysToPayday) },
-          ].map(stat => (
-            <div key={stat.label} className="ios-card-nested p-3 text-center">
-              <div className="text-title3 tabular transition-transform duration-200"
-                style={{ transform: pulse ? 'scale(1.08)' : 'scale(1)', color: `rgb(${glowRgb})` }}>
-                {stat.value}
-              </div>
-              <div className="text-caption mt-0.5">{stat.label}</div>
+        <ToolProGate
+          isPro={isPro}
+          previewSeconds={3}
+          title="Keep exploring your runway"
+          desc="You need Pro to continue interacting with Runway Lab."
+          onLock={() => showToast('You need Pro to continue interacting', '🔒')}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-caption mb-1" style={{ color: `rgb(${glowRgb})` }}>RUNWAY LAB</p>
+              <h2 className="text-title2">Payday Budget Simulator</h2>
             </div>
-          ))}
-        </div>
-
-        {/* Sliders */}
-        <div className="flex flex-col gap-5 mb-7">
-          <SliderRow label="Days until payday" value={daysToPayday} min={1} max={30} step={1}
-            display={`${daysToPayday}d`} glow={glowRgb} onChange={setDaysToPayday} />
-          <SliderRow label="Income this period" value={income} min={0} max={120000} step={500}
-            display={fmtMoney(income)} glow={glowRgb} onChange={setIncome} />
-          <SliderRow label="Fixed expenses (rent, bills, etc.)" value={fixedExpenses} min={0} max={income} step={50}
-            display={fmtMoney(fixedExpenses)} glow={glowRgb} onChange={setFixedExpenses} />
-          <SliderRow label="Already spent today" value={spentToday} min={0} max={Math.max(discretionary, 1)} step={10}
-            display={fmtMoney(spentToday)} glow={glowRgb} onChange={setSpentToday} />
-        </div>
-
-        {/* Drag-to-split budget bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-footnote font-semibold">Split your discretionary spend</p>
-            <p className="text-caption">drag the dividers →</p>
+            <div className="pill press transition-all duration-500" style={{ background: `rgba(${glowRgb}, 0.15)`, color: `rgb(${glowRgb})` }}>
+              {healthLabel[health]}
+            </div>
           </div>
-          <div ref={barRef} className="relative w-full h-12 rounded-2xl overflow-hidden flex select-none"
-            style={{ border: '1px solid var(--border-hairline)' }}>
-            {SEGMENT_ORDER.map((key, i) => {
-              const meta = SEGMENT_META[key];
-              return (
-                <div key={key} className="relative flex items-center justify-center transition-all duration-150"
-                  style={{
-                    width: `${splits[key]}%`,
-                    background: `rgba(${meta.color}, 0.28)`,
-                    borderRight: i < SEGMENT_ORDER.length - 1 ? '2px solid var(--bg-base)' : 'none',
-                  }}>
-                  {splits[key] > 8 && (
-                    <span className="text-xs font-bold whitespace-nowrap" style={{ color: `rgb(${meta.color})` }}>
-                      {meta.emoji} {Math.round(splits[key])}%
-                    </span>
-                  )}
-                  {i < SEGMENT_ORDER.length - 1 && (
-                    <div onPointerDown={() => { dragSegment.current = i; }}
-                      className="absolute top-0 right-0 h-full w-4 -mr-2 cursor-ew-resize flex items-center justify-center z-10"
-                      style={{ touchAction: 'none' }}>
-                      <div className="w-1 h-6 rounded-full" style={{ background: 'var(--text-tertiary)' }} />
-                    </div>
-                  )}
+
+          {/* Live headline numbers */}
+          <div className="grid grid-cols-3 gap-3 mb-7">
+            {[
+              { label: 'Daily budget', value: fmtMoney(dailyBudget) },
+              { label: 'Discretionary', value: fmtMoney(discretionary) },
+              { label: 'Days left', value: String(daysToPayday) },
+            ].map(stat => (
+              <div key={stat.label} className="ios-card-nested p-3 text-center">
+                <div className="text-title3 tabular transition-transform duration-200"
+                  style={{ transform: pulse ? 'scale(1.08)' : 'scale(1)', color: `rgb(${glowRgb})` }}>
+                  {stat.value}
                 </div>
-              );
-            })}
+                <div className="text-caption mt-0.5">{stat.label}</div>
+              </div>
+            ))}
           </div>
-          <div className="grid grid-cols-4 gap-2 mt-3">
-            {SEGMENT_ORDER.map(key => {
-              const meta = SEGMENT_META[key];
-              const amount = (splits[key] / 100) * discretionary;
-              return (
-                <div key={key} className="text-center">
-                  <div className="text-footnote font-bold tabular" style={{ color: `rgb(${meta.color})` }}>{fmtMoney(amount)}</div>
-                  <div className="text-caption">{meta.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Chart */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-footnote font-semibold">Projected balance until payday</p>
-            {runsOutEarly && (
-              <span className="text-caption font-bold" style={{ color: `rgb(${HEALTH_COLOR.danger})` }}>
-                Runs out on day {zeroDay}
-              </span>
-            )}
+          {/* Sliders */}
+          <div className="flex flex-col gap-5 mb-7">
+            <SliderRow label="Days until payday" value={daysToPayday} min={1} max={30} step={1}
+              display={`${daysToPayday}d`} glow={glowRgb} onChange={setDaysToPayday} />
+            <SliderRow label="Income this period" value={income} min={0} max={120000} step={500}
+              display={fmtMoney(income)} glow={glowRgb} onChange={setIncome} />
+            <SliderRow label="Fixed expenses (rent, bills, etc.)" value={fixedExpenses} min={0} max={income} step={50}
+              display={fmtMoney(fixedExpenses)} glow={glowRgb} onChange={setFixedExpenses} />
+            <SliderRow label="Already spent today" value={spentToday} min={0} max={Math.max(discretionary, 1)} step={10}
+              display={fmtMoney(spentToday)} glow={glowRgb} onChange={setSpentToday} />
           </div>
-          <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full transition-all duration-300"
-            style={{ filter: `drop-shadow(0 0 8px rgba(${glowRgb}, 0.35))` }}>
-            <defs>
-              <linearGradient id="runwayFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={`rgb(${glowRgb})`} stopOpacity="0.35" />
-                <stop offset="100%" stopColor={`rgb(${glowRgb})`} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={pathD} fill="url(#runwayFill)" style={{ transition: 'all 0.25s ease-out' }} />
-            <path d={lineD} fill="none" stroke={`rgb(${glowRgb})`} strokeWidth={2.5} strokeLinecap="round"
-              style={{ transition: 'all 0.25s ease-out' }} />
-            <line x1="0" y1={CHART_H - 10} x2={CHART_W} y2={CHART_H - 10} stroke="var(--border-hairline)" strokeDasharray="4 4" />
-          </svg>
-        </div>
 
-        {/* Like / Share / Comment bar */}
+          {/* Drag-to-split budget bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-footnote font-semibold">Split your discretionary spend</p>
+              <p className="text-caption">drag the dividers →</p>
+            </div>
+            <div ref={barRef} className="relative w-full h-12 rounded-2xl overflow-hidden flex select-none"
+              style={{ border: '1px solid var(--border-hairline)' }}>
+              {SEGMENT_ORDER.map((key, i) => {
+                const meta = SEGMENT_META[key];
+                return (
+                  <div key={key} className="relative flex items-center justify-center transition-all duration-150"
+                    style={{
+                      width: `${splits[key]}%`,
+                      background: `rgba(${meta.color}, 0.28)`,
+                      borderRight: i < SEGMENT_ORDER.length - 1 ? '2px solid var(--bg-base)' : 'none',
+                    }}>
+                    {splits[key] > 8 && (
+                      <span className="text-xs font-bold whitespace-nowrap" style={{ color: `rgb(${meta.color})` }}>
+                        {meta.emoji} {Math.round(splits[key])}%
+                      </span>
+                    )}
+                    {i < SEGMENT_ORDER.length - 1 && (
+                      <div onPointerDown={() => { dragSegment.current = i; }}
+                        className="absolute top-0 right-0 h-full w-4 -mr-2 cursor-ew-resize flex items-center justify-center z-10"
+                        style={{ touchAction: 'none' }}>
+                        <div className="w-1 h-6 rounded-full" style={{ background: 'var(--text-tertiary)' }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              {SEGMENT_ORDER.map(key => {
+                const meta = SEGMENT_META[key];
+                const amount = (splits[key] / 100) * discretionary;
+                return (
+                  <div key={key} className="text-center">
+                    <div className="text-footnote font-bold tabular" style={{ color: `rgb(${meta.color})` }}>{fmtMoney(amount)}</div>
+                    <div className="text-caption">{meta.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-footnote font-semibold">Projected balance until payday</p>
+              {runsOutEarly && (
+                <span className="text-caption font-bold" style={{ color: `rgb(${HEALTH_COLOR.danger})` }}>
+                  Runs out on day {zeroDay}
+                </span>
+              )}
+            </div>
+            <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="w-full transition-all duration-300"
+              style={{ filter: `drop-shadow(0 0 8px rgba(${glowRgb}, 0.35))` }}>
+              <defs>
+                <linearGradient id="runwayFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={`rgb(${glowRgb})`} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={`rgb(${glowRgb})`} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={pathD} fill="url(#runwayFill)" style={{ transition: 'all 0.25s ease-out' }} />
+              <path d={lineD} fill="none" stroke={`rgb(${glowRgb})`} strokeWidth={2.5} strokeLinecap="round"
+                style={{ transition: 'all 0.25s ease-out' }} />
+              <line x1="0" y1={CHART_H - 10} x2={CHART_W} y2={CHART_H - 10} stroke="var(--border-hairline)" strokeDasharray="4 4" />
+            </svg>
+          </div>
+        </ToolProGate>
+
+        {/* Like / Share / Comment bar — stays usable even after the tool locks */}
         <div className="flex items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--border-hairline)' }}>
           <button onClick={handleLike} className="ios-card-nested press flex-1 flex items-center justify-center gap-2 py-2.5"
             style={{ color: toolLiked ? `rgb(${glowRgb})` : 'var(--text-secondary)' }}>
