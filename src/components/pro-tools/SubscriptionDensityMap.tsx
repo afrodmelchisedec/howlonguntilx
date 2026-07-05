@@ -16,6 +16,8 @@ interface Subscription {
   day: number | null; // null = still in tray
 }
 
+const FREE_SUBSCRIPTION_LIMIT = 3;
+
 function fmtMoney(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 }
@@ -28,9 +30,100 @@ function seedInitial(): Subscription[] {
   ];
 }
 
+// ---- inline editable text ----
+function EditableName({ value, onCommit, colorRgb }: { value: string; onCommit: (v: string) => void; colorRgb: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    onCommit(trimmed.length > 0 ? trimmed : value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') { setDraft(value); setEditing(false); }
+        }}
+        className="text-xs font-bold bg-transparent outline-none border-b"
+        style={{ color: `rgb(${colorRgb})`, borderColor: `rgb(${colorRgb})`, width: `${Math.max(draft.length, 6)}ch` }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setDraft(value); setEditing(true); }}
+      className="text-xs font-bold press underline decoration-dotted underline-offset-2"
+      title="Click to rename"
+    >
+      {value}
+    </button>
+  );
+}
+
+// ---- inline editable amount ----
+function EditableAmount({ value, onCommit, colorRgb, className }: { value: number; onCommit: (v: number) => void; colorRgb: string; className?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+
+  function commit() {
+    const parsed = parseFloat(draft);
+    onCommit(Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <span className="inline-flex items-center gap-0.5">
+        <span className="text-xs">$</span>
+        <input
+          ref={inputRef}
+          type="number"
+          min={0}
+          step={0.01}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') commit();
+            if (e.key === 'Escape') { setDraft(String(value)); setEditing(false); }
+          }}
+          className="text-xs font-bold bg-transparent outline-none border-b w-14"
+          style={{ color: `rgb(${colorRgb})`, borderColor: `rgb(${colorRgb})` }}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setDraft(String(value)); setEditing(true); }}
+      className={`press underline decoration-dotted underline-offset-2 ${className ?? 'text-xs'}`}
+      title="Click to edit price"
+    >
+      {fmtMoney(value)}
+    </button>
+  );
+}
+
 export function SubscriptionDensityMap() {
   const { data: session } = useSession();
   const { toast, showToast } = useToast();
+  const isPro = session?.user?.plan === 'PRO' || session?.user?.role === 'ADMIN';
 
   const now = useMemo(() => new Date(), []);
   const year = now.getFullYear();
@@ -47,25 +140,48 @@ export function SubscriptionDensityMap() {
   const [toolLikeCount, setToolLikeCount] = useState(74);
 
   const cellRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const customCounter = useRef(0);
 
   const draggingSub = subs.find(s => s.id === draggingId) ?? null;
 
   const tray = subs.filter(s => s.day === null);
   const placed = subs.filter(s => s.day !== null);
 
+  const atFreeLimit = !isPro && subs.length >= FREE_SUBSCRIPTION_LIMIT;
+
   function addPreset(preset: typeof SUBSCRIPTION_PRESETS[number]) {
+    if (!isPro && subs.length >= FREE_SUBSCRIPTION_LIMIT) {
+      showToast('Upgrade to track unlimited subscriptions', '⭐');
+      return;
+    }
+    const isCustom = preset.name === 'Custom';
+    if (isCustom) customCounter.current += 1;
+    const name = isCustom ? `Custom ${customCounter.current}` : preset.name;
+
     setSubs(prev => [...prev, {
       id: `sub-${Date.now()}`,
-      name: preset.name,
+      name,
       emoji: preset.emoji,
       amount: preset.amount,
       color: preset.color,
       day: null,
     }]);
+
+    if (isCustom) {
+      showToast('Click the name or price to customize it', '✏️');
+    }
   }
 
   function removeSub(id: string) {
     setSubs(prev => prev.filter(s => s.id !== id));
+  }
+
+  function renameSub(id: string, name: string) {
+    setSubs(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  }
+
+  function repriceSub(id: string, amount: number) {
+    setSubs(prev => prev.map(s => s.id === id ? { ...s, amount } : s));
   }
 
   // ---- drag handling ----
@@ -231,13 +347,30 @@ export function SubscriptionDensityMap() {
               <button
                 key={preset.name}
                 onClick={() => addPreset(preset)}
-                className="pill press text-xs flex items-center gap-1"
-                style={{ background: `rgba(${preset.color}, 0.12)`, color: `rgb(${preset.color})` }}
+                className="pill press text-xs flex items-center gap-1 transition-opacity duration-200"
+                style={{
+                  background: `rgba(${preset.color}, 0.12)`,
+                  color: `rgb(${preset.color})`,
+                  opacity: atFreeLimit ? 0.4 : 1,
+                  cursor: atFreeLimit ? 'not-allowed' : 'pointer',
+                }}
               >
                 {preset.emoji} {preset.name}
               </button>
             ))}
           </div>
+          <p className="text-caption mt-2" style={{ color: 'var(--text-tertiary)' }}>
+            💡 Click any subscription's name or price below to customize it — handy for "Custom" or a plan that doesn't match the default price.
+          </p>
+          {!isPro && (
+            <p
+              className="text-caption mt-1"
+              style={{ color: atFreeLimit ? 'rgb(var(--accent-orange))' : 'var(--text-tertiary)' }}
+            >
+              {subs.length}/{FREE_SUBSCRIPTION_LIMIT} subscriptions on the free plan
+              {atFreeLimit && ' — upgrade for unlimited'}
+            </p>
+          )}
         </div>
 
         {/* Tray of unplaced subscriptions */}
@@ -248,19 +381,23 @@ export function SubscriptionDensityMap() {
               {tray.map(s => (
                 <div
                   key={s.id}
-                  onPointerDown={e => startDrag(s.id, e.clientX, e.clientY)}
-                  className="press flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-grab select-none"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl select-none"
                   style={{
                     background: `rgba(${s.color}, 0.18)`,
                     color: `rgb(${s.color})`,
-                    touchAction: 'none',
                     opacity: draggingId === s.id ? 0.25 : 1,
                     animation: 'chipBounce 1.8s ease-in-out infinite',
                   }}
                 >
-                  <span>{s.emoji}</span>
-                  <span className="text-xs font-bold">{s.name}</span>
-                  <span className="text-xs">{fmtMoney(s.amount)}</span>
+                  <span
+                    onPointerDown={e => startDrag(s.id, e.clientX, e.clientY)}
+                    className="cursor-grab"
+                    style={{ touchAction: 'none' }}
+                  >
+                    {s.emoji}
+                  </span>
+                  <EditableName value={s.name} onCommit={v => renameSub(s.id, v)} colorRgb={s.color} />
+                  <EditableAmount value={s.amount} onCommit={v => repriceSub(s.id, v)} colorRgb={s.color} />
                 </div>
               ))}
             </div>
@@ -352,25 +489,39 @@ export function SubscriptionDensityMap() {
           </div>
         </div>
 
-        {/* Placed subscriptions list w/ remove */}
+        {/* Placed subscriptions list w/ inline edit + remove */}
         {placed.length > 0 && (
           <div className="mb-6">
             <p className="text-footnote font-semibold mb-2">All subscriptions</p>
             <div className="flex flex-col gap-1.5">
               {placed.sort((a, b) => (a.day ?? 0) - (b.day ?? 0)).map(s => (
-                <div key={s.id} className="flex items-center justify-between ios-card-nested px-3 py-2">
+                <div key={s.id} className="flex items-center justify-between ios-card-nested px-3 py-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs" style={{ background: `rgb(${s.color})` }}>{s.emoji}</span>
-                    <span className="text-footnote font-semibold">{s.name}</span>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0" style={{ background: `rgb(${s.color})` }}>{s.emoji}</span>
+                    <EditableName value={s.name} onCommit={v => renameSub(s.id, v)} colorRgb={s.color} />
                     <span className="text-caption">day {s.day}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-footnote font-bold tabular">{fmtMoney(s.amount)}</span>
+                    <EditableAmount value={s.amount} onCommit={v => repriceSub(s.id, v)} colorRgb={s.color} className="text-footnote font-bold tabular" />
                     <button onClick={() => removeSub(s.id)} className="press text-caption" style={{ color: 'rgb(var(--accent-red))' }}>✕</button>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Free-tier upgrade banner */}
+        {atFreeLimit && (
+          <div
+            className="ios-card-nested p-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+            style={{ border: '1.5px solid rgba(var(--accent-orange), 0.4)', boxShadow: '0 0 20px rgba(var(--accent-orange), 0.1)' }}
+          >
+            <div>
+              <p className="text-footnote font-bold mb-0.5">⭐ You've hit the free limit</p>
+              <p className="text-caption">Upgrade to Premium to track unlimited subscriptions and never miss a renewal pile-up.</p>
+            </div>
+            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
           </div>
         )}
 
