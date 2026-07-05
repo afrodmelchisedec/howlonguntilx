@@ -84,6 +84,14 @@ export function RecipeBatchDial() {
     return () => clearTimeout(t);
   }, [servings]);
 
+  // Some recipe presets default to more servings than the free tier allows
+  // (e.g. cookies default to 12, free cap is 8). Without this, the dial's
+  // angle math receives a ratio > 1 and draws a broken, over-swept arc.
+  // Clamp on mount and whenever the tier or max changes.
+  useEffect(() => {
+    setServings(prev => Math.min(prev, maxServings));
+  }, [maxServings]);
+
   // Reload config for Pro users on mount
   useEffect(() => {
     if (!isPro || configLoaded) return;
@@ -104,7 +112,7 @@ export function RecipeBatchDial() {
 
   function selectRecipe(preset: RecipePreset) {
     setRecipe(preset);
-    setServings(preset.baseServings);
+    setServings(Math.min(preset.baseServings, maxServings));
     setDropdownOpen(false);
   }
 
@@ -283,8 +291,9 @@ export function RecipeBatchDial() {
                 const p2 = angleToPoint(t.angle, KNOB_RADIUS + (t.isMajor ? 22 : 18));
                 return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="var(--text-tertiary)" strokeWidth={t.isMajor ? 1.5 : 0.75} opacity={t.isMajor ? 0.6 : 0.3} />;
               })}
-              {/* free-tier limit marker */}
-              {!isPro && (
+              {/* free-tier limit marker — shown to Pro users as a reference point;
+                  for free users it would sit exactly on their own arc's end, so it's redundant */}
+              {isPro && (
                 <circle cx={angleToPoint(servingsToAngle(MAX_SERVINGS_FREE, maxServings), KNOB_RADIUS).x}
                   cy={angleToPoint(servingsToAngle(MAX_SERVINGS_FREE, maxServings), KNOB_RADIUS).y}
                   r={4} fill="rgb(var(--accent-orange))" />
