@@ -5,11 +5,15 @@ import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
 import { RECIPE_BATCH_DIAL_COMMENTS } from '@/lib/seedComments';
-import { RECIPE_PRESETS, type RecipePreset } from '@/lib/recipePresets';
+import { RECIPE_PRESETS, COUNTRIES, type RecipePreset } from '@/lib/recipePresets';
 
 const MIN_SERVINGS = 1;
-const MAX_SERVINGS_FREE = 8;
+const MAX_SERVINGS_FREE = 3;
 const MAX_SERVINGS_PRO = 60;
+
+const FREE_RECIPE_LIMIT = 3;
+// The 3 recipes free users can access — first 3 entries in the preset list.
+const FREE_UNLOCKED_RECIPE_IDS = RECIPE_PRESETS.slice(0, FREE_RECIPE_LIMIT).map(r => r.id);
 
 const DIAL_SIZE = 260;
 const CX = DIAL_SIZE / 2;
@@ -64,6 +68,7 @@ export function RecipeBatchDial() {
 
   const [recipe, setRecipe] = useState<RecipePreset>(RECIPE_PRESETS[0]);
   const [servings, setServings] = useState(recipe.baseServings);
+  const [selectedCountry, setSelectedCountry] = useState<string>(RECIPE_PRESETS[0].country);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [pulse, setPulse] = useState(false);
@@ -78,16 +83,32 @@ export function RecipeBatchDial() {
 
   const multiplier = servings / recipe.baseServings;
 
+  const filteredRecipes = useMemo(
+    () => RECIPE_PRESETS.filter(r => r.country === selectedCountry),
+    [selectedCountry]
+  );
+
+  function isRecipeLocked(r: RecipePreset): boolean {
+    return !isPro && !FREE_UNLOCKED_RECIPE_IDS.includes(r.id);
+  }
+
+  const countryHasUnlockedRecipe = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const c of COUNTRIES) {
+      map[c.name] = isPro || RECIPE_PRESETS.some(r => r.country === c.name && FREE_UNLOCKED_RECIPE_IDS.includes(r.id));
+    }
+    return map;
+  }, [isPro]);
+
   useEffect(() => {
     setPulse(true);
     const t = setTimeout(() => setPulse(false), 200);
     return () => clearTimeout(t);
   }, [servings]);
 
-  // Some recipe presets default to more servings than the free tier allows
-  // (e.g. cookies default to 12, free cap is 8). Without this, the dial's
-  // angle math receives a ratio > 1 and draws a broken, over-swept arc.
-  // Clamp on mount and whenever the tier or max changes.
+  // Some recipe presets default to more servings than the free tier allows.
+  // Without this, the dial's angle math receives a ratio > 1 and draws a
+  // broken, over-swept arc. Clamp on mount and whenever the tier changes.
   useEffect(() => {
     setServings(prev => Math.min(prev, maxServings));
   }, [maxServings]);
@@ -102,6 +123,7 @@ export function RecipeBatchDial() {
           const found = RECIPE_PRESETS.find(r => r.id === data.config.recipeId);
           if (found) {
             setRecipe(found);
+            setSelectedCountry(found.country);
             setServings(Math.min(data.config.servings, MAX_SERVINGS_PRO));
           }
         }
@@ -111,9 +133,25 @@ export function RecipeBatchDial() {
   }, [isPro, configLoaded]);
 
   function selectRecipe(preset: RecipePreset) {
+    if (isRecipeLocked(preset)) {
+      showToast('Upgrade to Pro to unlock this recipe', '⭐');
+      return;
+    }
     setRecipe(preset);
     setServings(Math.min(preset.baseServings, maxServings));
     setDropdownOpen(false);
+  }
+
+  function selectCountry(country: string) {
+    setSelectedCountry(country);
+    if (!countryHasUnlockedRecipe[country]) {
+      showToast('Upgrade to Pro to unlock recipes from this country', '⭐');
+      return;
+    }
+    const firstAvailable = RECIPE_PRESETS.find(
+      r => r.country === country && (isPro || FREE_UNLOCKED_RECIPE_IDS.includes(r.id))
+    );
+    if (firstAvailable) selectRecipe(firstAvailable);
   }
 
   function applyServings(next: number) {
@@ -219,7 +257,7 @@ export function RecipeBatchDial() {
       <div className="ios-card p-6 sm:p-8" style={{ boxShadow: '0 0 0 1.5px rgba(255,122,60,0.25), 0 0 40px rgba(255,122,60,0.12)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <p className="text-caption mb-1" style={{ color: 'rgb(255, 122, 60)' }}>BATCH-SCALE DIAL</p>
             <h2 className="text-title2">{recipe.emoji} {recipe.name}</h2>
@@ -242,21 +280,56 @@ export function RecipeBatchDial() {
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
                   <div className="ios-card anim-scale-in absolute right-0 mt-2 w-56 overflow-hidden z-40" style={{ boxShadow: 'var(--shadow-elevated)' }}>
-                    {RECIPE_PRESETS.map(r => (
-                      <button
-                        key={r.id}
-                        onClick={() => selectRecipe(r)}
-                        className="sidebar-item w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium press"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        <span>{r.emoji}</span>
-                        <span>{r.name}</span>
-                      </button>
-                    ))}
+                    {filteredRecipes.map(r => {
+                      const locked = isRecipeLocked(r);
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => selectRecipe(r)}
+                          className="sidebar-item w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium press"
+                          style={{ color: locked ? 'var(--text-tertiary)' : 'var(--text-secondary)', opacity: locked ? 0.6 : 1 }}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span>{r.emoji}</span>
+                            <span>{r.name}</span>
+                          </span>
+                          {locked && <span className="text-xs">🔒</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Country picker */}
+        <div className="mb-6">
+          <p className="text-caption mb-2" style={{ color: 'var(--text-tertiary)' }}>Browse by country</p>
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+            {COUNTRIES.map(c => {
+              const active = selectedCountry === c.name;
+              const countryLocked = !countryHasUnlockedRecipe[c.name];
+              return (
+                <button
+                  key={c.name}
+                  onClick={() => selectCountry(c.name)}
+                  className="pill press text-xs flex items-center gap-1.5 flex-shrink-0 transition-all duration-200"
+                  style={{
+                    background: active ? 'rgba(255, 122, 60, 0.18)' : 'var(--border-hairline)',
+                    color: active ? 'rgb(255, 122, 60)' : countryLocked ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                    border: active ? '1.5px solid rgba(255, 122, 60, 0.5)' : '1.5px solid transparent',
+                    boxShadow: active ? '0 0 10px rgba(255, 122, 60, 0.25)' : 'none',
+                    opacity: countryLocked ? 0.6 : 1,
+                  }}
+                >
+                  <span>{c.flag}</span>
+                  {c.name}
+                  {countryLocked && <span>🔒</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -378,14 +451,14 @@ export function RecipeBatchDial() {
         </div>
 
         {/* Free-tier upgrade banner */}
-        {atFreeLimit && (
+        {!isPro && (
           <div
             className="ios-card-nested p-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
             style={{ border: '1.5px solid rgba(var(--accent-orange), 0.4)', boxShadow: '0 0 20px rgba(var(--accent-orange), 0.1)' }}
           >
             <div>
-              <p className="text-footnote font-bold mb-0.5">⭐ You've hit the free limit</p>
-              <p className="text-caption">Upgrade to Premium to batch-scale up to {MAX_SERVINGS_PRO} servings and save your setup.</p>
+              <p className="text-footnote font-bold mb-0.5">⭐ Free plan: {FREE_RECIPE_LIMIT} recipes, {MAX_SERVINGS_FREE} servings max</p>
+              <p className="text-caption">Upgrade to Premium to unlock all {RECIPE_PRESETS.length} recipes, scale up to {MAX_SERVINGS_PRO} servings, and save your setup.</p>
             </div>
             <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
           </div>
