@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { prettifyRegion, getRegionGlow, CALENDAR_REGIONS, type CalendarEvent } from '@/lib/calendar';
+import { prettifyRegion, getRegionGlow, CALENDAR_REGIONS, type CalendarEvent } from '@/lib/calendar-shared';
 import { ToolProGate } from '@/components/pro-tools/ToolProGate';
 
 type CalendarMap = Record<string, CalendarEvent[]>;
