@@ -33,3 +33,16 @@ export const MEETING_OVERLAP_COMMENTS: SeedComment[] = [
   { id: 'm9', author: 'Mei',     avatarColor: '250, 128, 114', text: 'Added all 6 of our remote teammates and it still stayed readable. Impressed it didn\'t turn into visual soup.', likes: 20, timeAgo: '2w ago' },
   { id: 'm10', author: 'Liam',   avatarColor: '167, 222, 133', text: 'Only wish it accounted for DST automatically, but as a quick visual sanity check it\'s become part of my weekly planning.', likes: 25, timeAgo: '2w ago' },
 ];
+
+export const SUBSCRIPTION_DENSITY_COMMENTS: SeedComment[] = [
+  { id: 's1', author: 'Farah',   avatarColor: '88, 214, 113',  text: 'Dragged all my subscriptions in and immediately saw three of them all hit the same week — no wonder that week always feels tight.', likes: 34, timeAgo: '1d ago' },
+  { id: 's2', author: 'Callum',  avatarColor: '100, 200, 255', text: 'Found out I somehow had two Netflix entries at different prices. Definitely an old family plan I forgot to cancel.', likes: 58, timeAgo: '2d ago' },
+  { id: 's3', author: 'Yuki',    avatarColor: '196, 132, 252', text: 'Spreading renewal dates across the month instead of clustering them at the start made such a visible difference on the heat bar.', likes: 22, timeAgo: '3d ago' },
+  { id: 's4', author: 'Bianca',  avatarColor: '255, 180, 100', text: 'The duplicate billing warning is a genuinely useful fraud-awareness feature, not just a gimmick.', likes: 41, timeAgo: '4d ago' },
+  { id: 's5', author: 'Hassan',  avatarColor: '255, 122, 165', text: 'Dragging a subscription chip across the calendar and watching the week bars shift color in real time is weirdly addictive.', likes: 27, timeAgo: '5d ago' },
+  { id: 's6', author: 'Wren',    avatarColor: '120, 220, 200', text: 'Moved my gym renewal off the same day as rent hits and instantly felt better about my budget.', likes: 15, timeAgo: '6d ago' },
+  { id: 's7', author: 'Idris',   avatarColor: '255, 159, 10',  text: 'Wish I had this before three subscriptions all renewed the same day my card got declined for something else.', likes: 46, timeAgo: '1w ago' },
+  { id: 's8', author: 'Marisol', avatarColor: '134, 168, 255', text: 'The red pile-up badge on days with 3+ charges is such a clear visual warning, love the design.', likes: 19, timeAgo: '1w ago' },
+  { id: 's9', author: 'Theo',    avatarColor: '250, 128, 114', text: 'Used this to finally map out every subscription I forgot I had. Cancelled two after seeing them laid out visually.', likes: 30, timeAgo: '2w ago' },
+  { id: 's10', author: 'Amara',  avatarColor: '167, 222, 133', text: 'Simple concept but the heat bar recalculating instantly as you drag makes it so much more useful than a spreadsheet.', likes: 24, timeAgo: '2w ago' },
+];
