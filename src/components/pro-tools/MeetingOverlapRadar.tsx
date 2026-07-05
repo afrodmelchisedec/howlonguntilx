@@ -34,7 +34,8 @@ const PALETTE = [
   '255, 180, 100', '255, 122, 165', '120, 220, 200',
 ];
 const YOU_COLOR = '83, 74, 217';
-const MAX_PARTICIPANTS = 7; // including "You"
+const MAX_PARTICIPANTS_PRO = 7; // including "You"
+const FREE_PARTICIPANT_LIMIT = 3; // You + 2 teammates
 
 const RING_SIZE = 480;
 const CX = 240;
@@ -93,9 +94,52 @@ function nextColor(existing: Participant[]): string {
   return PALETTE.find(c => !used.has(c)) ?? PALETTE[existing.length % PALETTE.length];
 }
 
+// ---- inline editable name (click to rename) ----
+function EditableName({ value, onCommit, colorRgb }: { value: string; onCommit: (v: string) => void; colorRgb: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    onCommit(trimmed.length > 0 ? trimmed : value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') { setDraft(value); setEditing(false); }
+        }}
+        className="text-footnote font-bold bg-transparent outline-none border-b"
+        style={{ color: `rgb(${colorRgb})`, borderColor: `rgb(${colorRgb})`, width: `${Math.max(draft.length, 5)}ch` }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setDraft(value); setEditing(true); }}
+      className="text-footnote font-bold press underline decoration-dotted underline-offset-2"
+      title="Click to rename"
+    >
+      {value}
+    </button>
+  );
+}
+
 export function MeetingOverlapRadar() {
   const { data: session } = useSession();
   const { toast, showToast } = useToast();
+  const isPro = session?.user?.plan === 'PRO' || session?.user?.role === 'ADMIN';
 
   const youOffset = useMemo(() => -(new Date().getTimezoneOffset()) / 60, []);
 
@@ -122,10 +166,13 @@ export function MeetingOverlapRadar() {
 
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(96);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   const svgWrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; which: 'start' | 'end' } | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const teammateCounter = useRef(0);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -135,16 +182,49 @@ export function MeetingOverlapRadar() {
     return () => clearInterval(t);
   }, []);
 
-  const availableCities = CITY_PRESETS.filter(
-    c => !participants.some(p => p.city === c.city)
-  );
+  // Load saved config for Pro users on mount
+  useEffect(() => {
+    if (!isPro || configLoaded) return;
+    fetch('/api/tools/meeting-overlap')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.participants) && data.participants.length > 0) {
+          setParticipants(data.participants);
+          const maxCounter = data.participants.filter((p: Participant) => !p.isYou).length;
+          teammateCounter.current = maxCounter;
+        }
+        setConfigLoaded(true);
+      })
+      .catch(() => setConfigLoaded(true));
+  }, [isPro, configLoaded]);
+
+  const atFreeLimit = !isPro && participants.length >= FREE_PARTICIPANT_LIMIT;
+  const atProLimit = isPro && participants.length >= MAX_PARTICIPANTS_PRO;
+
+  function handleAddClick() {
+    if (atFreeLimit) {
+      showToast('Upgrade to add unlimited teammates', '⭐');
+      return;
+    }
+    if (atProLimit) return;
+    setDropdownOpen(o => !o);
+  }
 
   function addParticipant(preset: { city: string; offset: number }) {
-    if (participants.length >= MAX_PARTICIPANTS) return;
+    if (!isPro && participants.length >= FREE_PARTICIPANT_LIMIT) {
+      showToast('Upgrade to add unlimited teammates', '⭐');
+      setDropdownOpen(false);
+      return;
+    }
+    if (isPro && participants.length >= MAX_PARTICIPANTS_PRO) {
+      setDropdownOpen(false);
+      return;
+    }
+    teammateCounter.current += 1;
     const startLocal = 9, endLocal = 17;
     setParticipants(prev => [...prev, {
       id: `p-${Date.now()}`,
-      name: preset.city.split(' ')[0],
+      name: `Teammate ${teammateCounter.current}`,
       city: preset.city,
       utcOffset: preset.offset,
       startHour: normalizeHour(startLocal - preset.offset),
@@ -163,6 +243,10 @@ export function MeetingOverlapRadar() {
     setParticipants(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
   }
 
+  function renameParticipant(id: string, name: string) {
+    setParticipants(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+  }
+
   function quickSet(id: string, startLocal: number, endLocal: number) {
     setParticipants(prev => prev.map(p => {
       if (p.id !== id) return p;
@@ -172,6 +256,24 @@ export function MeetingOverlapRadar() {
         endHour: normalizeHour(endLocal - p.utcOffset),
       };
     }));
+  }
+
+  async function handleSaveConfig() {
+    if (!isPro) { showToast('Upgrade to save your setup', '⭐'); return; }
+    setSavingConfig(true);
+    try {
+      const res = await fetch('/api/tools/meeting-overlap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participants }),
+      });
+      if (!res.ok) throw new Error('save failed');
+      showToast('Setup saved!', '💾');
+    } catch {
+      showToast('Could not save — try again', '⚠️');
+    } finally {
+      setSavingConfig(false);
+    }
   }
 
   // ---- drag handling ----
@@ -277,45 +379,61 @@ export function MeetingOverlapRadar() {
       <div className="ios-card p-6 sm:p-8" style={{ boxShadow: '0 0 0 1.5px rgba(83,74,217,0.25), 0 0 40px rgba(83,74,217,0.12)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
           <div>
             <p className="text-caption mb-1" style={{ color: 'rgb(var(--accent-brand))' }}>MEETING OVERLAP</p>
             <h2 className="text-title2">Time Zone Radar</h2>
           </div>
-          <div className="relative">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setDropdownOpen(o => !o)}
-              disabled={participants.length >= MAX_PARTICIPANTS}
-              className="btn-filled press text-xs px-4 py-2 disabled:opacity-40"
+              onClick={handleSaveConfig}
+              disabled={savingConfig}
+              className="ios-card-nested press text-xs px-3 py-2 flex items-center gap-1.5 disabled:opacity-50"
+              style={{ color: isPro ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}
+              title={isPro ? 'Save this setup to your account' : 'Upgrade to save your setup'}
             >
-              + Add teammate
+              {isPro ? '💾' : '🔒'} {savingConfig ? 'Saving…' : 'Save setup'}
             </button>
-            {dropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
-                <div className="ios-card anim-scale-in absolute right-0 mt-2 w-52 overflow-hidden z-40" style={{ boxShadow: 'var(--shadow-elevated)' }}>
-                  {availableCities.length === 0 && (
-                    <p className="text-footnote p-3 text-center" style={{ color: 'var(--text-tertiary)' }}>All cities added</p>
-                  )}
-                  {availableCities.map(c => (
-                    <button
-                      key={c.city}
-                      onClick={() => addParticipant(c)}
-                      className="sidebar-item w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium press"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      <span>{c.city}</span>
-                      <span className="text-caption">UTC{c.offset >= 0 ? '+' : ''}{c.offset}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            <div className="relative">
+              <button
+                onClick={handleAddClick}
+                disabled={atProLimit}
+                className="btn-filled press text-xs px-4 py-2 disabled:opacity-40 transition-opacity duration-200"
+                style={{ opacity: atFreeLimit ? 0.5 : 1 }}
+              >
+                + Add teammate
+              </button>
+              {dropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
+                  <div className="ios-card anim-scale-in absolute right-0 mt-2 w-52 overflow-hidden z-40" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+                    {CITY_PRESETS.map(c => (
+                      <button
+                        key={c.city}
+                        onClick={() => addParticipant(c)}
+                        className="sidebar-item w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium press"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        <span>{c.city}</span>
+                        <span className="text-caption">UTC{c.offset >= 0 ? '+' : ''}{c.offset}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
+        {!isPro && (
+          <p className="text-caption mb-5" style={{ color: atFreeLimit ? 'rgb(var(--accent-orange))' : 'var(--text-tertiary)' }}>
+            {participants.length}/{FREE_PARTICIPANT_LIMIT} people on the free plan (you + 2 teammates)
+            {atFreeLimit && ' — upgrade for unlimited teammates and saved setups'}
+          </p>
+        )}
+
         {/* Participant list */}
-        <div className="flex flex-col gap-2 mb-6">
+        <div className="flex flex-col gap-2 mb-6 mt-3">
           {participants.map(p => {
             const workingNow = (() => {
               if (!p.active) return false;
@@ -339,10 +457,17 @@ export function MeetingOverlapRadar() {
                     />
                   )}
                 </span>
-                <div className="flex-1 min-w-[140px]">
-                  <div className="text-footnote font-bold">{p.name}</div>
+                <div className="flex-1 min-w-[160px]">
+                  {p.isYou ? (
+                    <div className="text-footnote font-bold">You</div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="text-footnote font-bold">{p.city} - </span>
+                      <EditableName value={p.name} onCommit={v => renameParticipant(p.id, v)} colorRgb={p.color} />
+                    </div>
+                  )}
                   <div className="text-caption tabular">
-                    {formatHour(localStart)} – {formatHour(localEnd)} ({p.city})
+                    {formatHour(localStart)} – {formatHour(localEnd)}{p.isYou ? ` (${p.city})` : ''}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -497,6 +622,20 @@ export function MeetingOverlapRadar() {
             Copy time
           </button>
         </div>
+
+        {/* Free-tier upgrade banner */}
+        {atFreeLimit && (
+          <div
+            className="ios-card-nested p-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+            style={{ border: '1.5px solid rgba(var(--accent-orange), 0.4)', boxShadow: '0 0 20px rgba(var(--accent-orange), 0.1)' }}
+          >
+            <div>
+              <p className="text-footnote font-bold mb-0.5">⭐ You've hit the free limit</p>
+              <p className="text-caption">Upgrade to Premium for unlimited teammates and to save your setup across visits.</p>
+            </div>
+            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+          </div>
+        )}
 
         {/* Like / Share / Comment bar */}
         <div className="flex items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--border-hairline)' }}>
