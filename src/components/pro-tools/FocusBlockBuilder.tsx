@@ -87,6 +87,15 @@ function findFreeSlot(duration: number, existing: Block[], preferredStart: numbe
   }
   return -1;
 }
+function minutesFromTimeStr(str: string): number {
+  const [h, m] = str.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return 540;
+  return h * 60 + m;
+}
+function timeStrFromMinutes(minutes: number): string {
+  const m = Math.max(0, Math.min(1439, Math.round(minutes)));
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
 
 export function FocusBlockBuilder() {
   const { data: session } = useSession();
@@ -98,6 +107,12 @@ export function FocusBlockBuilder() {
   const [blocks, setBlocks] = useState<Block[]>(DEFAULT_BLOCKS);
   const [pulse, setPulse] = useState(false);
   const [now, setNow] = useState<number | null>(null);
+
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customCategory, setCustomCategory] = useState(CATEGORIES[0].key);
+  const [customStartStr, setCustomStartStr] = useState('09:00');
+  const [customDurationStr, setCustomDurationStr] = useState('60');
 
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(29);
@@ -251,6 +266,37 @@ export function FocusBlockBuilder() {
     }]);
   }
 
+  function openCustomForm() {
+    if (!isPro) { showToast('Upgrade to Pro to add a custom block', '⭐'); return; }
+    if (blocks.length >= MAX_BLOCKS) { showToast(`You can have up to ${MAX_BLOCKS} blocks`, '⚠️'); return; }
+    setCustomName('');
+    setCustomCategory(CATEGORIES[0].key);
+    setCustomStartStr(timeStrFromMinutes(findFreeSlot(60, blocks, 600) === -1 ? 600 : findFreeSlot(60, blocks, 600)));
+    setCustomDurationStr('60');
+    setShowCustomForm(true);
+  }
+
+  function handleAddCustomBlock(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isPro) return;
+    if (blocks.length >= MAX_BLOCKS) { showToast(`You can have up to ${MAX_BLOCKS} blocks`, '⚠️'); return; }
+    const name = customName.trim() || 'Custom Block';
+    const rawDuration = Math.max(MIN_DURATION, Math.round(Number(customDurationStr) || 60));
+    const duration = Math.min(rawDuration, DAY_MINUTES);
+    const rawStart = minutesFromTimeStr(customStartStr);
+    const snappedStart = Math.round(rawStart / snapMinutes) * snapMinutes;
+    const start = Math.max(0, Math.min(snappedStart, DAY_MINUTES - duration));
+    setBlocks(prev => [...prev, {
+      id: `block-${Date.now()}`,
+      name,
+      categoryKey: customCategory,
+      start,
+      duration,
+    }]);
+    setShowCustomForm(false);
+    showToast('Custom block added', '✨');
+  }
+
   function removeBlock(id: string) {
     setBlocks(prev => prev.filter(b => b.id !== id));
   }
@@ -295,6 +341,7 @@ export function FocusBlockBuilder() {
 
   function handleReset() {
     setBlocks(DEFAULT_BLOCKS);
+    setShowCustomForm(false);
     showToast('Reset to defaults', '↺');
   }
 
@@ -553,18 +600,85 @@ export function FocusBlockBuilder() {
           })}
         </div>
 
-        <div className="flex items-center justify-between mb-7">
-          <button
-            onClick={addBlock}
-            className="ios-card-nested press text-xs px-3 py-2 flex items-center gap-1.5"
-            style={{ color: isPro ? 'var(--text-secondary)' : (blocks.length < FREE_MAX_BLOCKS ? 'var(--text-secondary)' : 'var(--text-tertiary)'), opacity: blocks.length >= maxBlocks ? 0.5 : 1 }}
-          >
-            {isPro || blocks.length < FREE_MAX_BLOCKS ? '+' : '🔒'} Add block
-          </button>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={addBlock}
+              className="ios-card-nested press text-xs px-3 py-2 flex items-center gap-1.5"
+              style={{ color: isPro || blocks.length < FREE_MAX_BLOCKS ? 'var(--text-secondary)' : 'var(--text-tertiary)', opacity: blocks.length >= maxBlocks ? 0.5 : 1 }}
+            >
+              {isPro || blocks.length < FREE_MAX_BLOCKS ? '+' : '🔒'} Add block
+            </button>
+            <button
+              onClick={openCustomForm}
+              className="ios-card-nested press text-xs px-3 py-2 flex items-center gap-1.5"
+              style={{ color: isPro ? 'var(--text-secondary)' : 'var(--text-tertiary)', opacity: isPro && blocks.length >= MAX_BLOCKS ? 0.5 : 1 }}
+              title={isPro ? 'Create a fully custom block' : 'Upgrade to Pro to add a custom block'}
+            >
+              {isPro ? '✨' : '🔒'} Custom block
+            </button>
+          </div>
           <button onClick={handleCopyPlan} className="ios-card-nested press text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>
             📋 Copy plan
           </button>
         </div>
+
+        {/* Custom block form (Pro only) */}
+        {showCustomForm && isPro && (
+          <form onSubmit={handleAddCustomBlock} className="ios-card-nested p-4 mb-6 flex flex-col gap-3 anim-fade-up">
+            <div className="flex items-center justify-between">
+              <p className="text-footnote font-semibold">✨ New custom block</p>
+              <button type="button" onClick={() => setShowCustomForm(false)} className="press text-caption" style={{ color: 'var(--text-secondary)' }}>✕</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-caption">Name</span>
+                <input
+                  value={customName}
+                  onChange={e => setCustomName(e.target.value)}
+                  placeholder="e.g. Therapy"
+                  maxLength={30}
+                  className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none"
+                  style={{ border: '1px solid var(--border-hairline)' }}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-caption">Category</span>
+                <select
+                  value={customCategory}
+                  onChange={e => setCustomCategory(e.target.value)}
+                  className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none"
+                  style={{ border: '1px solid var(--border-hairline)' }}
+                >
+                  {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.emoji} {c.name}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-caption">Start time</span>
+                <input
+                  type="time"
+                  value={customStartStr}
+                  onChange={e => setCustomStartStr(e.target.value)}
+                  className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none tabular"
+                  style={{ border: '1px solid var(--border-hairline)' }}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-caption">Duration (minutes)</span>
+                <input
+                  type="number"
+                  min={MIN_DURATION}
+                  step={snapMinutes}
+                  value={customDurationStr}
+                  onChange={e => setCustomDurationStr(e.target.value)}
+                  className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none tabular"
+                  style={{ border: '1px solid var(--border-hairline)' }}
+                />
+              </label>
+            </div>
+            <button type="submit" className="btn-filled press text-sm">Add block</button>
+          </form>
+        )}
 
         {/* Free-tier banner */}
         {!isPro && (
@@ -577,7 +691,7 @@ export function FocusBlockBuilder() {
           >
             <div>
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 4 blocks, 15-min snap'}</p>
-              <p className="text-caption">Upgrade to Premium for up to {MAX_BLOCKS} blocks, {PRO_SNAP_MINUTES}-minute drag precision, and saving your day.</p>
+              <p className="text-caption">Upgrade to Premium for up to {MAX_BLOCKS} blocks, {PRO_SNAP_MINUTES}-minute drag precision, fully custom-named blocks, and saving your day.</p>
             </div>
             <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
           </div>
