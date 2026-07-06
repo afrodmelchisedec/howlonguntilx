@@ -53,8 +53,9 @@ function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
     { emoji: '🔴', title: 'Watch the capacity bar', body: 'It fills as you allocate hours and turns red with an OVERCOMMITTED label the instant your total exceeds 24 hours.' },
     { emoji: '🟧', title: 'Check the overlap density strip', body: 'This colors by how many blocks share the same clock time — green is fine, orange is two blocks stacked, red is three or more.' },
     { emoji: '📊', title: 'Read the category bar chart', body: 'Each column totals your hours per category and animates up or down live as you drag or resize blocks.' },
-    { emoji: '🏷️', title: 'Click a block\'s emoji to change category', body: 'Cycles through Work, Health, Personal, Break, Sleep, and Social — its color updates everywhere instantly.' },
-    { emoji: '🔒', title: 'Free tier caps at 4 blocks, 15-min snap', body: 'Pro unlocks up to 10 blocks, 5-minute drag precision, and saving your day.' },
+    { emoji: '✨', title: 'Add a fully custom block (Pro)', body: 'Tap Custom block to name it yourself and set an exact category, start time, and duration in one form — free plan can only cycle through preset templates.' },
+    { emoji: '🏷️', title: "Click a block's emoji to change category", body: 'Cycles through Work, Health, Personal, Break, Sleep, and Social — its color updates everywhere instantly.' },
+    { emoji: '🔒', title: 'Free tier caps at 4 blocks, 15-min snap', body: 'Pro unlocks up to 10 blocks, 5-minute drag precision, custom-named blocks, and saving your day.' },
   ];
 
   return (
