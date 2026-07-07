@@ -23,6 +23,8 @@ const PAST_COLOR = '196, 132, 252';
 const TODAY_COLOR = '255, 204, 0';
 const FUTURE_COLOR = '100, 220, 255';
 
+const DEFAULT_REGION = 'united_states';
+
 function pad(n: number): string { return String(n).padStart(2, '0'); }
 function daysInMonth(year: number, month: number): number { return new Date(year, month, 0).getDate(); }
 function firstWeekday(year: number, month: number): number { return new Date(year, month - 1, 1).getDay(); }
@@ -47,7 +49,7 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [events, setEvents] = useState<CalendarMap>(initialEvents);
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>(DEFAULT_REGION);
   const [modalIso, setModalIso] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [loadingMonth, setLoadingMonth] = useState(false);
@@ -55,6 +57,7 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
   const [savedLoaded, setSavedLoaded] = useState(false);
   const [likedFacts, setLikedFacts] = useState<Set<string>>(new Set());
   const [bubble, setBubble] = useState<{ label: string; color: string; emoji: string } | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(154);
@@ -89,6 +92,17 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
     if (cellDate.getTime() < realToday.getTime()) return 'past';
     if (cellDate.getTime() === realToday.getTime()) return 'today';
     return 'future';
+  }
+
+  // ---- hover ripple: 2 = the hovered cell itself, 1 = direct up/down/left/right neighbor, 0 = unaffected ----
+  function neighborLevel(i: number): 0 | 1 | 2 {
+    if (hoveredIndex === null) return 0;
+    if (i === hoveredIndex) return 2;
+    const isLeft = i === hoveredIndex - 1 && hoveredIndex % 7 !== 0;
+    const isRight = i === hoveredIndex + 1 && (hoveredIndex + 1) % 7 !== 0;
+    const isUp = i === hoveredIndex - 7;
+    const isDown = i === hoveredIndex + 7;
+    return (isLeft || isRight || isUp || isDown) ? 1 : 0;
   }
 
   async function goToMonth(y: number, m: number, dir: 1 | -1) {
@@ -128,7 +142,6 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
 
   function eventsFor(iso: string): CalendarEvent[] {
     const all = events[iso] ?? [];
-    if (selectedRegion === 'all') return all;
     return all.filter(e => e.region === selectedRegion);
   }
 
@@ -264,7 +277,6 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
           </div>
           <select value={selectedRegion} onChange={e => setSelectedRegion(e.target.value)}
             className="ios-card-nested press text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>
-            <option value="all">All regions</option>
             {CALENDAR_REGIONS.map(r => <option key={r} value={r}>{prettifyRegion(r)}</option>)}
           </select>
         </div>
@@ -276,7 +288,11 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
         <div className="grid grid-cols-7 gap-1 mb-1">
           {WEEKDAY_LABELS.map(w => <div key={w} className="text-caption text-center py-1" style={{ color: 'var(--text-tertiary)' }}>{w}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-1.5" style={{ opacity: loadingMonth ? 0.4 : 1, transition: 'opacity 0.2s' }}>
+        <div
+          className="grid grid-cols-7 gap-1.5"
+          style={{ opacity: loadingMonth ? 0.4 : 1, transition: 'opacity 0.2s' }}
+          onMouseLeave={() => setHoveredIndex(null)}
+        >
           {grid.map((day, i) => {
             if (day === null) return <div key={i} />;
             const iso = isoFor(day);
@@ -285,18 +301,31 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
             const status = statusFor(day);
             const isSaved = savedDays.has(iso);
             const statusColor = status === 'today' ? TODAY_COLOR : status === 'past' ? PAST_COLOR : FUTURE_COLOR;
+            const level = neighborLevel(i);
             return (
-              <div key={i} className="relative group">
+              <div
+                key={i}
+                className="relative group"
+                style={{ zIndex: level === 2 ? 12 : level === 1 ? 11 : 1 }}
+              >
                 <button
                   onClick={() => openDay(iso, day)}
-                  className="press w-full rounded-2xl flex flex-col items-center justify-center transition-all duration-200"
+                  onMouseEnter={() => setHoveredIndex(i)}
+                  className="press w-full rounded-2xl flex flex-col items-center justify-center"
                   style={{
                     aspectRatio: '1 / 1',
                     background: status === 'today' ? `rgba(${TODAY_COLOR}, 0.14)` : 'var(--border-hairline)',
                     border: status === 'today' ? `2px solid rgb(${TODAY_COLOR})` : '1px solid transparent',
-                    boxShadow: status === 'today' ? `0 0 14px rgba(${TODAY_COLOR}, 0.5)` : 'none',
                     opacity: status === 'past' ? 0.75 : 1,
                     animation: status === 'today' ? 'todayPulse 2.4s ease-in-out infinite' : 'none',
+                    transform: level === 2 ? 'scale(1.16)' : level === 1 ? 'scale(1.07)' : 'scale(1)',
+                    boxShadow: level === 2
+                      ? `0 0 24px rgba(${statusColor}, 0.9), 0 0 8px rgba(${statusColor}, 1)`
+                      : level === 1
+                        ? `0 0 13px rgba(${statusColor}, 0.55)`
+                        : (status === 'today' ? `0 0 14px rgba(${TODAY_COLOR}, 0.5)` : 'none'),
+                    transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease-out`,
+                    transitionDelay: level === 1 ? '60ms' : '0ms',
                   }}
                 >
                   <span className="text-sm font-bold" style={{ color: status === 'today' ? `rgb(${TODAY_COLOR})` : 'var(--text-primary)' }}>{day}</span>

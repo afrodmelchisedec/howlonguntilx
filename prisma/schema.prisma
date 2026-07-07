@@ -268,3 +268,23 @@ model TaxDeadlineConfig {
   deadlines Json
   updatedAt DateTime @updatedAt
 }
+
+
+model PayrollConfig {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frequency       String
+  lastPayDate     DateTime
+  grossPerPeriod  Float
+  startingBalance Float    @default(0)
+  deductions      Json
+  bills           Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   payrollConfig  PayrollConfig?
+
