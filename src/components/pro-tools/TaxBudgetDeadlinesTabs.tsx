@@ -38,14 +38,15 @@ export function TaxBudgetDeadlinesTabs() {
 
 function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
   const steps = [
-    { emoji: '🎯', title: 'Watch your Safe-Harbor Score', body: 'One number, weighted across every deadline by dollar size — this is the score to come back and improve.' },
-    { emoji: '⬆️', title: "Drag a bar's top edge", body: 'Each deadline sits at its real calendar date. Drag its dashed outline up or down to set how much you need for it — the solid fill shows what you\'ve saved.' },
+    { emoji: '🎯', title: 'Watch your Safe-Harbor Score', body: 'One number, weighted across every deadline by dollar size. Every dollar you log moves it live.' },
+    { emoji: '👆', title: 'Drag any bar up or down', body: 'The whole column is grabbable, not just a tiny handle — drag up to log savings toward that deadline, drag down to correct a mistake.' },
+    { emoji: '💬', title: 'Hover for the full picture', body: 'A tooltip appears above the bar showing the name, due date, funded %, and exact dollar amounts while you hover or drag.' },
+    { emoji: '✏️', title: 'Click a dollar amount to edit it exactly', body: 'The dashed outline is your target; the solid fill is what you\'ve saved. Click either number on a deadline card for pinpoint editing instead of dragging.' },
     { emoji: '⚡', title: 'Use a Quick setup preset', body: 'Tap W2 Employee, Self-Employed, or Business Owner to instantly load the right deadline set for your situation.' },
-    { emoji: '✏️', title: 'Edit saved & target amounts', body: 'Click either dollar figure on a deadline card to update it directly — no need to drag for precise numbers.' },
     { emoji: '📈', title: 'Read the funded-percent line chart', body: 'Shows how well-funded each deadline is, left to right in date order — a quick way to spot the one lagging behind.' },
     { emoji: '🚨', title: 'Watch for the underfunded banner', body: 'Fires the moment a deadline is 14 days out or closer and still isn\'t fully funded.' },
     { emoji: '✨', title: 'Add a fully custom deadline (Pro)', body: 'Name it, pick a category, set a due date and target amount in one form — great for state-specific or business deadlines.' },
-    { emoji: '🔒', title: 'Free tier caps at 3 deadlines, $250 snap', body: 'Pro unlocks up to 8 deadlines, $25 drag precision, custom deadlines, and saving your setup.' },
+    { emoji: '🔒', title: 'Free tier caps at 3 deadlines, $250 per drag step', body: 'Pro unlocks up to 8 deadlines, $25 drag precision, custom deadlines, and saving your setup.' },
   ];
 
   return (
