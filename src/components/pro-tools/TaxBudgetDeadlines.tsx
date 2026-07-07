@@ -12,7 +12,7 @@ interface DeadlineTemplate {
   key: string;
   name: string;
   emoji: string;
-  month: number; // 1-12
+  month: number;
   day: number;
   category: Category;
   defaultTarget: number;
@@ -22,7 +22,7 @@ interface Deadline {
   key: string;
   name: string;
   emoji: string;
-  date: string; // ISO YYYY-MM-DD
+  date: string;
   category: Category;
   target: number;
   saved: number;
@@ -48,7 +48,14 @@ const PRO_MAX_DEADLINES = 8;
 const FREE_SNAP_AMOUNT = 250;
 const PRO_SNAP_AMOUNT = 25;
 const WINDOW_DAYS = 420;
-const TRACK_HEIGHT = 160;
+
+// Fixed geometry — never derived from live drag values, so the bar you're
+// dragging can never re-scale itself mid-gesture.
+const TRACK_HEIGHT = 170;
+const LABEL_HEIGHT = 42;
+const TOP_PADDING = 34;
+const CONTAINER_HEIGHT = TRACK_HEIGHT + LABEL_HEIGHT + TOP_PADDING;
+const COLUMN_WIDTH = 64;
 
 const TEMPLATES: DeadlineTemplate[] = [
   { key: 'q1',        name: 'Q1 Estimated Tax',       emoji: '📄', month: 4,  day: 15, category: 'quarterly', defaultTarget: 2500 },
@@ -185,6 +192,29 @@ function EditableAmount({ value, onCommit, colorRgb, label }: { value: number; o
   );
 }
 
+// ---- floating hover/drag tooltip ----
+function DragTooltip({ deadline }: { deadline: Deadline }) {
+  const catColor = CATEGORY_COLORS[deadline.category];
+  const days = daysUntil(deadline.date);
+  const funded = deadline.target > 0 ? Math.min(999, Math.round((deadline.saved / deadline.target) * 100)) : 100;
+  return (
+    <div
+      className="absolute z-30 pointer-events-none anim-fade-up"
+      style={{ bottom: '100%', left: '50%', transform: 'translate(-50%, -8px)', width: 190 }}
+    >
+      <div className="ios-card-nested p-3" style={{ boxShadow: '0 10px 28px rgba(0,0,0,0.4)', border: `1.5px solid rgb(${catColor})` }}>
+        <p className="text-footnote font-bold mb-0.5" style={{ color: `rgb(${catColor})` }}>{deadline.emoji} {deadline.name}</p>
+        <p className="text-caption mb-1.5">{formatDateLabel(deadline.date)} · {formatCountdown(days)}</p>
+        <p className="text-footnote font-bold tabular">
+          {formatMoney(deadline.saved)} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>of {formatMoney(deadline.target)}</span>
+        </p>
+        <p className="text-caption mt-1" style={{ color: 'var(--text-secondary)' }}>{funded}% funded · drag ↑↓ to log savings</p>
+      </div>
+      <div className="mx-auto" style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `6px solid rgb(${catColor})` }} />
+    </div>
+  );
+}
+
 export function TaxBudgetDeadlines() {
   const { data: session } = useSession();
   const { toast, showToast } = useToast();
@@ -194,6 +224,7 @@ export function TaxBudgetDeadlines() {
 
   const [deadlines, setDeadlines] = useState<Deadline[]>(() => defaultDeadlines());
   const [pulse, setPulse] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customDate, setCustomDate] = useState('');
@@ -263,7 +294,9 @@ export function TaxBudgetDeadlines() {
   }[health];
   const healthColor = { strong: '52, 199, 89', ontrack: '255, 159, 10', behind: '255, 159, 10', urgent: '255, 69, 58' }[health];
 
-  const scaleMax = Math.max(3000, ...deadlines.map(d => d.target), ...deadlines.map(d => d.saved));
+  // IMPORTANT: derived only from `target`, never from `saved` — this is what
+  // stops the bar you're dragging from re-scaling itself mid-drag.
+  const scaleMax = useMemo(() => Math.max(3000, ...deadlines.map(d => d.target)), [deadlines.map(d => d.target).join('|')]);
 
   const totalsByCategory = useMemo(() => {
     const totals: Record<Category, number> = { quarterly: 0, federal: 0, state: 0, other: 0 };
@@ -281,19 +314,27 @@ export function TaxBudgetDeadlines() {
 
   const atFreeLimit = !isPro && deadlines.length >= FREE_MAX_DEADLINES;
 
-  // ---- drag to set target amount ----
-  function amountAtClientY(clientY: number): number {
+  // ---- drag to log saved amount ----
+  function ratioAtClientY(clientY: number): number {
     if (!trackRef.current) return 0;
     const rect = trackRef.current.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (rect.bottom - clientY) / rect.height));
-    const raw = ratio * scaleMax;
+    const zeroY = rect.bottom - LABEL_HEIGHT;
+    return Math.min(1, Math.max(0, (zeroY - clientY) / TRACK_HEIGHT));
+  }
+  function savedAtClientY(clientY: number): number {
+    const raw = ratioAtClientY(clientY) * scaleMax;
     return Math.round(raw / snapAmount) * snapAmount;
   }
-  function startDrag(id: string) { dragId.current = id; }
+  function startDrag(id: string, clientY: number) {
+    dragId.current = id;
+    setHoveredId(id);
+    const amount = Math.max(0, savedAtClientY(clientY));
+    setDeadlines(prev => prev.map(d => d.id === id ? { ...d, saved: amount } : d));
+  }
   const handlePointerMove = useCallback((clientY: number) => {
     if (!dragId.current) return;
-    const amount = Math.max(0, amountAtClientY(clientY));
-    setDeadlines(prev => prev.map(d => d.id === dragId.current ? { ...d, target: amount } : d));
+    const amount = Math.max(0, savedAtClientY(clientY));
+    setDeadlines(prev => prev.map(d => d.id === dragId.current ? { ...d, saved: amount } : d));
   }, [scaleMax, snapAmount]);
 
   useEffect(() => {
@@ -434,7 +475,7 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Safe-Harbor Score — the big hook stat */}
+        {/* Safe-Harbor Score */}
         <div className="ios-card-nested p-5 mb-6 flex items-center justify-between flex-wrap gap-4" style={{ background: `rgba(${GLOW}, 0.06)` }}>
           <div>
             <p className="text-caption mb-1">SAFE-HARBOR SCORE</p>
@@ -488,39 +529,55 @@ export function TaxBudgetDeadlines() {
           </div>
         )}
 
-        {/* Drag-to-set-target timeline */}
+        {/* Drag-to-log-savings timeline */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-footnote font-semibold">Drag a bar's top edge to set how much you need for it</p>
-            <p className="text-caption">{isPro ? `$${PRO_SNAP_AMOUNT} snap` : `$${FREE_SNAP_AMOUNT} snap`}</p>
+            <p className="text-footnote font-semibold">Drag any bar up or down to log how much you've saved</p>
+            <p className="text-caption">${snapAmount} per step</p>
           </div>
-          <div ref={trackRef} className="relative w-full rounded-2xl overflow-hidden" style={{ height: TRACK_HEIGHT + 40, background: 'var(--border-hairline)', touchAction: 'none' }}>
-            <div className="absolute left-0 bottom-10 w-full" style={{ height: 1, background: 'var(--bg-base)', opacity: 0.4 }} />
+          <div
+            ref={trackRef}
+            className="relative w-full rounded-2xl"
+            style={{ height: CONTAINER_HEIGHT, background: 'var(--border-hairline)', touchAction: 'none', overflowX: 'auto', overflowY: 'visible' }}
+          >
+            <div className="absolute left-4 right-4" style={{ bottom: LABEL_HEIGHT, height: 1, background: 'var(--bg-base)', opacity: 0.4 }} />
             {sorted.map(d => {
               const days = daysUntil(d.date);
-              const xPct = Math.min(97, Math.max(2, (days / WINDOW_DAYS) * 100));
+              const xPct = Math.min(95, Math.max(5, (days / WINDOW_DAYS) * 100));
+              const catColor = CATEGORY_COLORS[d.category];
               const targetH = Math.min(TRACK_HEIGHT, (d.target / scaleMax) * TRACK_HEIGHT);
               const savedH = Math.min(TRACK_HEIGHT, (d.saved / scaleMax) * TRACK_HEIGHT);
-              const catColor = CATEGORY_COLORS[d.category];
               const fullyFunded = d.target > 0 && d.saved >= d.target;
+              const fillColor = fullyFunded ? '52, 199, 89' : catColor;
+              const showTooltip = hoveredId === d.id;
               return (
-                <div key={d.id} className="absolute bottom-10 flex flex-col items-center" style={{ left: `${xPct}%`, transform: 'translateX(-50%)', width: 44 }}>
-                  <div className="relative" style={{ width: 26, height: TRACK_HEIGHT }}>
-                    <div className="absolute bottom-0 rounded-t-md" style={{ width: 26, height: targetH, border: `2px dashed rgb(${catColor})`, background: `rgba(${catColor}, 0.06)` }} />
+                <div
+                  key={d.id}
+                  className="absolute flex flex-col items-center"
+                  style={{ left: `${xPct}%`, bottom: LABEL_HEIGHT, transform: 'translateX(-50%)', width: COLUMN_WIDTH, height: TRACK_HEIGHT }}
+                >
+                  {/* Big grabbable zone — the whole column, not just a sliver */}
+                  <div
+                    className="absolute inset-0 cursor-ns-resize"
+                    style={{ touchAction: 'none' }}
+                    onPointerDown={e => startDrag(d.id, e.clientY)}
+                    onMouseEnter={() => setHoveredId(d.id)}
+                    onMouseLeave={() => { if (dragId.current !== d.id) setHoveredId(null); }}
+                  >
+                    {showTooltip && <DragTooltip deadline={d} />}
+                    <div className="absolute bottom-0 left-1/2 rounded-t-lg transition-all duration-150" style={{ width: 34, transform: 'translateX(-50%)', height: targetH, border: `2px dashed rgb(${catColor})`, background: `rgba(${catColor}, 0.05)` }} />
+                    <div className="absolute bottom-0 left-1/2 rounded-t-lg transition-all duration-150" style={{ width: 30, transform: 'translateX(-50%)', height: savedH, background: `rgb(${fillColor})`, boxShadow: `0 0 10px rgba(${fillColor}, 0.45)` }} />
                     <div
-                      className="absolute bottom-0 rounded-t-md transition-all duration-300"
-                      style={{ width: 22, left: 2, height: savedH, background: `rgb(${fullyFunded ? '52, 199, 89' : catColor})`, boxShadow: `0 0 8px rgba(${fullyFunded ? '52, 199, 89' : catColor}, 0.4)` }}
+                      className="absolute left-1/2 rounded-full flex items-center justify-center transition-all duration-150"
+                      style={{
+                        width: 28, height: 28, transform: 'translate(-50%, 50%)',
+                        bottom: savedH, background: 'white', border: `3px solid rgb(${fillColor})`,
+                        boxShadow: showTooltip ? `0 2px 12px rgba(${fillColor}, 0.55)` : '0 2px 8px rgba(0,0,0,0.25)',
+                        cursor: 'grab',
+                      }}
                     />
-                    <div
-                      onPointerDown={() => startDrag(d.id)}
-                      className="absolute cursor-ns-resize flex items-center justify-center"
-                      style={{ bottom: targetH - 6, left: -4, width: 34, height: 14, touchAction: 'none' }}
-                      title={`Drag to set ${d.name}'s target`}
-                    >
-                      <div className="w-6 h-1 rounded-full" style={{ background: `rgb(${catColor})` }} />
-                    </div>
                   </div>
-                  <div className="mt-1 text-center" style={{ width: 60 }}>
+                  <div className="absolute text-center" style={{ bottom: -LABEL_HEIGHT + 4, width: 78, left: '50%', transform: 'translateX(-50%)' }}>
                     <p className="text-[9px] font-bold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: `rgb(${catColor})` }}>{d.emoji} {d.name}</p>
                     <p className="text-[9px] font-semibold" style={{ color: `rgb(${urgencyColor(days)})` }}>{formatCountdown(days)}</p>
                   </div>
@@ -574,7 +631,7 @@ export function TaxBudgetDeadlines() {
           )}
         </div>
 
-        {/* Category breakdown (informational stacked bar) */}
+        {/* Category breakdown */}
         <div className="mb-6">
           <p className="text-footnote font-semibold mb-2">Needed by category</p>
           <div className="w-full h-8 rounded-xl overflow-hidden flex" style={{ border: '1px solid var(--border-hairline)' }}>
@@ -659,7 +716,6 @@ export function TaxBudgetDeadlines() {
           <button onClick={handleCopyPlan} className="ios-card-nested press text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>📋 Copy plan</button>
         </div>
 
-        {/* Custom deadline form (Pro only) */}
         {showCustomForm && isPro && (
           <form onSubmit={handleAddCustom} className="ios-card-nested p-4 mb-6 flex flex-col gap-3 anim-fade-up">
             <div className="flex items-center justify-between">
@@ -694,19 +750,17 @@ export function TaxBudgetDeadlines() {
           </form>
         )}
 
-        {/* Free-tier banner */}
         {!isPro && (
           <div className="ios-card-nested p-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
             style={{ border: atFreeLimit ? '1.5px solid rgba(var(--accent-orange), 0.4)' : '1px solid var(--border-hairline)', boxShadow: atFreeLimit ? '0 0 20px rgba(var(--accent-orange), 0.1)' : 'none' }}>
             <div>
-              <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 3 deadlines, $250 snap'}</p>
+              <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : `🔒 Free plan: 3 deadlines, $${FREE_SNAP_AMOUNT} per drag step`}</p>
               <p className="text-caption">Upgrade to Premium for up to {PRO_MAX_DEADLINES} deadlines, ${PRO_SNAP_AMOUNT} drag precision, custom deadlines, and saving your setup.</p>
             </div>
             <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
           </div>
         )}
 
-        {/* Like / Share / Comment bar */}
         <div className="flex items-center gap-2 pt-4" style={{ borderTop: '1px solid var(--border-hairline)' }}>
           <button onClick={handleLike} className="ios-card-nested press flex-1 flex items-center justify-center gap-2 py-2.5" style={{ color: toolLiked ? `rgb(${GLOW})` : 'var(--text-secondary)' }}>
             <span style={{ transform: toolLiked ? 'scale(1.2)' : 'scale(1)', display: 'inline-block', transition: 'transform 0.2s' }}>{toolLiked ? '❤️' : '🤍'}</span>
