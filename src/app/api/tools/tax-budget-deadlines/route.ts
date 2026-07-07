@@ -1,3 +1,4 @@
+// FILE: src/app/api/tools/tax-budget-deadlines/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -10,12 +11,14 @@ function isProSession(session: any): boolean {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!isProSession(session)) return NextResponse.json({ days: null });
+  if (!isProSession(session)) return NextResponse.json({ config: null });
 
-  const config = await prisma.calendarSavedDays.findUnique({
+  const config = await prisma.taxDeadlineConfig.findUnique({
     where: { userId: session.user.id },
   });
-  return NextResponse.json({ days: config?.days ?? null });
+  return NextResponse.json({
+    config: config ? { deadlines: config.deadlines } : null,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -24,14 +27,14 @@ export async function POST(req: NextRequest) {
   if (!isProSession(session)) return NextResponse.json({ error: 'Pro required' }, { status: 403 });
 
   const body = await req.json();
-  if (!Array.isArray(body.days)) {
-    return NextResponse.json({ error: 'days must be an array' }, { status: 400 });
+  if (!Array.isArray(body.deadlines)) {
+    return NextResponse.json({ error: 'deadlines is required' }, { status: 400 });
   }
 
-  const config = await prisma.calendarSavedDays.upsert({
+  const config = await prisma.taxDeadlineConfig.upsert({
     where: { userId: session.user.id },
-    create: { userId: session.user.id, days: body.days },
-    update: { days: body.days },
+    create: { userId: session.user.id, deadlines: body.deadlines },
+    update: { deadlines: body.deadlines },
   });
 
   return NextResponse.json({ ok: true, updatedAt: config.updatedAt });

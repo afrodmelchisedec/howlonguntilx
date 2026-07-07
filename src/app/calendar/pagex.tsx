@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getCalendarMonth } from '@/lib/calendar';
-import { EventCalendarTabs } from '@/components/calendar/EventCalendarTabs';
+import { EventCalendar } from '@/components/calendar/EventCalendar';
 import { StarField } from '@/components/ui/StarField';
 
 export const metadata = {
@@ -29,7 +29,7 @@ export default async function CalendarPage() {
             Click any day for a random fact from that date.
           </p>
         </div>
-        <EventCalendarTabs
+        <EventCalendar
           initialYear={year}
           initialMonth={month}
           initialEvents={events}
