@@ -300,3 +300,19 @@ model FoodFestivalConfig {
 // Also add this back-relation field inside your existing `model User { ... }` block:
 //
 //   foodFestivalConfig  FoodFestivalConfig?
+
+// Add this model to prisma/schema.prisma:
+
+model RestaurantWatchlistConfig {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlist         Json
+  customRestaurants Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   restaurantWatchlistConfig  RestaurantWatchlistConfig?
