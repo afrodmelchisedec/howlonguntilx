@@ -288,3 +288,15 @@ model PayrollConfig {
 //
 //   payrollConfig  PayrollConfig?
 
+model FoodFestivalConfig {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  festivals Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   foodFestivalConfig  FoodFestivalConfig?
