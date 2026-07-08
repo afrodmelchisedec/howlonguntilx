@@ -380,3 +380,19 @@ model FraudResponseConfig {
 //
 //   fraudResponseConfig  FraudResponseConfig?
 
+
+model PhishingIdentityConfig {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchCategories     Json
+  flagWeightOverrides Json     @default("{}")
+  quizStats           Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   phishingIdentityConfig  PhishingIdentityConfig?
+
