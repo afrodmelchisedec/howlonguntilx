@@ -330,3 +330,17 @@ model HarvestSeasonsConfig {
 // Also add this back-relation field inside your existing `model User { ... }` block:
 //
 //   harvestSeasonsConfig  HarvestSeasonsConfig?
+
+model SportsGamesConfig {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   sportsGamesConfig  SportsGamesConfig?
+
