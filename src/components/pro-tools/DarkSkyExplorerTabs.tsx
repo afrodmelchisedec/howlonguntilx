@@ -1,0 +1,85 @@
+// FILE: src/components/pro-tools/DarkSkyExplorerTabs.tsx
+'use client';
+import { useState } from 'react';
+import { DarkSkyExplorer } from './DarkSkyExplorer';
+
+type Tab = 'tool' | 'guide';
+const TABS: { id: Tab; label: string; emoji: string }[] = [
+  { id: 'tool',  label: 'Tool',       emoji: '🌌' },
+  { id: 'guide', label: 'How to use', emoji: '💡' },
+];
+const GLOW = '110, 231, 183';
+
+export function DarkSkyExplorerTabs() {
+  const [tab, setTab] = useState<Tab>('tool');
+
+  return (
+    <div style={{ maxWidth: 780, margin: '0 auto' }}>
+      <div className="ios-card-nested p-1.5 flex mb-6 relative" style={{ maxWidth: 320, margin: '0 auto 24px' }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className="press flex-1 relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300"
+            style={{ color: tab === t.id ? 'white' : 'var(--text-secondary)' }}>
+            <span>{t.emoji}</span>{t.label}
+          </button>
+        ))}
+        <div className="absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-300 ease-out"
+          style={{ width: 'calc(50% - 6px)', left: tab === 'tool' ? '6px' : 'calc(50% + 0px)', background: `rgb(${GLOW})`, boxShadow: `0 0 16px rgba(${GLOW}, 0.5)` }} />
+      </div>
+
+      {tab === 'tool' ? (
+        <div key="tool" className="anim-fade-up"><DarkSkyExplorer /></div>
+      ) : (
+        <div key="guide" className="anim-fade-up"><HowToUseGuide onTryIt={() => setTab('tool')} /></div>
+      )}
+    </div>
+  );
+}
+
+function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
+  const steps = [
+    { emoji: '👆', title: 'Drag the Bortle slider', body: 'Grab the big white thumb and drag toward 1 for a truly dark sky, or toward 9 for a light-polluted city — watch the starfield above reveal or hide stars in real time.' },
+    { emoji: '🌌', title: 'Read the starfield preview', body: 'More visible stars and a glowing Milky Way band mean better conditions. This mirrors what your eyes would actually adjust to see.' },
+    { emoji: '📍', title: 'Switch or add Sky Spots (Pro)', body: 'Save named locations — your backyard, a cabin, a planned trip destination — each with its own light-pollution level, and compare them instantly.' },
+    { emoji: '📊', title: 'Tap a night on the forecast strip', body: 'Each bar is one night\'s Stargazing Score, driven by real moon-phase math. Tap any night to see its moon phase, moonrise time, and events.' },
+    { emoji: '✨', title: 'Look for the best-night badge', body: 'The tallest, star-marked bar in your window is the single best night to plan around.' },
+    { emoji: '🌠', title: 'Watch for meteor shower banners', body: 'Real annual peak dates for all eight major showers — Perseids, Geminids, and more — surface automatically when they\'re coming up.' },
+    { emoji: '🔒', title: 'Free tier: 7-night forecast, 1 unsaved spot', body: 'Pro unlocks a 30-night forecast, up to 5 saved Sky Spots, every upcoming event, and saving your setup.' },
+  ];
+
+  return (
+    <div className="ios-card p-6 sm:p-8" style={{ boxShadow: `0 0 0 1.5px rgba(${GLOW}, 0.2), 0 0 40px rgba(${GLOW}, 0.08)` }}>
+      <div className="mb-6">
+        <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>GUIDE</p>
+        <h2 className="text-title2 mb-2">Getting the best out of the Dark Sky Explorer</h2>
+        <p className="text-callout" style={{ color: 'var(--text-secondary)' }}>
+          Real moonlight math, real meteor shower dates, and a sky you can actually see change as you drag.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 mb-6">
+        {steps.map((s, i) => (
+          <div key={s.title} className="ios-card-nested p-4 flex gap-4 items-start anim-fade-up" style={{ animationDelay: `${i * 70}ms` }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `rgba(${GLOW}, 0.12)` }}>{s.emoji}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-caption font-bold flex-shrink-0" style={{ color: `rgb(${GLOW})` }}>{i + 1}</span>
+                <p className="text-headline">{s.title}</p>
+              </div>
+              <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>{s.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="ios-card-nested p-4 mb-6 flex gap-3 items-start" style={{ borderLeft: '3px solid rgb(var(--accent-orange))' }}>
+        <span className="text-lg flex-shrink-0">⚠️</span>
+        <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>
+          Moon phases and meteor shower dates are astronomically accurate, but the "clarity" factor in each night's score is a simulated placeholder, not live weather — always check a real forecast before heading out.
+        </p>
+      </div>
+
+      <button onClick={onTryIt} className="btn-filled press w-full">Try it now →</button>
+    </div>
+  );
+}
