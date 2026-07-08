@@ -357,3 +357,12 @@ model EntertainmentConfig {
 //
 //   entertainmentConfig  EntertainmentConfig?
 
+model EnergyRhythmConfig {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Json
+  history   Json
+  updatedAt DateTime @updatedAt
+}
+
