@@ -38,12 +38,13 @@ export function DarkSkyExplorerTabs() {
 
 function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
   const steps = [
+    { emoji: '📍', title: 'Set a real location for each spot', body: 'Tap "Edit location" and either use your device GPS or type coordinates directly — this is what makes moonrise, moonset, and true-darkness times actually accurate for that place.' },
     { emoji: '👆', title: 'Drag the Bortle slider', body: 'Grab the big white thumb and drag toward 1 for a truly dark sky, or toward 9 for a light-polluted city — watch the starfield above reveal or hide stars in real time.' },
-    { emoji: '🌌', title: 'Read the starfield preview', body: 'More visible stars and a glowing Milky Way band mean better conditions. This mirrors what your eyes would actually adjust to see.' },
-    { emoji: '📍', title: 'Switch or add Sky Spots (Pro)', body: 'Save named locations — your backyard, a cabin, a planned trip destination — each with its own light-pollution level, and compare them instantly.' },
-    { emoji: '📊', title: 'Tap a night on the forecast strip', body: 'Each bar is one night\'s Stargazing Score, driven by real moon-phase math. Tap any night to see its moon phase, moonrise time, and events.' },
+    { emoji: '🌌', title: 'Read the starfield preview', body: 'More visible stars and a glowing Milky Way band mean better conditions.' },
+    { emoji: '📍', title: 'Switch or add Sky Spots (Pro)', body: 'Save named locations — your backyard, a cabin, a planned trip destination — each with its own coordinates and light-pollution level.' },
+    { emoji: '📊', title: 'Tap a night on the forecast strip', body: 'Each bar is one night\'s Stargazing Score. Tap any night to see its real moon phase, moonrise/moonset, and true-darkness time for that exact location.' },
     { emoji: '✨', title: 'Look for the best-night badge', body: 'The tallest, star-marked bar in your window is the single best night to plan around.' },
-    { emoji: '🌠', title: 'Watch for meteor shower banners', body: 'Real annual peak dates for all eight major showers — Perseids, Geminids, and more — surface automatically when they\'re coming up.' },
+    { emoji: '🌠', title: 'Watch for meteor shower banners', body: 'Real annual peak dates for all eight major showers surface automatically when they\'re coming up.' },
     { emoji: '🔒', title: 'Free tier: 7-night forecast, 1 unsaved spot', body: 'Pro unlocks a 30-night forecast, up to 5 saved Sky Spots, every upcoming event, and saving your setup.' },
   ];
 
@@ -53,7 +54,7 @@ function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
         <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>GUIDE</p>
         <h2 className="text-title2 mb-2">Getting the best out of the Dark Sky Explorer</h2>
         <p className="text-callout" style={{ color: 'var(--text-secondary)' }}>
-          Real moonlight math, real meteor shower dates, and a sky you can actually see change as you drag.
+          Real moon-phase and moonrise/moonset math for your actual coordinates, plus real meteor shower dates.
         </p>
       </div>
 
@@ -72,11 +73,9 @@ function HowToUseGuide({ onTryIt }: { onTryIt: () => void }) {
         ))}
       </div>
 
-      <div className="ios-card-nested p-4 mb-6 flex gap-3 items-start" style={{ borderLeft: '3px solid rgb(var(--accent-orange))' }}>
-        <span className="text-lg flex-shrink-0">⚠️</span>
-        <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>
-          Moon phases and meteor shower dates are astronomically accurate, but the "clarity" factor in each night's score is a simulated placeholder, not live weather — always check a real forecast before heading out.
-        </p>
+      <div className="ios-card-nested p-4 mb-6 flex flex-col gap-2" style={{ borderLeft: '3px solid rgb(var(--accent-orange))' }}>
+        <p className="text-footnote flex gap-3 items-start"><span className="text-lg flex-shrink-0">⚠️</span><span style={{ color: 'var(--text-secondary)' }}>Moon phase, moonrise/moonset, true-darkness time, and meteor shower dates are astronomically accurate for the coordinates you set. But the "clarity" factor in each night's score is a simulated placeholder for weather, not a live forecast — always check a real weather source before heading out. Times are shown in your device's timezone, which may differ from the Sky Spot's actual local time.</span></p>
+        <p className="text-footnote flex gap-3 items-start"><span className="text-lg flex-shrink-0">🔒</span><span style={{ color: 'var(--text-secondary)' }}>The Bortle light-pollution rating itself is still something you set yourself, based on your own judgment — it isn't looked up automatically from your coordinates.</span></p>
       </div>
 
       <button onClick={onTryIt} className="btn-filled press w-full">Try it now →</button>
