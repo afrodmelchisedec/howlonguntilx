@@ -396,3 +396,11 @@ model PhishingIdentityConfig {
 //
 //   phishingIdentityConfig  PhishingIdentityConfig?
 
+model DarkSkyConfig {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spots        Json
+  activeSpotId String
+  updatedAt    DateTime @updatedAt
+}
