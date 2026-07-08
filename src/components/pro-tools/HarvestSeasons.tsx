@@ -52,7 +52,7 @@ const CATALOG: ProduceItem[] = [
   { id: 'squash',       name: 'Butternut Squash',  emoji: '🧡', color: '243, 156, 18',  start: md(9, 15), peakStart: md(10, 15), peakEnd: md(12, 1), end: md(12, 31) },
 ];
 
-const DEFAULT_BASKET_IDS = ['strawberries', 'watermelon', 'corn', 'tomatoes', 'pumpkin'];
+const DEFAULT_BASKET_IDS = ['strawberries', 'tomatoes', 'pumpkin'];
 const DEFAULT_BASKET: ProduceItem[] = CATALOG.filter(c => DEFAULT_BASKET_IDS.includes(c.id)).map(c => ({ ...c }));
 
 const MONTH_LABELS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
