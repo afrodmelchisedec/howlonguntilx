@@ -12,18 +12,83 @@ const MAX_WISHLIST_FREE = 3;
 const MAX_WISHLIST_PRO = 30;
 const SEGMENT_ANGLE = 45;
 
-interface WheelSegment { label: string; type: 'percent' | 'shipping' | 'mystery' | 'jackpot' | 'none'; value?: number; color: string; weight: number; }
+interface WheelSegment { label: string; key: string; color: string; weight: number; }
 
+// Every segment except 'insight' pulls a random tip from a curated bank —
+// no fake discount codes, just genuinely useful, specific advice.
+// 'insight' is dynamic: it reads the user's own saved deals at spin time.
 const SEGMENTS: WheelSegment[] = [
-  { label: '5% OFF',       type: 'percent',  value: 5,  color: '88, 214, 113',  weight: 20 },
-  { label: 'Free Ship',    type: 'shipping',            color: '100, 200, 255', weight: 16 },
-  { label: '10% OFF',      type: 'percent',  value: 10, color: '196, 132, 252', weight: 18 },
-  { label: 'Try Again',    type: 'none',                color: '150, 150, 160', weight: 14 },
-  { label: '15% OFF',      type: 'percent',  value: 15, color: '255, 159, 10',  weight: 12 },
-  { label: 'Mystery Box',  type: 'mystery',              color: '255, 122, 165', weight: 8 },
-  { label: '20% OFF',      type: 'percent',  value: 20, color: '255, 204, 0',   weight: 7 },
-  { label: 'JACKPOT 25%',  type: 'jackpot',  value: 25, color: '255, 69, 58',   weight: 5 },
+  { label: 'Electronics', key: 'Electronics', color: '100, 200, 255', weight: 14 },
+  { label: 'Fashion',     key: 'Fashion',     color: '196, 132, 252', weight: 14 },
+  { label: 'Home',        key: 'Home',        color: '255, 159, 10',  weight: 14 },
+  { label: 'Beauty',      key: 'Beauty',      color: '255, 122, 165', weight: 12 },
+  { label: 'Travel',      key: 'Travel',      color: '52, 199, 89',   weight: 12 },
+  { label: 'Food',        key: 'Food',        color: '196, 132, 90',  weight: 12 },
+  { label: 'General Tip', key: 'General',     color: '150, 150, 160', weight: 14 },
+  { label: 'Your Deals',  key: 'insight',     color: '255, 204, 0',   weight: 8 },
 ];
+
+const TIP_BANK: Record<string, string[]> = {
+  Electronics: [
+    'Electronics tend to drop hardest right before a new model launch — worth waiting on TVs and phones this month.',
+    'Refurbished electronics from the manufacturer often carry the same warranty as new, for 20–30% less.',
+    "Black Friday isn't always the best time for laptops — back-to-school season (August) often beats it.",
+  ],
+  Fashion: [
+    "End-of-season sales, right before next season's stock arrives, are when fashion discounts go deepest.",
+    "Sign up for a brand's newsletter before checkout — many trigger a first-purchase discount you'd otherwise miss.",
+    'Outerwear and boots see their biggest markdowns in late winter, not before the cold hits.',
+  ],
+  Home: [
+    "This category rarely discounts past 40% — anything at 35%+ off is close to the real ceiling, don't hold out for more.",
+    'Cookware and small appliances see their best prices around January, after holiday gifting season ends.',
+    'Furniture discounts are deepest around major moving months (May and September) when retailers clear floor stock.',
+  ],
+  Beauty: [
+    'Skincare rarely goes below 25% off outside of a sitewide sale — a 30%+ deal is genuinely a good one.',
+    'Sample sizes at a discount are a low-risk way to test a pricier product before committing to full size.',
+    'Beauty subscription boxes often quietly raise prices after the first few months — check the renewal rate before signing up.',
+  ],
+  Travel: [
+    'Flight prices are usually lowest 6–8 weeks before a domestic trip, earlier for international.',
+    'Booking a package deal (flight + hotel) can beat booking separately, even when neither piece looks discounted alone.',
+    'Tuesday afternoons are historically when airlines release the most fare sales.',
+  ],
+  Food: [
+    "Subscription coffee and snack boxes almost always have a better deal for new customers than existing ones — check for one before renewing.",
+    "Bulk grocery deals only save money if you'll actually use the volume before it expires — check the per-unit price, not just the sticker discount.",
+    'Restaurant apps often have better deals than their in-store equivalents for the exact same order.',
+  ],
+  General: [
+    "A deal under 20% off is rarely worth rushing for — most items eventually see a better markdown.",
+    'Price-tracking a specific item for 2 weeks before buying will tell you if a sale price is actually good or just marketing.',
+    "The best deals usually aren't the most heavily advertised ones — the loudest banner isn't always the biggest discount.",
+  ],
+};
+
+function pickCategoryTip(key: string): string {
+  const bank = TIP_BANK[key] ?? TIP_BANK.General;
+  return bank[Math.floor(Math.random() * bank.length)];
+}
+
+function pickInsightTip(deals: Deal[]): string {
+  if (deals.length === 0) {
+    return "You don't have any saved deals yet — save one above to start getting personalized insights here.";
+  }
+  const options: string[] = [];
+  const best = [...deals].sort((a, b) => b.discountPercent - a.discountPercent)[0];
+  options.push(`Your best saved deal right now is ${best.emoji} ${best.name} at ${best.discountPercent}% off — saving you $${(best.originalPrice - best.dealPrice).toFixed(2)}.`);
+  const totalSavings = deals.reduce((s, d) => s + (d.originalPrice - d.dealPrice), 0);
+  options.push(`Across everything you've saved, you're sitting on $${totalSavings.toFixed(2)} in potential savings.`);
+  const expiringCount = deals.filter(d => {
+    const diffMs = new Date(d.expiresIso).getTime() - Date.now();
+    return diffMs > 0 && diffMs < 6 * 3600 * 1000;
+  }).length;
+  if (expiringCount > 0) {
+    options.push(`${expiringCount} of your saved deal${expiringCount === 1 ? '' : 's'} expire${expiringCount === 1 ? 's' : ''} within 6 hours — check your list before it's gone.`);
+  }
+  return options[Math.floor(Math.random() * options.length)];
+}
 
 const LS_KEY = 'shopping-deals-state-v1';
 
@@ -66,14 +131,6 @@ function pickSegment(): number {
   return SEGMENTS.length - 1;
 }
 
-function genCode(seg: WheelSegment): string {
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  if (seg.type === 'jackpot') return `JACKPOT${rand}`;
-  if (seg.type === 'shipping') return `SHIP${rand}`;
-  if (seg.type === 'percent') return `SAVE${seg.value}${rand}`;
-  return '';
-}
-
 function getDealCountdown(iso: string, nowMs: number) {
   const diffMs = new Date(iso).getTime() - nowMs;
   const expired = diffMs <= 0;
@@ -106,7 +163,7 @@ export function ShoppingDealsRadar() {
 
   const [wheelRotation, setWheelRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
-  const [prizeBubble, setPrizeBubble] = useState<{ label: string; color: string; code: string } | null>(null);
+  const [prizeBubble, setPrizeBubble] = useState<{ label: string; color: string; tip: string } | null>(null);
 
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(139);
@@ -192,17 +249,8 @@ export function ShoppingDealsRadar() {
     setLastSpinDate(todayIso);
     setStreak(nextStreak);
 
-    const code = seg.type !== 'none' ? genCode(seg) : '';
-    setPrizeBubble({ label: seg.label, color: seg.color, code });
-
-    if (seg.type === 'mystery') {
-      const unclaimed = DEALS_PRESETS.filter(d => !wishlist.includes(d.id));
-      if (unclaimed.length > 0 && wishlist.length < maxWishlist) {
-        const pick = unclaimed[Math.floor(Math.random() * unclaimed.length)];
-        setWishlist(prev => [...prev, pick.id]);
-        showToast(`Mystery Box added ${pick.name} to your deals!`, '🎁');
-      }
-    }
+    const tip = seg.key === 'insight' ? pickInsightTip(wishlistDeals) : pickCategoryTip(seg.key);
+    setPrizeBubble({ label: seg.label, color: seg.color, tip });
 
     syncToServer({ wishlist, streak: nextStreak, lastSpinDate: todayIso, spinsToday: nextSpinsToday });
   }
@@ -314,10 +362,10 @@ export function ShoppingDealsRadar() {
       .then(() => showToast('Link copied!', '🔗'))
       .catch(() => showToast('Could not copy link', '⚠️'));
   }
-  function handleCopyCode() {
-    if (!prizeBubble?.code) return;
-    navigator.clipboard.writeText(prizeBubble.code)
-      .then(() => showToast('Code copied!', '📋'))
+  function handleCopyTip() {
+    if (!prizeBubble?.tip) return;
+    navigator.clipboard.writeText(prizeBubble.tip)
+      .then(() => showToast('Tip copied!', '📋'))
       .catch(() => showToast('Could not copy', '⚠️'));
   }
   function handleCommentJump() {
@@ -381,19 +429,18 @@ export function ShoppingDealsRadar() {
             disabled={spinning || spinsLeft === 0}
             className="btn-filled press mt-4 px-6 py-2.5 disabled:opacity-50"
           >
-            {spinning ? 'Spinning…' : spinsLeft > 0 ? `🎡 Spin (${spinsLeft} left today)` : (isPro ? '⏰ Come back tomorrow' : '🔒 Spin used — Pro gets 2/day')}
+            {spinning ? 'Spinning…' : spinsLeft > 0 ? `🎡 Spin for a tip (${spinsLeft} left today)` : (isPro ? '⏰ Come back tomorrow' : '🔒 Spin used — Pro gets 2/day')}
           </button>
 
           {prizeBubble && (
-            <div className="flex flex-col items-center mt-4 anim-scale-in">
-              <span className="pill press text-sm font-bold" style={{ background: `rgba(${prizeBubble.color}, 0.18)`, color: `rgb(${prizeBubble.color})`, boxShadow: `0 0 16px rgba(${prizeBubble.color}, 0.4)` }}>
-                🎉 {prizeBubble.label}
+            <div className="flex flex-col items-center mt-4 anim-scale-in" style={{ maxWidth: 380 }}>
+              <span className="pill press text-sm font-bold mb-2" style={{ background: `rgba(${prizeBubble.color}, 0.18)`, color: `rgb(${prizeBubble.color})`, boxShadow: `0 0 16px rgba(${prizeBubble.color}, 0.4)` }}>
+                💡 {prizeBubble.label}
               </span>
-              {prizeBubble.code && (
-                <button onClick={handleCopyCode} className="ios-card-nested press text-xs px-3 py-1.5 mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  📋 Copy code: {prizeBubble.code}
-                </button>
-              )}
+              <p className="text-footnote text-center mb-2" style={{ color: 'var(--text-secondary)' }}>{prizeBubble.tip}</p>
+              <button onClick={handleCopyTip} className="ios-card-nested press text-xs px-3 py-1.5" style={{ color: 'var(--text-secondary)' }}>
+                📋 Copy tip
+              </button>
             </div>
           )}
         </div>
