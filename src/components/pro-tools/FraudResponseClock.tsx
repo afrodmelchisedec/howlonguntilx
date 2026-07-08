@@ -289,13 +289,16 @@ export function FraudResponseClock() {
   const stepsTotal = incidents.reduce((a, i) => a + i.steps.length, 0);
   const stepsDone = incidents.reduce((a, i) => a + i.steps.filter(s => s.done).length, 0);
 
-  const autoRadarValues = useMemo(() => INCIDENT_TYPES.map(t => {
-    const matching = withStatus.filter(w => w.type.key === t.key);
-    if (matching.length === 0) return 12;
-    let score = 30 + (matching.length - 1) * 25;
-    if (matching.some(m => m.status.phase === 'critical' || m.status.phase === 'closed')) score += 25;
-    return Math.min(100, score);
-  }), [withStatus]);
+  const autoRadarValues = useMemo(() => {
+    if (incidents.length === 0) return INCIDENT_TYPES.map(() => 0);
+    return INCIDENT_TYPES.map(t => {
+      const matching = withStatus.filter(w => w.type.key === t.key);
+      if (matching.length === 0) return 12;
+      let score = 30 + (matching.length - 1) * 25;
+      if (matching.some(m => m.status.phase === 'critical' || m.status.phase === 'closed')) score += 25;
+      return Math.min(100, score);
+    });
+  }, [withStatus, incidents.length]);
   const effectiveRadarValues = INCIDENT_TYPES.map((t, i) => isPro && radarOverrides[t.key] != null ? radarOverrides[t.key] : autoRadarValues[i]);
   const overallRiskScore = Math.round(effectiveRadarValues.reduce((a, v) => a + v, 0) / effectiveRadarValues.length);
 
