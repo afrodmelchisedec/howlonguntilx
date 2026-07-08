@@ -117,3 +117,16 @@ export const RESTAURANT_LAUNCHES_COMMENTS = [
   { id: 'c9', author: 'Tobias', text: 'Saved my watchlist and it was exactly as I left it a week later.', likes: 8 },
   { id: 'c10', author: 'Grace', text: 'This scratched an itch I didn\'t know I had, I just want to know when new restaurants are opening.', likes: 20 },
 ];
+
+export const SHOPPING_DEALS_COMMENTS = [
+  { id: 'c1', author: 'Priya', text: 'Hit the jackpot on day 4 of my streak, genuinely yelled a little.', likes: 22 },
+  { id: 'c2', author: 'Owen', text: 'Come back every morning just for the spin now, it\'s become a habit.', likes: 15 },
+  { id: 'c3', author: 'Marcus', text: 'The savings meter breaking down by category made me realize how much I spend on electronics deals specifically.', likes: 12 },
+  { id: 'c4', author: 'Fatima', text: 'Mystery Box added a deal I never would have found on my own, love that mechanic.', likes: 17 },
+  { id: 'c5', author: 'Devon', text: 'Upgraded mainly for the second daily spin, worth it already.', likes: 8 },
+  { id: 'c6', author: 'Lena', text: 'Dragging my saved deals to reorder by priority before a shopping trip is so satisfying.', likes: 10 },
+  { id: 'c7', author: 'Carlos', text: 'The expiring-soon banner saved me from missing a TV deal by an hour.', likes: 14 },
+  { id: 'c8', author: 'Aisha', text: 'Six day streak and counting, this is more addictive than I expected for a deals tracker.', likes: 19 },
+  { id: 'c9', author: 'Tobias', text: 'Streak synced perfectly when I switched from my phone to my laptop as Pro.', likes: 9 },
+  { id: 'c10', author: 'Grace', text: 'Copy code button is such a small thing but it makes checkout so much faster.', likes: 11 },
+];
