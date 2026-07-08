@@ -316,3 +316,17 @@ model RestaurantWatchlistConfig {
 // Also add this back-relation field inside your existing `model User { ... }` block:
 //
 //   restaurantWatchlistConfig  RestaurantWatchlistConfig?
+
+model HarvestSeasonsConfig {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      Json
+  hemisphere String   @default("northern")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   harvestSeasonsConfig  HarvestSeasonsConfig?

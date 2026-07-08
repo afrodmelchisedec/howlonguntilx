@@ -289,7 +289,11 @@ export function RestaurantLaunches() {
             const burst = hypeBursts.find(b => b.restaurantId === r.id);
             const inWatchlist = watchlist.includes(r.id);
             return (
-              <div key={r.id} className="ios-card-nested p-4 relative overflow-hidden">
+              <div
+                key={r.id}
+                className={`ios-card-nested p-4 relative overflow-hidden ${isOpen ? 'anim-open-radiate' : ''}`}
+                style={isOpen ? { border: '1.5px solid rgba(100, 200, 255, 0.5)' } : undefined}
+              >
                 <div className="flex items-start gap-3 mb-3">
                   <RestaurantRing percent={ringPercent} color={r.color} />
                   <div className="flex-1 min-w-0">
@@ -410,8 +414,13 @@ export function RestaurantLaunches() {
                 <div
                   key={id}
                   ref={el => { if (el) itemRefs.current.set(id, el); }}
-                  className="ios-card-nested p-3 flex items-center gap-3"
-                  style={{ opacity: isDragging ? 0.6 : 1, transform: isDragging ? 'scale(1.02)' : 'scale(1)', transition: 'opacity 0.15s, transform 0.15s' }}
+                  className={`ios-card-nested p-3 flex items-center gap-3 ${isOpen ? 'anim-open-radiate' : ''}`}
+                  style={{
+                    opacity: isDragging ? 0.6 : 1,
+                    transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'opacity 0.15s, transform 0.15s',
+                    border: isOpen ? '1.5px solid rgba(100, 200, 255, 0.5)' : undefined,
+                  }}
                 >
                   <span onPointerDown={() => startReorderDrag(id)} className="cursor-grab press text-lg" style={{ touchAction: 'none', color: 'var(--text-tertiary)' }}>⠿</span>
                   <span className="text-lg flex-shrink-0">{r.emoji}</span>
@@ -468,6 +477,18 @@ export function RestaurantLaunches() {
           100% { opacity: 0; transform: translateY(-16px) scale(1); }
         }
         .anim-float-up { animation: floatUp 0.7s ease-out forwards; }
+
+        @keyframes openRadiate {
+          0%, 100% {
+            box-shadow: 0 0 18px rgba(52, 199, 89, 0.55), 0 0 34px rgba(52, 199, 89, 0.25);
+            border-color: rgba(52, 199, 89, 0.6);
+          }
+          50% {
+            box-shadow: 0 0 24px rgba(100, 200, 255, 0.65), 0 0 44px rgba(100, 200, 255, 0.3);
+            border-color: rgba(100, 200, 255, 0.7);
+          }
+        }
+        .anim-open-radiate { animation: openRadiate 2.4s ease-in-out infinite; }
       `}</style>
     </div>
   );
