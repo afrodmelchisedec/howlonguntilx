@@ -5,14 +5,14 @@ export function ArticleChart({ title, data, glow }: { title: string; data: { lab
   const width = data.length * (barW + gap) + leftPad;
 
   return (
-    <div className="ios-card-nested p-5 my-4">
+    <div className="article-glow-card ios-card-nested p-5 my-4" style={{ border: `1px solid rgba(${glow}, 0.25)` }}>
       <p className="text-footnote font-semibold mb-3">{title}</p>
       <svg viewBox={`0 0 ${width} ${chartH + 40}`} width="100%" role="img" aria-label={title}>
         {data.map((d, i) => {
           const h = (d.value / max) * chartH;
           const x = leftPad + i * (barW + gap);
           return (
-            <g key={d.label}>
+            <g key={d.label} className="article-bar" style={{ animationDelay: `${i * 90}ms` }}>
               <rect x={x} y={chartH - h} width={barW} height={h} rx="6" fill={`rgb(${glow})`} opacity="0.85" />
               <text x={x + barW / 2} y={chartH - h - 8} textAnchor="middle" fontSize="13" fontWeight="700" fill={`rgb(${glow})`}>{d.value}</text>
               <text x={x + barW / 2} y={chartH + 20} textAnchor="middle" fontSize="12" fill="var(--text-secondary)">{d.label}</text>
