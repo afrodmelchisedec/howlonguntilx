@@ -404,3 +404,14 @@ model DarkSkyConfig {
   activeSpotId String
   updatedAt    DateTime @updatedAt
 }
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   techEventsConfig  TechEventsConfig?
+
+model TechEventsConfig {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlist  Json
+  updatedAt  DateTime @updatedAt
+}
