@@ -239,7 +239,6 @@ export function TechEventsCalendar() {
               const colB = hoveredIdx === null ? colA : hoveredIdx % 7;
               const dist = hoveredIdx === null ? 99 : Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
               const glow = dist === 0 ? 0.9 : dist === 1 ? 0.32 : dist === 2 ? 0.1 : 0;
-              const flashColor = events.length > 0 ? TYPE_COLOR[events[0].type] : GLOW;
 
               return (
                 <button
@@ -247,11 +246,10 @@ export function TechEventsCalendar() {
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => setSelectedDate(cell.date)}
-                  className={`press relative flex flex-col items-center justify-center rounded-xl transition-all duration-150 ${events.length > 0 ? 'event-day' : ''}`}
+                  className="press relative flex flex-col items-center justify-center rounded-xl transition-all duration-150"
                   style={{
                     aspectRatio: '1',
                     opacity: cell.inMonth ? 1 : 0.28,
-                    ['--flash-color' as any]: flashColor,
                     background: isSelected
                       ? `rgba(${GLOW}, 0.22)`
                       : glow > 0
@@ -267,9 +265,9 @@ export function TechEventsCalendar() {
                 >
                   <span className="text-footnote font-semibold">{cell.date.getDate()}</span>
                   {events.length > 0 && (
-                    <div className="flex gap-0.5 mt-0.5 event-dots">
+                    <div className="flex gap-0.5 mt-0.5">
                       {events.slice(0, 3).map((e, i) => (
-                        <span key={i} className="rounded-full event-dot" style={{ width: 5, height: 5, background: `rgb(${TYPE_COLOR[e.type]})`, animationDelay: `${i * 60}ms` }} />
+                        <span key={i} className="rounded-full" style={{ width: 5, height: 5, background: `rgb(${TYPE_COLOR[e.type]})` }} />
                       ))}
                     </div>
                   )}
@@ -371,26 +369,6 @@ export function TechEventsCalendar() {
         @keyframes slideInFromLeft {
           from { transform: translateX(-24px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes eventFlash {
-          0% { box-shadow: 0 0 0 0 rgba(var(--flash-color), 0.55); }
-          40% { box-shadow: 0 0 0 10px rgba(var(--flash-color), 0); }
-          100% { box-shadow: 0 0 0 0 rgba(var(--flash-color), 0); }
-        }
-        @keyframes eventDotPop {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.9); }
-          100% { transform: scale(1); }
-        }
-        .event-day {
-          --flash-color: 162, 137, 255;
-        }
-        .event-day:hover {
-          animation: eventFlash 700ms ease-out;
-          background: rgba(var(--flash-color), 0.16) !important;
-        }
-        .event-day:hover .event-dot {
-          animation: eventDotPop 500ms ease-out;
         }
       `}</style>
     </div>
