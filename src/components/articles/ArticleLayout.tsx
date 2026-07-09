@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { ArticleBlocks } from './ArticleBlocks';
 import { ArticleCommentSection } from './ArticleCommentSection';
+import { RelatedArticles } from './RelatedArticles';
 
 export function ArticleLayout({ article, toolName, toolSlug, glow }: { article: any; toolName: string; toolSlug: string; glow: string }) {
   return (
@@ -16,8 +17,9 @@ export function ArticleLayout({ article, toolName, toolSlug, glow }: { article: 
       <p className="text-caption mb-6" style={{ color: 'var(--text-secondary)' }}>
         By {article.authorName} · {new Date(article.publishedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
-      <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} />
-      <div className="mt-8">
+      <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} />
+      <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} />
+      <div className="mt-10">
         <ArticleCommentSection glow={glow} />
       </div>
     </article>
