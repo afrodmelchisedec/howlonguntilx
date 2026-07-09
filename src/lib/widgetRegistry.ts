@@ -1,8 +1,7 @@
 // FILE: src/lib/widgetRegistry.ts
 import dynamic from 'next/dynamic';
 
-// Each tool slug maps to the ONLY widget(s) admins may embed in that tool's articles.
-// This is what guarantees "tech-events" articles always get the tech-events tool, never a mismatched one.
+// Lite widgets: free, no-auth, no-save — safe to sprinkle mid-article.
 export const WIDGET_REGISTRY: Record<string, Record<string, ReturnType<typeof dynamic>>> = {
   'tech-events': {
     countdown: dynamic(() => import('@/components/widgets/CountdownWidget'), { ssr: false }),
@@ -10,9 +9,18 @@ export const WIDGET_REGISTRY: Record<string, Record<string, ReturnType<typeof dy
   'dark-sky-explorer': {
     bortle_preview: dynamic(() => import('@/components/widgets/BortlePreviewWidget'), { ssr: false }),
   },
-  // TODO: add one entry per existing tool as you wire up its articles
+};
+
+// Full tools: the actual Pro-tool component (free tier works without auth), embedded directly
+// in an article so readers can play with the real thing, not just a teaser.
+export const FULL_TOOL_REGISTRY: Record<string, ReturnType<typeof dynamic>> = {
+  'tech-events': dynamic(() => import('@/components/pro-tools/TechEventsCalendar').then(m => m.TechEventsCalendar), { ssr: false }),
+  'dark-sky-explorer': dynamic(() => import('@/components/pro-tools/DarkSkyExplorer').then(m => m.DarkSkyExplorer), { ssr: false }),
 };
 
 export function widgetsForTool(toolSlug: string) {
   return WIDGET_REGISTRY[toolSlug] ?? {};
+}
+export function fullToolForTool(toolSlug: string) {
+  return FULL_TOOL_REGISTRY[toolSlug];
 }
