@@ -11,6 +11,12 @@ const NAV_LINKS = [
   { label:'API',        href:'/api/countdown?event=christmas', cls:'gc-finance', ext:true },
 ];
 
+const INFO_LINKS = [
+  { label:'About',   href:'/about'   },
+  { label:'Contact', href:'/contact' },
+  { label:'Privacy', href:'/privacy' },
+];
+
 export function Nav() {
   const { data:session, status } = useSession();
   const [open, setOpen] = useState(false);
@@ -36,6 +42,15 @@ export function Nav() {
               ⚙ Admin
             </Link>
           )}
+          <div className="hidden lg:flex items-center gap-0.5 ml-2 pl-2" style={{ borderLeft: '1px solid var(--border-hairline)' }}>
+            {INFO_LINKS.map(l => (
+              <Link key={l.label} href={l.href}
+                className="press text-xs font-medium px-2.5 py-1.5 rounded-full transition-opacity hover:opacity-100"
+                style={{ color: 'var(--text-tertiary)', opacity: 0.85 }}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
