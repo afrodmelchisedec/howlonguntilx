@@ -1,7 +1,7 @@
 // FILE: src/components/articles/ArticleLayout.tsx
 import Link from 'next/link';
 import { ArticleBlocks } from './ArticleBlocks';
-import { ToolCommentSection } from '@/components/pro-tools/ToolCommentSection';
+import { ArticleCommentSection } from './ArticleCommentSection';
 
 export function ArticleLayout({ article, toolName, toolSlug, glow }: { article: any; toolName: string; toolSlug: string; glow: string }) {
   return (
@@ -18,7 +18,7 @@ export function ArticleLayout({ article, toolName, toolSlug, glow }: { article: 
       </p>
       <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} />
       <div className="mt-8">
-        <ToolCommentSection seedComments={[]} onRequireAuth={() => true} glow={glow} />
+        <ArticleCommentSection glow={glow} />
       </div>
     </article>
   );

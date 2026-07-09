@@ -1,5 +1,5 @@
 // FILE: src/lib/articles.ts
-import { prisma } from '@/lib/prisma'; // TODO: adjust to your actual Prisma singleton path
+import { prisma } from '@/lib/db';
 
 export async function getPublishedArticle(toolSlug: string, slug: string) {
   return prisma.article.findFirst({ where: { toolSlug, slug, status: 'published' } });
