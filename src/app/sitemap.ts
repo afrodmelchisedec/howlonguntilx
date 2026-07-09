@@ -1,22 +1,30 @@
-
+// FILE: src/app/sitemap.ts
 import { MetadataRoute } from 'next';
-import { getAllEventSlugs } from '@/lib/events';
+import { prisma } from '@/lib/prisma'; // TODO: adjust path
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
-  const slugs = await getAllEventSlugs();
+const TOOL_SLUGS = ['tech-events', 'dark-sky-explorer']; // TODO: extend as you add tools
 
-  const eventUrls = slugs.map(slug => ({
-    url: `${base}/how-long-until-${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'hourly' as const,
-    priority: 0.9,
-  }));
+export async function generateSitemaps() {
+  // One sitemap chunk per tool category — keeps each chunk's indexed ratio diagnosable in GSC
+  return TOOL_SLUGS.map((_, id) => ({ id }));
+}
+
+export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
+  const toolSlug = TOOL_SLUGS[id];
+  const articles = await prisma.article.findMany({
+    where: { toolSlug, status: 'published' },
+    select: { slug: true, updatedAt: true },
+    orderBy: { publishedAt: 'desc' },
+    take: 50000,
+  });
 
   return [
-    { url: base, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
-    { url: `${base}/categories`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/embed`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    ...eventUrls,
+    { url: `https://www.howlonguntilx.com/tools/${toolSlug}`, changeFrequency: 'daily', priority: 0.9 },
+    ...articles.map(a => ({
+      url: `https://www.howlonguntilx.com/tools/${toolSlug}/${a.slug}`,
+      lastModified: a.updatedAt,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
   ];
 }
