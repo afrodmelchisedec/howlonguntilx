@@ -213,7 +213,7 @@ export function TechEventsCalendar() {
         </div>
 
         {/* Calendar */}
-        <div className="ios-card-nested p-4 sm:p-5 mb-6">
+        <div className="ios-card-nested p-4 sm:p-5 mb-6" style={{ overflow: 'visible' }}>
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => goMonth(-1)} className="press w-9 h-9 rounded-full flex items-center justify-center ios-card-nested">←</button>
             <div key={fmtMonthYear(viewDate)} className="text-headline anim-fade-up" style={{ animationDuration: '250ms' }}>
@@ -229,7 +229,7 @@ export function TechEventsCalendar() {
             ))}
           </div>
 
-          <div key={fmtMonthYear(viewDate)} className="grid grid-cols-7 gap-1" style={{ animation: `${slideDir === 'left' ? 'slideInFromRight' : 'slideInFromLeft'} 280ms ease-out` }}>
+          <div key={fmtMonthYear(viewDate)} className="grid grid-cols-7 gap-1" style={{ animation: `${slideDir === 'left' ? 'slideInFromRight' : 'slideInFromLeft'} 280ms ease-out`, overflow: 'visible' }}>
             {grid.map((cell, idx) => {
               const events = eventsOnDay(cell.date);
               const isToday = isSameDay(cell.date, today);
@@ -239,7 +239,11 @@ export function TechEventsCalendar() {
               const colB = hoveredIdx === null ? colA : hoveredIdx % 7;
               const dist = hoveredIdx === null ? 99 : Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
               const glow = dist === 0 ? 0.9 : dist === 1 ? 0.32 : dist === 2 ? 0.1 : 0;
-              const flashColor = events.length > 0 ? TYPE_COLOR[events[0].type] : GLOW;
+              const primaryEvent = events[0];
+              const showTooltip = hoveredIdx === idx && events.length > 0;
+              const tooltipBelow = rowA === 0; // first row: flip tooltip downward so it doesn't clip off-screen
+              const tooltipRight = colA >= 5;  // rightmost columns: nudge tooltip left so it doesn't clip
+              const tooltipLeft = colA <= 1;   // leftmost columns: nudge tooltip right
 
               return (
                 <button
@@ -247,11 +251,11 @@ export function TechEventsCalendar() {
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => setSelectedDate(cell.date)}
-                  className={`press relative flex flex-col items-center justify-center rounded-xl transition-all duration-150 ${events.length > 0 ? 'event-day' : ''}`}
+                  className="press relative flex flex-col items-center justify-center rounded-xl transition-all duration-150"
                   style={{
                     aspectRatio: '1',
                     opacity: cell.inMonth ? 1 : 0.28,
-                    ['--flash-color' as any]: flashColor,
+                    zIndex: showTooltip ? 40 : 1,
                     background: isSelected
                       ? `rgba(${GLOW}, 0.22)`
                       : glow > 0
@@ -261,16 +265,72 @@ export function TechEventsCalendar() {
                       ? `0 0 0 1.5px rgb(${GLOW})`
                       : isToday
                       ? `inset 0 0 0 1.5px rgba(${GLOW}, 0.5)`
+                      : primaryEvent
+                      ? `inset 0 0 0 1px rgba(${TYPE_COLOR[primaryEvent.type]}, 0.35)`
                       : 'none',
                     transform: dist === 0 && hoveredIdx !== null ? 'scale(1.08)' : 'scale(1)',
                   }}
                 >
                   <span className="text-footnote font-semibold">{cell.date.getDate()}</span>
                   {events.length > 0 && (
-                    <div className="flex gap-0.5 mt-0.5 event-dots">
+                    <div className="flex gap-0.5 mt-0.5">
                       {events.slice(0, 3).map((e, i) => (
-                        <span key={i} className="rounded-full event-dot" style={{ width: 5, height: 5, background: `rgb(${TYPE_COLOR[e.type]})`, animationDelay: `${i * 60}ms` }} />
+                        <span key={i} className="rounded-full" style={{ width: 5, height: 5, background: `rgb(${TYPE_COLOR[e.type]})` }} />
                       ))}
+                    </div>
+                  )}
+
+                  {showTooltip && primaryEvent && (
+                    <div
+                      className="event-tooltip"
+                      style={{
+                        position: 'absolute',
+                        [tooltipBelow ? 'top' : 'bottom']: 'calc(100% + 10px)',
+                        left: tooltipLeft ? '0' : tooltipRight ? 'auto' : '50%',
+                        right: tooltipRight ? '0' : 'auto',
+                        transform: tooltipLeft || tooltipRight ? 'none' : 'translateX(-50%)',
+                        transformOrigin: tooltipBelow ? 'top center' : 'bottom center',
+                        background: 'var(--bg-elevated, #1c1c1e)',
+                        border: `1px solid rgba(${TYPE_COLOR[primaryEvent.type]}, 0.5)`,
+                        boxShadow: `0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(${TYPE_COLOR[primaryEvent.type]}, 0.25)`,
+                        borderRadius: 14,
+                        padding: '10px 14px',
+                        minWidth: 180,
+                        maxWidth: 220,
+                        whiteSpace: 'normal',
+                        textAlign: 'left',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span style={{ fontSize: 15 }}>{primaryEvent.emoji}</span>
+                        <span className="text-footnote font-bold" style={{ color: 'var(--text-primary, #fff)', lineHeight: 1.2 }}>{primaryEvent.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="pill text-xs font-bold" style={{ background: `rgba(${TYPE_COLOR[primaryEvent.type]}, 0.18)`, color: `rgb(${TYPE_COLOR[primaryEvent.type]})`, padding: '1px 8px' }}>
+                          {TYPE_LABEL[primaryEvent.type]}
+                        </span>
+                        <span className="text-caption" style={{ color: 'var(--text-secondary)' }}>{primaryEvent.city}</span>
+                      </div>
+                      {events.length > 1 && (
+                        <p className="text-caption mt-1" style={{ color: 'var(--text-secondary)' }}>+{events.length - 1} more that day</p>
+                      )}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          [tooltipBelow ? 'top' : 'bottom']: -5,
+                          left: tooltipLeft ? 16 : tooltipRight ? 'auto' : '50%',
+                          right: tooltipRight ? 16 : 'auto',
+                          transform: tooltipLeft || tooltipRight ? 'rotate(45deg)' : 'translateX(-50%) rotate(45deg)',
+                          width: 10,
+                          height: 10,
+                          background: 'var(--bg-elevated, #1c1c1e)',
+                          borderRight: !tooltipBelow ? `1px solid rgba(${TYPE_COLOR[primaryEvent.type]}, 0.5)` : 'none',
+                          borderBottom: !tooltipBelow ? `1px solid rgba(${TYPE_COLOR[primaryEvent.type]}, 0.5)` : 'none',
+                          borderLeft: tooltipBelow ? `1px solid rgba(${TYPE_COLOR[primaryEvent.type]}, 0.5)` : 'none',
+                          borderTop: tooltipBelow ? `1px solid rgba(${TYPE_COLOR[primaryEvent.type]}, 0.5)` : 'none',
+                        }}
+                      />
                     </div>
                   )}
                 </button>
@@ -372,25 +432,13 @@ export function TechEventsCalendar() {
           from { transform: translateX(-24px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
-        @keyframes eventFlash {
-          0% { box-shadow: 0 0 0 0 rgba(var(--flash-color), 0.55); }
-          40% { box-shadow: 0 0 0 10px rgba(var(--flash-color), 0); }
-          100% { box-shadow: 0 0 0 0 rgba(var(--flash-color), 0); }
+        @keyframes tooltipPop {
+          0% { opacity: 0; transform: scale(0.85) translateY(4px); }
+          60% { opacity: 1; transform: scale(1.03) translateY(0); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes eventDotPop {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.9); }
-          100% { transform: scale(1); }
-        }
-        .event-day {
-          --flash-color: 162, 137, 255;
-        }
-        .event-day:hover {
-          animation: eventFlash 700ms ease-out;
-          background: rgba(var(--flash-color), 0.16) !important;
-        }
-        .event-day:hover .event-dot {
-          animation: eventDotPop 500ms ease-out;
+        .event-tooltip {
+          animation: tooltipPop 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
       `}</style>
     </div>
