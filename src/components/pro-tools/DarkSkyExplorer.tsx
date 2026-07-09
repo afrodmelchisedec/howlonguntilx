@@ -2,18 +2,23 @@
 'use client';
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import * as SunCalc from 'suncalc';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
 import { DARK_SKY_COMMENTS } from './darkSkyComments';
 
-interface SkySpot { id: string; name: string; emoji: string; bortle: number }
+interface SkySpot { id: string; name: string; emoji: string; bortle: number; lat: number; lng: number }
 interface NightInfo {
   dateStr: string;
   score: number;
   illum: number;
   phaseEmoji: string;
   phaseName: string;
-  moonriseHour: number;
+  moonrise: Date | null;
+  moonset: Date | null;
+  moonAlwaysUp: boolean;
+  moonAlwaysDown: boolean;
+  trueDark: Date | null;
   event: { name: string; emoji: string } | null;
 }
 
@@ -26,8 +31,9 @@ const PRO_NIGHTS = 30;
 const MAX_SPOTS = 5;
 const SPOT_EMOJIS = ['📍', '🏡', '🏔️', '🏜️', '🏖️', '⛺', '🌲', '🏕️'];
 
-const MOON_SYNODIC = 29.530588;
-const REF_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14, 0);
+// New York — arbitrary fallback only, never presented as accurate.
+const DEFAULT_LAT = 40.7128;
+const DEFAULT_LNG = -74.006;
 
 const METEOR_SHOWERS: { name: string; month: number; day: number }[] = [
   { name: 'Quadrantids', month: 1, day: 4 },
@@ -80,24 +86,15 @@ function clarityIndex(dateStr: string): number {
 function startOfToday(): Date { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function isoDate(d: Date): string { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number): Date { return new Date(d.getTime() + n * 86400000); }
-function moonAge(date: Date): number {
-  const diffDays = (date.getTime() - REF_NEW_MOON) / 86400000;
-  let age = diffDays % MOON_SYNODIC;
-  if (age < 0) age += MOON_SYNODIC;
-  return age;
-}
-function moonIllumination(age: number): number {
-  return Math.round(((1 - Math.cos((2 * Math.PI * age) / MOON_SYNODIC)) / 2) * 100);
-}
-function moonPhaseInfo(age: number): { emoji: string; name: string } {
-  const f = age / MOON_SYNODIC;
-  if (f < 0.03 || f > 0.97) return { emoji: '🌑', name: 'New Moon' };
-  if (f < 0.22) return { emoji: '🌒', name: 'Waxing Crescent' };
-  if (f < 0.28) return { emoji: '🌓', name: 'First Quarter' };
-  if (f < 0.47) return { emoji: '🌔', name: 'Waxing Gibbous' };
-  if (f < 0.53) return { emoji: '🌕', name: 'Full Moon' };
-  if (f < 0.72) return { emoji: '🌖', name: 'Waning Gibbous' };
-  if (f < 0.78) return { emoji: '🌗', name: 'Last Quarter' };
+
+function moonPhaseFromValue(phase: number): { emoji: string; name: string } {
+  if (phase < 0.03 || phase > 0.97) return { emoji: '🌑', name: 'New Moon' };
+  if (phase < 0.22) return { emoji: '🌒', name: 'Waxing Crescent' };
+  if (phase < 0.28) return { emoji: '🌓', name: 'First Quarter' };
+  if (phase < 0.47) return { emoji: '🌔', name: 'Waxing Gibbous' };
+  if (phase < 0.53) return { emoji: '🌕', name: 'Full Moon' };
+  if (phase < 0.72) return { emoji: '🌖', name: 'Waning Gibbous' };
+  if (phase < 0.78) return { emoji: '🌗', name: 'Last Quarter' };
   return { emoji: '🌘', name: 'Waning Crescent' };
 }
 function nextShowerOccurrence(month: number, day: number, from: Date): Date {
@@ -108,7 +105,7 @@ function nextShowerOccurrence(month: number, day: number, from: Date): Date {
 }
 function eventOnDate(dateStr: string): { name: string; emoji: string } | null {
   const shower = METEOR_SHOWERS.find(s => {
-    const [y, m, d] = dateStr.split('-').map(Number);
+    const [, m, d] = dateStr.split('-').map(Number);
     return s.month === m && s.day === d;
   });
   return shower ? { name: shower.name, emoji: '🌠' } : null;
@@ -121,22 +118,38 @@ function nextUpcomingEvent(from: Date): { name: string; date: string; days: numb
   }
   return { name: best!.name, date: isoDate(best!.date), days: Math.round((best!.date.getTime() - from.getTime()) / 86400000) };
 }
-function computeNight(dateStr: string, bortle: number): NightInfo {
-  const evalDate = new Date(dateStr + 'T22:00:00');
-  const age = moonAge(evalDate);
-  const illum = moonIllumination(age);
-  const phase = moonPhaseInfo(age);
-  const moonriseHour = Math.round(((6 + age * 0.826) % 24) * 10) / 10;
+
+// Real astronomy: moon illumination/phase and moon/sun rise-set times via suncalc,
+// computed for the actual lat/lng of the Sky Spot. The only non-real input left
+// is `clarity` (a stand-in for weather/cloud cover — see the guide tab).
+function computeNight(dateStr: string, bortle: number, lat: number, lng: number): NightInfo {
+  const evalDate = new Date(dateStr + 'T12:00:00');
+  const illumInfo = SunCalc.getMoonIllumination(evalDate);
+  const illum = Math.round(illumInfo.fraction * 100);
+  const phase = moonPhaseFromValue(illumInfo.phase);
+  const moonTimes = SunCalc.getMoonTimes(evalDate, lat, lng);
+  const sunTimes = SunCalc.getTimes(evalDate, lat, lng);
   const event = eventOnDate(dateStr);
+
   const moonPenalty = illum * 0.55;
   const bortlePenalty = (bortle - 1) * 6;
   const eventBonus = event ? 15 : 0;
   const clarity = clarityIndex(dateStr);
   const clarityFactor = 0.55 + (clarity / 100) * 0.45;
   const raw = (100 - moonPenalty - bortlePenalty + eventBonus) * clarityFactor;
+
   return {
-    dateStr, score: Math.max(0, Math.min(100, Math.round(raw))), illum,
-    phaseEmoji: phase.emoji, phaseName: phase.name, moonriseHour, event,
+    dateStr,
+    score: Math.max(0, Math.min(100, Math.round(raw))),
+    illum,
+    phaseEmoji: phase.emoji,
+    phaseName: phase.name,
+    moonrise: moonTimes.rise ?? null,
+    moonset: moonTimes.set ?? null,
+    moonAlwaysUp: !!moonTimes.alwaysUp,
+    moonAlwaysDown: !!moonTimes.alwaysDown,
+    trueDark: sunTimes.night ?? null,
+    event,
   };
 }
 function formatDateLabel(dateStr: string): string {
@@ -145,10 +158,12 @@ function formatDateLabel(dateStr: string): string {
   const weekday = diff === 0 ? 'Tonight' : diff === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' });
   return `${weekday} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 }
-function formatHour(h: number): string {
-  const hh = Math.floor(h) % 24, mm = Math.round((h % 1) * 60);
-  const ampm = hh < 12 ? 'AM' : 'PM'; let h12 = hh % 12; if (h12 === 0) h12 = 12;
-  return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+function formatMoonTime(d: Date | null | undefined): string {
+  if (!d) return '—';
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+function formatCoords(lat: number, lng: number): string {
+  return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(2)}°${lng >= 0 ? 'E' : 'W'}`;
 }
 function scoreColor(score: number): string {
   if (score >= 75) return GLOW;
@@ -180,14 +195,18 @@ export function DarkSkyExplorer() {
   const nightCount = isPro ? PRO_NIGHTS : FREE_NIGHTS;
 
   const [freeBortle, setFreeBortle] = useState(5);
+  const [freeLocation, setFreeLocation] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
   const [spots, setSpots] = useState<SkySpot[]>([
-    { id: 'spot-home', name: 'My Backyard', emoji: '🏡', bortle: 6 },
-    { id: 'spot-cabin', name: 'Mountain Cabin', emoji: '🏔️', bortle: 3 },
+    { id: 'spot-home', name: 'My Backyard', emoji: '🏡', bortle: 6, lat: DEFAULT_LAT, lng: DEFAULT_LNG },
+    { id: 'spot-cabin', name: 'Mountain Cabin', emoji: '🏔️', bortle: 3, lat: DEFAULT_LAT, lng: DEFAULT_LNG },
   ]);
   const [activeSpotId, setActiveSpotId] = useState('spot-home');
   const [selectedDate, setSelectedDate] = useState(isoDate(startOfToday()));
   const [pulse, setPulse] = useState(false);
   const [hoveringSlider, setHoveringSlider] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [latDraft, setLatDraft] = useState('');
+  const [lngDraft, setLngDraft] = useState('');
 
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(38);
@@ -203,7 +222,10 @@ export function DarkSkyExplorer() {
       .then(r => r.json())
       .then(data => {
         if (data.config) {
-          if (Array.isArray(data.config.spots) && data.config.spots.length > 0) setSpots(data.config.spots.slice(0, MAX_SPOTS));
+          if (Array.isArray(data.config.spots) && data.config.spots.length > 0) {
+            const normalized = data.config.spots.map((s: any) => ({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, ...s }));
+            setSpots(normalized.slice(0, MAX_SPOTS));
+          }
           if (data.config.activeSpotId) setActiveSpotId(data.config.activeSpotId);
         }
         setConfigLoaded(true);
@@ -213,13 +235,16 @@ export function DarkSkyExplorer() {
 
   const activeSpot = useMemo(() => spots.find(s => s.id === activeSpotId) ?? spots[0], [spots, activeSpotId]);
   const bortle = isPro ? (activeSpot?.bortle ?? 5) : freeBortle;
+  const activeLat = isPro ? (activeSpot?.lat ?? DEFAULT_LAT) : freeLocation.lat;
+  const activeLng = isPro ? (activeSpot?.lng ?? DEFAULT_LNG) : freeLocation.lng;
+  const usingDefaultLocation = activeLat === DEFAULT_LAT && activeLng === DEFAULT_LNG;
 
   useEffect(() => { setPulse(true); const t = setTimeout(() => setPulse(false), 200); return () => clearTimeout(t); }, [bortle]);
 
   const nights = useMemo(() => {
     const today = startOfToday();
-    return Array.from({ length: nightCount }, (_, i) => computeNight(isoDate(addDays(today, i)), bortle));
-  }, [nightCount, bortle]);
+    return Array.from({ length: nightCount }, (_, i) => computeNight(isoDate(addDays(today, i)), bortle, activeLat, activeLng));
+  }, [nightCount, bortle, activeLat, activeLng]);
 
   const selectedNight = useMemo(() => nights.find(n => n.dateStr === selectedDate) ?? nights[0], [nights, selectedDate]);
   const bestNight = useMemo(() => nights.reduce((m, n) => (n.score > m.score ? n : m), nights[0]), [nights]);
@@ -267,8 +292,9 @@ export function DarkSkyExplorer() {
     if (spots.length >= MAX_SPOTS) { showToast(`You can save up to ${MAX_SPOTS} spots`, '⚠️'); return; }
     const emoji = SPOT_EMOJIS[spots.length % SPOT_EMOJIS.length];
     const id = `spot-${Date.now()}`;
-    setSpots(prev => [...prev, { id, name: `New Spot ${prev.length + 1}`, emoji, bortle: 5 }]);
+    setSpots(prev => [...prev, { id, name: `New Spot ${prev.length + 1}`, emoji, bortle: 5, lat: DEFAULT_LAT, lng: DEFAULT_LNG }]);
     setActiveSpotId(id);
+    showToast('New spot added — set its real location for accurate times', '📍');
   }
   function removeSpot(id: string) {
     if (spots.length <= 1) { showToast('Keep at least one Sky Spot', 'ℹ️'); return; }
@@ -279,6 +305,35 @@ export function DarkSkyExplorer() {
     });
   }
   function renameSpot(id: string, name: string) { setSpots(prev => prev.map(s => s.id === id ? { ...s, name } : s)); }
+
+  // ---- location ----
+  function setLocation(lat: number, lng: number) {
+    if (isPro) setSpots(prev => prev.map(s => s.id === activeSpotId ? { ...s, lat, lng } : s));
+    else setFreeLocation({ lat, lng });
+  }
+  function openLocationEditor() {
+    setLatDraft(String(activeLat));
+    setLngDraft(String(activeLng));
+    setEditingLocation(true);
+  }
+  function commitLocation() {
+    const lat = Number(latDraft), lng = Number(lngDraft);
+    if (Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      showToast('Enter valid coordinates (lat -90 to 90, lng -180 to 180)', '⚠️');
+      return;
+    }
+    setLocation(lat, lng);
+    setEditingLocation(false);
+    showToast('Location updated', '📍');
+  }
+  function useCurrentLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) { showToast('Geolocation not supported in this browser', '⚠️'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => { setLocation(pos.coords.latitude, pos.coords.longitude); setEditingLocation(false); showToast('Location set from GPS', '📍'); },
+      () => showToast('Could not access your location — check browser permissions', '⚠️'),
+      { timeout: 8000 }
+    );
+  }
 
   async function handleSaveConfig() {
     if (!isPro) { showToast('Upgrade to save your Sky Spots', '⭐'); return; }
@@ -292,7 +347,7 @@ export function DarkSkyExplorer() {
       showToast('Sky Spots saved!', '💾');
     } catch { showToast('Could not save — try again', '⚠️'); } finally { setSavingConfig(false); }
   }
-  function handleReset() { setFreeBortle(5); setSelectedDate(isoDate(startOfToday())); showToast('Reset to defaults', '↺'); }
+  function handleReset() { setFreeBortle(5); setFreeLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG }); setSelectedDate(isoDate(startOfToday())); showToast('Reset to defaults', '↺'); }
   function requireAuth() { showToast('You need to sign up first', '🔒'); }
   function handleLike() { if (!session) { requireAuth(); return; } setToolLiked(p => { setToolLikeCount(c => p ? c - 1 : c + 1); return !p; }); }
   function handleShare() {
@@ -302,11 +357,14 @@ export function DarkSkyExplorer() {
   function handleCopyPlan() {
     const lines = [
       `Sky Spot: ${activeSpot?.name ?? 'My Location'} (Bortle ${bortle} · ${BORTLE_LABELS[bortle]})`,
+      `Location: ${formatCoords(activeLat, activeLng)}${usingDefaultLocation ? ' (default — not your real location)' : ''}`,
       `${formatDateLabel(selectedNight.dateStr)}: Score ${selectedNight.score}/100`,
-      `Moon: ${selectedNight.phaseEmoji} ${selectedNight.phaseName}, ${selectedNight.illum}% illuminated, rises ~${formatHour(selectedNight.moonriseHour)}`,
+      `Moon: ${selectedNight.phaseEmoji} ${selectedNight.phaseName}, ${selectedNight.illum}% illuminated`,
+      `Moonrise ${formatMoonTime(selectedNight.moonrise)} · Moonset ${formatMoonTime(selectedNight.moonset)}`,
+      selectedNight.trueDark ? `True darkness begins ~${formatMoonTime(selectedNight.trueDark)}` : '',
       selectedNight.event ? `Event: ${selectedNight.event.emoji} ${selectedNight.event.name} peaks tonight` : `Next event: ${nextEvent.name} in ${nextEvent.days} days`,
       `Best night in view: ${formatDateLabel(bestNight.dateStr)} (${bestNight.score}/100)`,
-    ];
+    ].filter(Boolean);
     navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Plan copied!', '📋')).catch(() => showToast('Could not copy', '⚠️'));
   }
   function handleCommentJump() { if (!session) { requireAuth(); return; } document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
@@ -333,7 +391,7 @@ export function DarkSkyExplorer() {
         </div>
 
         {/* Sky Spots */}
-        <div className="mb-6">
+        <div className="mb-3">
           <div className="flex items-center justify-between mb-2">
             <p className="text-footnote font-semibold">Your Sky Spots</p>
             <button onClick={addSpot} className="press text-xs flex items-center gap-1" style={{ color: isPro ? `rgb(${GLOW})` : 'var(--text-tertiary)' }}>
@@ -341,7 +399,7 @@ export function DarkSkyExplorer() {
             </button>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {(isPro ? spots : [{ id: 'default', name: 'My Location', emoji: '📍', bortle: freeBortle }]).map(s => (
+            {(isPro ? spots : [{ id: 'default', name: 'My Location', emoji: '📍', bortle: freeBortle, lat: freeLocation.lat, lng: freeLocation.lng }]).map(s => (
               <div key={s.id} className="ios-card-nested px-3 py-2 flex items-center gap-2" style={{
                 border: s.id === activeSpotId || !isPro ? `1.5px solid rgb(${GLOW})` : '1px solid var(--border-hairline)',
                 background: s.id === activeSpotId || !isPro ? `rgba(${GLOW}, 0.08)` : 'transparent',
@@ -356,6 +414,37 @@ export function DarkSkyExplorer() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Location */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-caption">
+              📍 {formatCoords(activeLat, activeLng)}
+              {usingDefaultLocation && <span style={{ color: 'rgb(255, 159, 10)' }}> · default location — set yours for accurate times</span>}
+            </p>
+            <button onClick={openLocationEditor} className="press text-caption font-semibold" style={{ color: `rgb(${GLOW})` }}>Edit location</button>
+          </div>
+          {editingLocation && (
+            <form onSubmit={e => { e.preventDefault(); commitLocation(); }} className="ios-card-nested p-3 mt-2 flex flex-col gap-2 anim-fade-up">
+              <div className="flex gap-2 flex-wrap">
+                <label className="flex flex-col gap-1 flex-1" style={{ minWidth: 120 }}>
+                  <span className="text-caption">Latitude</span>
+                  <input value={latDraft} onChange={e => setLatDraft(e.target.value)} inputMode="decimal" placeholder="e.g. 40.7128"
+                    className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none tabular" style={{ border: '1px solid var(--border-hairline)' }} />
+                </label>
+                <label className="flex flex-col gap-1 flex-1" style={{ minWidth: 120 }}>
+                  <span className="text-caption">Longitude</span>
+                  <input value={lngDraft} onChange={e => setLngDraft(e.target.value)} inputMode="decimal" placeholder="e.g. -74.0060"
+                    className="rounded-xl px-3 py-2 text-footnote bg-transparent outline-none tabular" style={{ border: '1px solid var(--border-hairline)' }} />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={useCurrentLocation} className="ios-card-nested press text-xs px-3 py-2 flex-1">📍 Use my current location</button>
+                <button type="submit" className="btn-filled press text-xs px-3 py-2 flex-1">Save</button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Starfield preview + Bortle slider */}
@@ -468,10 +557,21 @@ export function DarkSkyExplorer() {
           </div>
           <div className="grid grid-cols-2 gap-3 text-footnote">
             <p>{selectedNight.phaseEmoji} {selectedNight.phaseName} · {selectedNight.illum}% lit</p>
-            <p>🌙 Moonrise ~{formatHour(selectedNight.moonriseHour)}</p>
             <p>{selectedNight.event ? `${selectedNight.event.emoji} ${selectedNight.event.name} peaks tonight` : '✨ No major event tonight'}</p>
-            <p style={{ color: 'var(--text-secondary)' }}>{selectedNight.illum > 50 ? 'Best after the Moon sets' : 'Good visibility most of the night'}</p>
+            <p>🌙 Moonrise {selectedNight.moonAlwaysDown ? 'below horizon all night' : formatMoonTime(selectedNight.moonrise)}</p>
+            <p>🌑 Moonset {selectedNight.moonAlwaysUp ? 'up all night' : formatMoonTime(selectedNight.moonset)}</p>
+            <p className="col-span-2">🌌 True darkness begins ~{formatMoonTime(selectedNight.trueDark)}</p>
           </div>
+          <p className="text-caption mt-2" style={{ color: 'var(--text-secondary)' }}>
+            {selectedNight.moonAlwaysDown
+              ? 'Moon stays below the horizon all night — great viewing all night long.'
+              : selectedNight.moonAlwaysUp
+              ? 'Moon stays up all night — expect brighter skies throughout.'
+              : selectedNight.moonset
+              ? `Best viewing after moonset, around ${formatMoonTime(selectedNight.moonset)}.`
+              : 'Good visibility most of the night.'}
+            {' '}Times shown in your device's timezone.
+          </p>
         </div>
 
         {nextEvent.days > (isPro ? PRO_NIGHTS : FREE_NIGHTS) && (
