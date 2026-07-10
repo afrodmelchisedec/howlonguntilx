@@ -12,6 +12,7 @@ import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
 import { getPopularEvents } from '@/lib/events';
 import { CategoryPills } from '@/components/ui/CategoryPills';
 import { FaqSection } from '@/components/ui/FaqSection';
+import { FeaturedSpotlight } from '@/components/ui/FeaturedSpotlight';
 import { getLiveFaqs } from '@/lib/faqs';
 import Link from 'next/link';
 
@@ -160,6 +161,11 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* ══════════════════════════════════════════════════════
+            FEATURED SPOTLIGHT — rotates weekly (history / fact / quote / meme)
+        ══════════════════════════════════════════════════════ */}
+        <FeaturedSpotlight />
 
         {/* ══════════════════════════════════════════════════════
             FAQ — live slider + paginated archive

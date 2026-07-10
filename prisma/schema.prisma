@@ -457,3 +457,18 @@ model Article {
   @@unique([toolSlug, slug])
   @@index([toolSlug, status, publishedAt])
 }
+
+model FeaturedPiece {
+  id          String    @id @default(cuid())
+  kind        String    // "history" | "fact" | "quote" | "meme"
+  title       String
+  body        String    @db.Text   // 300-500 words, plain paragraphs joined by \n\n
+  sourceLabel String?              // e.g. "NIST" or "Guinness World Records" — omit if none
+  sourceUrl   String?
+  imageUrl    String?
+  weekOf      DateTime?            // set ONLY to pin this piece to a specific ISO week (override); null = part of the auto-rotating pool
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([active, weekOf])
+}
