@@ -417,6 +417,7 @@ body {
 ════════════════════════════════════════════════════════════ */
 .faq-slider {
   position: relative;
+  overflow: hidden;
 }
 .faq-track {
   display: flex;
