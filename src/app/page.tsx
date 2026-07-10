@@ -64,13 +64,20 @@ export default async function HomePage() {
                 letterSpacing: '-0.03em',
                 marginBottom: 8,
               }}>
-                How long<br />
-                <span className="gradient-text">until…?</span>
+                How long 
+                <span className="gradient-text"> until x?</span>
               </h1>
+              <br/>
 
+
+              {/* Eyebrow */}
+              <p className="anim-fade-up text-caption mb-4" style={{ color: 'rgb(var(--accent-brand))' }}>
+                X = EVENT
+              </p>
+              
               {/* Subtext */}
               <p className="anim-fade-up text-callout mb-2" style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto 24px' }}>
-                Not an AI guess — a live clock ticking to your exact moment.
+                Not an AI guess but a live clock ticking to your exact moment.
               </p>
 
               {/* Wider search bar */}

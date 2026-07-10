@@ -15,6 +15,7 @@ const INFO_LINKS = [
   { label:'About',   href:'/about'   },
   { label:'Contact', href:'/contact' },
   { label:'Privacy', href:'/privacy' },
+  { label:'Terms', href:'/terms' },
 ];
 
 export function Nav() {
@@ -26,7 +27,7 @@ export function Nav() {
     <nav className="sticky top-0 z-40 glass px-4 sm:px-6 py-2.5 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <Link href="/" className="press font-black text-lg tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          How<span className="gradient-text">Long</span>Until
+          How <span className="gradient-text">Long </span>Until x
         </Link>
         <div className="hidden sm:flex items-center gap-0.5">
           {NAV_LINKS.map(l => (
