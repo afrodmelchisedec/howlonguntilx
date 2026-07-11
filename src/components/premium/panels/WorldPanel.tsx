@@ -66,7 +66,7 @@ export function WorldPanel({ isPremium }: { isPremium: boolean }) {
             },
             y: { 
               ticks: { 
-                font: { size: 11, weight: '500' }, 
+                font: { size: 11, weight: 500 }, 
                 color: '#94a3b8',
                 callback: (v: any) => '+' + Number(v).toFixed(1) + '°C'
               }, 

@@ -43,7 +43,7 @@ const TAB_CONFIG: { id: Tab; label: string; color: string }[] = [
 ];
 
 // ── Classify: archived flag is the source of truth for archive tabs ──
-function classifyItem(item: FaqItem): Tab {
+function classifyItem(item: FaqItem): EventTab {
   const isFuture =
     item.type === 'COUNTDOWN' &&
     new Date(item.targetDate).getTime() > Date.now();
