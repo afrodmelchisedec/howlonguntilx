@@ -22,7 +22,7 @@ export function LifePanel({ isPremium }: { isPremium: boolean }) {
       const existing = Chart.getChart(regionRef.current!);
       if (existing) existing.destroy();
       new Chart(regionRef.current!, {
-        type:'bar', indexAxis:'y',
+        type:'bar',
         data:{
           labels:['Japan','W. Europe','World avg','E. Africa','Uganda'],
           datasets:[{
@@ -32,6 +32,7 @@ export function LifePanel({ isPremium }: { isPremium: boolean }) {
           }]
         },
         options:{
+          indexAxis:'y',
           responsive:true, maintainAspectRatio:false,
           plugins:{ legend:{ display:false } },
           scales:{

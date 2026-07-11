@@ -51,7 +51,7 @@ export function StarField() {
     let t = 0;
 
     function draw() {
-      ctx.clearRect(0, 0, W, H);
+      ctx!.clearRect(0, 0, W, H);
       t += 0.008;
 
       // Draw stars
@@ -60,10 +60,10 @@ export function StarField() {
         s.y = (s.y + s.vy + H) % H;
         s.pulse += 0.02;
         const op = s.opacity * (0.7 + 0.3 * Math.sin(s.pulse));
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 200, 255, ${op})`;
-        ctx.fill();
+        ctx!.beginPath();
+        ctx!.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(200, 200, 255, ${op})`;
+        ctx!.fill();
       }
 
       // Draw connections
@@ -73,12 +73,12 @@ export function StarField() {
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           if (dist < MAX_DIST) {
             const op = (1 - dist / MAX_DIST) * 0.12;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(125, 118, 255, ${op})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
+            ctx!.beginPath();
+            ctx!.moveTo(a.x, a.y);
+            ctx!.lineTo(b.x, b.y);
+            ctx!.strokeStyle = `rgba(125, 118, 255, ${op})`;
+            ctx!.lineWidth = 0.8;
+            ctx!.stroke();
           }
         }
       }
@@ -93,19 +93,19 @@ export function StarField() {
         const op = 0.4 + 0.3 * Math.sin(d.pulse);
 
         // Glow
-        const grad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 4);
+        const grad = ctx!.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 4);
         grad.addColorStop(0, `hsla(${d.hue}, ${d.sat}%, 70%, ${op})`);
         grad.addColorStop(1, `hsla(${d.hue}, ${d.sat}%, 70%, 0)`);
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, r * 4, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
+        ctx!.beginPath();
+        ctx!.arc(d.x, d.y, r * 4, 0, Math.PI * 2);
+        ctx!.fillStyle = grad;
+        ctx!.fill();
 
         // Core dot
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${d.hue}, ${d.sat}%, 75%, ${op + 0.2})`;
-        ctx.fill();
+        ctx!.beginPath();
+        ctx!.arc(d.x, d.y, r, 0, Math.PI * 2);
+        ctx!.fillStyle = `hsla(${d.hue}, ${d.sat}%, 75%, ${op + 0.2})`;
+        ctx!.fill();
       }
 
       animId = requestAnimationFrame(draw);
