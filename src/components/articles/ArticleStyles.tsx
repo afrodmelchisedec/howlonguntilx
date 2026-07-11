@@ -34,6 +34,43 @@ export function ArticleStyles() {
       .article-hero-countdown {
         animation: heroGlowPulse 3.5s ease-in-out infinite;
       }
+      .article-toc {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .article-toc-link {
+        position: relative;
+        padding: 4px 0 4px 14px;
+        transition: color 180ms ease, transform 180ms ease;
+      }
+      .article-toc-link::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.35;
+        transform: translateY(-50%);
+      }
+      .article-toc-link:hover {
+        color: var(--text-primary) !important;
+        transform: translateX(3px);
+      }
+      .article-freshness-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 3px 10px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      html {
+        scroll-behavior: smooth;
+      }
     `}</style>
   );
 }
