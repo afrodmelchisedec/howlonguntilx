@@ -1,13 +1,16 @@
 // FILE: src/lib/widgetRegistry.ts
+import type { ComponentType } from 'react';
 import dynamic from 'next/dynamic';
 
 // Lite widgets: free, no-auth, no-save — safe to sprinkle mid-article.
-export const WIDGET_REGISTRY: Record<string, Record<string, ReturnType<typeof dynamic>>> = {
+// Typed loosely (config: any) to match Block's `tool_embed.config: Record<string, any>` —
+// each widget narrows/validates its own config shape internally.
+export const WIDGET_REGISTRY: Record<string, Record<string, ComponentType<{ config: any }>>> = {
   'tech-events': {
-    countdown: dynamic(() => import('@/components/widgets/CountdownWidget'), { ssr: false }),
+    countdown: dynamic(() => import('@/components/widgets/CountdownWidget'), { ssr: false }) as ComponentType<{ config: any }>,
   },
   'dark-sky-explorer': {
-    bortle_preview: dynamic(() => import('@/components/widgets/BortlePreviewWidget'), { ssr: false }),
+    bortle_preview: dynamic(() => import('@/components/widgets/BortlePreviewWidget'), { ssr: false }) as ComponentType<{ config: any }>,
   },
 };
 
