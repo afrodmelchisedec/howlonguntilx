@@ -14,13 +14,15 @@ import { CategoryPills } from '@/components/ui/CategoryPills';
 import { FaqSection } from '@/components/ui/FaqSection';
 import { FeaturedSpotlight } from '@/components/ui/FeaturedSpotlight';
 import { getLiveFaqs } from '@/lib/faqs';
+import { getArticleFaqs } from '@/lib/articleFaqs';
 import Link from 'next/link';
 
 
 export default async function HomePage() {
-  const [events, faqs] = await Promise.all([
+  const [events, faqs, articleFaqs] = await Promise.all([
     getPopularEvents(8),
     getLiveFaqs(),
+    getArticleFaqs(),
   ]);
 
   return (
@@ -170,7 +172,7 @@ export default async function HomePage() {
         {/* ══════════════════════════════════════════════════════
             FAQ — live slider + paginated archive
         ══════════════════════════════════════════════════════ */}
-        <FaqSection initialFaqs={faqs} />
+        <FaqSection initialFaqs={faqs} articleFaqs={articleFaqs} />
 
         {/* ══════════════════════════════════════════════════════
             WHY US

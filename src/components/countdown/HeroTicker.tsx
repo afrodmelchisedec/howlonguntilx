@@ -106,10 +106,8 @@ export function HeroTicker() {
           padding: '20px 24px 18px',
         }}
       >
-        {/* Top glow bar */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, rgb(${glow}), transparent)`, transition: 'background 0.4s' }} />
 
-        {/* Header row */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <span style={{ fontSize: 22 }}>{ev.emoji}</span>
@@ -121,7 +119,6 @@ export function HeroTicker() {
           </div>
         </div>
 
-        {/* Countdown — 4 equal cells */}
         <div className="grid grid-cols-4 gap-3 mb-5">
           {[
             { val: time.d, label: 'DAYS' },
@@ -149,7 +146,6 @@ export function HeroTicker() {
           ))}
         </div>
 
-        {/* Progress bar */}
         <div className="progress-track mb-4" style={{ height: 5 }}>
           <div style={{
             width: `${(time.s / 60) * 100}%`,
@@ -159,7 +155,6 @@ export function HeroTicker() {
           }} />
         </div>
 
-        {/* Dots + hint */}
         <div className="flex items-center justify-between">
           <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>← swipe to explore →</p>
           <div className="flex gap-1.5">

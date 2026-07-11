@@ -68,7 +68,7 @@ export default async function EventPage({ params }: Props) {
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
       <StarField />
-
+<p>WTFFFFFFFFFFF</p>
       <div className="relative z-10">
         <PageJsonLd event={event} countdown={countdown} />
         <RecentLogger slug={rawSlug} name={event.name} />

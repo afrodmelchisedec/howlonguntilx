@@ -13,6 +13,14 @@ export interface FaqItem {
   archived: boolean;
 }
 
+export interface ArticleFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  href: string;
+  articleTitle: string;
+}
+
 const PAGE_SIZE = 10;
 const MAX_PAGES = 5;
 const AUTO_ADVANCE_MS = 6000;
@@ -23,13 +31,15 @@ const GLOW_CLASSES = [
   'gc-personal', 'gc-travel', 'gc-nature', 'gc-space',
 ];
 
-type Tab = 'live-future' | 'archive-future' | 'live-past' | 'archive-past';
+type EventTab = 'live-future' | 'archive-future' | 'live-past' | 'archive-past';
+type Tab = EventTab | 'guides';
 
 const TAB_CONFIG: { id: Tab; label: string; color: string }[] = [
   { id: 'live-future',    label: '🟢 Live',            color: '#22c55e' },
   { id: 'archive-future', label: '🟠 Archive',         color: '#f97316' },
   { id: 'live-past',      label: '🟣 Elapsed',         color: '#a78bfa' },
   { id: 'archive-past',   label: '⚫ History',         color: '#64748b' },
+  { id: 'guides',         label: '📚 Guides',          color: '#8B7CF8' },
 ];
 
 // ── Classify: archived flag is the source of truth for archive tabs ──
@@ -135,6 +145,30 @@ function FaqRow({ item, index }: { item: FaqItem; index: number }) {
   );
 }
 
+// ── Article FAQ row — links out to the source article's #faq section ──
+function ArticleFaqRow({ item, index }: { item: ArticleFaqItem; index: number }) {
+  const glowClass = GLOW_CLASSES[index % GLOW_CLASSES.length];
+
+  return (
+    <Link
+      href={item.href}
+      className={`faq-row ios-card glow interactive press anim-fade-up ${glowClass}`}
+      style={{ animationDelay: `${(index % PAGE_SIZE) * 50}ms` }}
+      title={item.articleTitle}
+    >
+      <span className="faq-row-dot" style={{ background: `rgb(var(--glow))` }} />
+      <span className="faq-row-question">{item.question}</span>
+      <span
+        className="faq-row-days"
+        style={{ color: 'rgb(var(--glow))', background: 'rgba(var(--glow), 0.12)' }}
+      >
+        GUIDE
+      </span>
+      <span className="faq-row-arrow">→</span>
+    </Link>
+  );
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -143,11 +177,11 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 // ── Main component ────────────────────────────────────────────────────
-export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
+export function FaqSection({ initialFaqs, articleFaqs = [] }: { initialFaqs: FaqItem[]; articleFaqs?: ArticleFaqItem[] }) {
   const [tab, setTab] = useState<Tab>('live-future');
 
-  // Classify all items — archived flag is the source of truth
-  const classified = initialFaqs.reduce<Record<Tab, FaqItem[]>>(
+  // Classify all events — archived flag is the source of truth
+  const classified = initialFaqs.reduce<Record<EventTab, FaqItem[]>>(
     (acc, item) => {
       const bucket = classifyItem(item);
       acc[bucket].push(item);
@@ -156,7 +190,14 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
     { 'live-future': [], 'archive-future': [], 'live-past': [], 'archive-past': [] }
   );
 
-  const currentItems = classified[tab];
+  const tabCounts: Record<Tab, number> = {
+    'live-future': classified['live-future'].length,
+    'archive-future': classified['archive-future'].length,
+    'live-past': classified['live-past'].length,
+    'archive-past': classified['archive-past'].length,
+    guides: articleFaqs.length,
+  };
+  const currentItems: (FaqItem | ArticleFaqItem)[] = tab === 'guides' ? articleFaqs : classified[tab];
   const pages = chunk(currentItems, PAGE_SIZE).slice(0, MAX_PAGES);
 
   const [pageIndex, setPageIndex] = useState(0);
@@ -221,7 +262,7 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
         {/* 4-tab bar */}
         <div className="flex gap-2 flex-wrap mb-6">
           {TAB_CONFIG.map(t => {
-            const count = classified[t.id].length;
+            const count = tabCounts[t.id];
             const isActive = tab === t.id;
             return (
               <button
@@ -275,9 +316,13 @@ export function FaqSection({ initialFaqs }: { initialFaqs: FaqItem[] }) {
             >
               {pages.map((pageItems, pIdx) => (
                 <div className="faq-page" key={pIdx}>
-                  {pageItems.map((item, i) => (
-                    <FaqRow key={item.id} item={item} index={i} />
-                  ))}
+                  {tab === 'guides'
+                    ? (pageItems as ArticleFaqItem[]).map((item, i) => (
+                        <ArticleFaqRow key={item.id} item={item} index={i} />
+                      ))
+                    : (pageItems as FaqItem[]).map((item, i) => (
+                        <FaqRow key={item.id} item={item} index={i} />
+                      ))}
                 </div>
               ))}
             </div>
