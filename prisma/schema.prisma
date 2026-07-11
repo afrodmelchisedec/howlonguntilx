@@ -49,6 +49,7 @@ model User {
   phishingIdentityConfig    PhishingIdentityConfig?
   darkSkyConfig             DarkSkyConfig?
   techEventsConfig          TechEventsConfig?
+  shoppingDealsConfig       ShoppingDealsConfig?
 }
 
 enum Plan {
@@ -471,4 +472,19 @@ model FeaturedPiece {
   createdAt   DateTime  @default(now())
 
   @@index([active, weekOf])
+}
+
+// Also add this back-relation field inside your existing `model User { ... }` block:
+//
+//   shoppingDealsConfig  ShoppingDealsConfig?
+
+model ShoppingDealsConfig {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wishlist      Json
+  streak        Int
+  lastSpinDate  String
+  spinsToday    Int
+  updatedAt     DateTime @updatedAt
 }
