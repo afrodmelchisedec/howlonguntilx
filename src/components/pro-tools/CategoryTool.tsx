@@ -1,7 +1,9 @@
+'use client';
 import { getToolForCategory } from '@/lib/seo';
 import { PaydayBurnRate } from './PaydayBurnRate';
 import { PasswordStrengthRace } from './PasswordStrengthRace';
 import { HypeTap } from './HypeTap';
+import { useEntitlement } from '@/hooks/useEntitlement';
 
 interface Props {
   categorySlug: string;
@@ -10,7 +12,9 @@ interface Props {
 
 export function CategoryTool({ categorySlug, eventName }: Props) {
   const tool = getToolForCategory(categorySlug);
-  if (tool === 'finance') return <PaydayBurnRate />;
-  if (tool === 'scam') return <PasswordStrengthRace />;
-  return <HypeTap eventName={eventName} />;
+  const { isPro } = useEntitlement();
+
+  if (tool === 'finance') return <PaydayBurnRate isPro={isPro} />;
+  if (tool === 'scam') return <PasswordStrengthRace isPro={isPro} />;
+  return <HypeTap eventName={eventName} isPro={isPro} />;
 }

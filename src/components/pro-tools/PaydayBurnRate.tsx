@@ -70,7 +70,7 @@ function PaydayBurnRateInner() {
   );
 }
 
-export function PaydayBurnRate({ isPro = true }: { isPro?: boolean }) {
+export function PaydayBurnRate({ isPro = false }: { isPro?: boolean }) {
   return (
     <ToolProGate isPro={isPro} title="Track every payday with Premium" desc="Unlock saved history across pay periods and custom reminders.">
       <PaydayBurnRateInner />
