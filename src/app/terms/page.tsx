@@ -35,7 +35,7 @@ const SECTIONS = [
   {
     title: '4. Pro subscriptions and billing',
     body: [
-      'Pro tier features are billed on a recurring basis at the price shown at checkout. [TODO: confirm billing cadence, trial terms, and refund policy, and name your payment processor here, e.g. Stripe.]',
+      'New Pro subscriptions include a 7-day free trial, during which a $1.00 card verification charge applies. Unless cancelled before the trial ends, your card will be charged $9.99 USD per month thereafter, billed on a recurring basis via PayPal.',
       'You may cancel your Pro subscription at any time; access continues until the end of the current billing period. We do not offer prorated refunds for partial billing periods, except where required by law.',
       'Prices are subject to change with reasonable advance notice.',
     ],

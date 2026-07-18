@@ -63,7 +63,7 @@ function HypeTapInner({ eventName }: { eventName: string }) {
   );
 }
 
-export function HypeTap({ isPro = true, eventName }: { isPro?: boolean; eventName: string }) {
+export function HypeTap({ isPro = false, eventName }: { isPro?: boolean; eventName: string }) {
   return (
     <ToolProGate isPro={isPro} title="Save your hype history with Premium" desc="Unlock your all-time tap history and see your rank among top fans.">
       <HypeTapInner eventName={eventName} />

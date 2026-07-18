@@ -89,7 +89,7 @@ function PasswordRaceInner() {
   );
 }
 
-export function PasswordStrengthRace({ isPro = true }: { isPro?: boolean }) {
+export function PasswordStrengthRace({ isPro = false }: { isPro?: boolean }) {
   return (
     <ToolProGate isPro={isPro} title="Track your strongest passwords with Premium" desc="Unlock saved history of your strength scores and weekly security tips.">
       <PasswordRaceInner />

@@ -80,7 +80,7 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export function TechEventsCalendar() {
   const { data: session } = useSession();
   // TODO: adjust to match your real Pro-status field on the session user object.
-  const isPro = Boolean((session?.user as any)?.isPro);
+  const isPro = session?.user?.plan === 'PRO' || session?.user?.role === 'ADMIN';
   const { toast, showToast } = useToast();
   const commentRef = useRef<HTMLDivElement>(null);
 

@@ -17,6 +17,10 @@ model User {
   image         String?
   passwordHash  String?
   paypalId      String?   @unique
+  paypalSubscriptionId String?   @unique
+  subscriptionStatus   SubscriptionStatus @default(none)
+  planRenewsAt         DateTime?
+  trialEndsAt          DateTime?
   plan          Plan      @default(FREE)
   eventCount    Int       @default(0)
   role          Role      @default(USER)
@@ -488,3 +492,14 @@ model ShoppingDealsConfig {
   spinsToday    Int
   updatedAt     DateTime @updatedAt
 }
+
+enum SubscriptionStatus {
+  none
+  pending
+  trialing
+  active
+  cancelled
+  suspended
+  expired
+}
+

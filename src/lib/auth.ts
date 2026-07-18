@@ -6,7 +6,6 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './db';
 import { createTransport } from 'nodemailer';
 
-// ── email magic link provider (optional) ──────────────────────
 function getEmailProvider() {
   const host = process.env.EMAIL_SERVER_HOST;
   const user = process.env.EMAIL_SERVER_USER;
@@ -30,48 +29,41 @@ function getEmailProvider() {
 const emailProvider = getEmailProvider();
 
 export const authOptions: NextAuthOptions = {
-  // Credentials provider requires JWT session strategy
   session: { strategy: 'jwt' },
   adapter: PrismaAdapter(prisma) as any,
   providers: [
-    // ── 1. Email Only (Bypassed Credentials) ──────────────
     CredentialsProvider({
       id: 'credentials',
       name: 'Email Sign In',
       credentials: {
         email:    { label: 'Email',    type: 'email' },
-        password: { label: 'Password', type: 'password' }, // Kept structurally to handle the client payload
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
-        
-        // 1. Find user by email address directly
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        
-        // 2. Fallback if user doesn't exist yet
         if (!user) return null;
-        
-        // 3. Bypass complete: Proceed straight to tracking active status
         await prisma.user.update({ where: { id: user.id }, data: { lastSeen: new Date() } });
-        
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),
-    // ── 2. Google OAuth (if configured) ────────────────────
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? [GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET! })]
       : []),
-    // ── 3. Magic link email (if configured) ────────────────
     ...(emailProvider ? [emailProvider] : []),
   ],
-callbacks: {
+  callbacks: {
     jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id;
-        // Fixed the double prisma typo here:
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, plan: true } });
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, plan: true, subscriptionStatus: true, trialEndsAt: true },
+        });
         token.role = dbUser?.role ?? 'USER';
         token.plan = dbUser?.plan ?? 'FREE';
+        token.subscriptionStatus = dbUser?.subscriptionStatus ?? 'none';
+        token.trialEndsAt = dbUser?.trialEndsAt ? dbUser.trialEndsAt.toISOString() : null;
       }
       return token;
     },
@@ -83,6 +75,8 @@ callbacks: {
           id:   token.id   as string,
           role: token.role as string,
           plan: token.plan as string,
+          subscriptionStatus: token.subscriptionStatus as string,
+          trialEndsAt: token.trialEndsAt as string | null,
         },
       };
     },
