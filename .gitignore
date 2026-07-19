@@ -7,3 +7,6 @@ prisma/dev.db
 # Local Netlify folder
 .netlify
 deno.lock
+.env.backup-*
+*.env.backup*
+live-plan-check.json
