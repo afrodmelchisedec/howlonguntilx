@@ -80,10 +80,7 @@ export async function POST(req: NextRequest) {
       const user = await findUser();
       if (!user) { console.error('No matching user for ACTIVATED', { userId, subscriptionId }); break; }
       const status = resolveStatus(resource);
-      const trialEndsAt =
-        status === 'trialing' && resource.billing_info?.next_billing_time
-          ? new Date(resource.billing_info.next_billing_time)
-          : null;
+      const trialEndsAt = status === 'trialing' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null;
       await prisma.user.update({
         where: { id: user.id },
         data: {

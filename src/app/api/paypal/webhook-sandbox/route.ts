@@ -80,10 +80,11 @@ export async function POST(req: NextRequest) {
       const user = await findUser();
       if (!user) { console.error('No matching user for ACTIVATED (sandbox)', { userId, subscriptionId }); break; }
       const status = resolveStatus(resource);
-      const trialEndsAt =
-        status === 'trialing' && resource.billing_info?.next_billing_time
-          ? new Date(resource.billing_info.next_billing_time)
-          : null;
+      // Don't trust billing_info.next_billing_time here — PayPal's ACTIVATED
+      // webhook can fire before that field reflects the real trial end date
+      // (observed equal to create_time in testing). Compute it ourselves
+      // from the known 7-day trial length instead.
+      const trialEndsAt = status === 'trialing' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null;
       await prisma.user.update({
         where: { id: user.id },
         data: {
