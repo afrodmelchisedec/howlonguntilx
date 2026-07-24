@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     data: { status: 'published', publishedAt: article.publishedAt ?? new Date() },
   });
 
-  const url = `https://www.howlonguntilx.com/tools/${updated.toolSlug}/${updated.slug}`;
+  const url = `https://howlonguntilx.com/tools/${updated.toolSlug}/${updated.slug}`;
   revalidatePath(`/tools/${updated.toolSlug}/${updated.slug}`);
   revalidatePath(`/tools/${updated.toolSlug}`); // Discover grid changed
   revalidatePath('/sitemap.xml');
