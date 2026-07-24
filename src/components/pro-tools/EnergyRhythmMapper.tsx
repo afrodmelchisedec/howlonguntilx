@@ -348,7 +348,7 @@ export function EnergyRhythmMapper() {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>HEALTH & WELLNESS</p>
-            <h2 className="text-title2">Energy Rhythm Mapper</h2>
+            <h2 className="text-title2">Today's Energy Curve</h2>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleReset} className="ios-card-nested press text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>↺ Reset</button>
