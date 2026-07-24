@@ -4,7 +4,7 @@ const GLOW = '129, 178, 255';
 export const metadata = {
   title: 'Terms of Service — HowLongUntil',
   description: 'The terms that govern your use of HowLongUntil.',
-  alternates: { canonical: 'https://www.howlonguntilx.com/terms' },
+  alternates: { canonical: 'https://howlonguntilx.com/terms' },
 };
 
 // TODO: Have this reviewed by a lawyer before relying on it for compliance —

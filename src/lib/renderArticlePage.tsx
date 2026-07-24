@@ -4,6 +4,8 @@ import { getPublishedArticle } from '@/lib/articles';
 import { ArticleLayout } from '@/components/articles/ArticleLayout';
 import { StarField } from '@/components/ui/StarField';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+
 // TODO: extend with your other tools as you migrate them onto this pattern
 export const TOOL_META: Record<string, { name: string; glow: string }> = {
   'tech-events': { name: 'Tech Events Calendar', glow: '162, 137, 255' },
@@ -13,7 +15,7 @@ export const TOOL_META: Record<string, { name: string; glow: string }> = {
 export async function generateArticleMetadata(toolSlug: string, articleSlug: string) {
   const article = await getPublishedArticle(toolSlug, articleSlug);
   if (!article) return {};
-  const url = `https://www.howlonguntilx.com/tools/${toolSlug}/${articleSlug}`;
+  const url = `${SITE_URL}/tools/${toolSlug}/${articleSlug}`;
   return {
     title: article.title,
     description: article.dek,
@@ -28,41 +30,9 @@ export async function ArticlePageContent({ toolSlug, articleSlug }: { toolSlug: 
   const article = await getPublishedArticle(toolSlug, articleSlug);
   if (!meta || !article) notFound();
 
-  const jsonLd: any[] = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: article.title,
-      description: article.dek,
-      image: [article.heroImageUrl],
-      datePublished: article.publishedAt,
-      dateModified: article.updatedAt,
-      author: { '@type': 'Organization', name: article.authorName },
-      mainEntityOfPage: `https://www.howlonguntilx.com/tools/${toolSlug}/${articleSlug}`,
-    },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.howlonguntilx.com' },
-        { '@type': 'ListItem', position: 2, name: meta.name, item: `https://www.howlonguntilx.com/tools/${toolSlug}` },
-        { '@type': 'ListItem', position: 3, name: article.title },
-      ],
-    },
-  ];
-
-  const faqItems = (article.blocks as any[])?.find((b: any) => b.type === 'faq')?.items;
-  if (faqItems && faqItems.length > 0) {
-    jsonLd.push({
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: faqItems.map((f: any) => ({
-        '@type': 'Question',
-        name: f.q,
-        acceptedAnswer: { '@type': 'Answer', text: f.a },
-      })),
-    });
-  }
+  // Structured data (Article / BreadcrumbList / FAQPage / Event) is emitted once,
+  // by <ArticleSchema> inside <ArticleLayout>. Do not duplicate JSON-LD here —
+  // two blocks of the same @type on one page causes rich-result validation conflicts.
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
@@ -72,9 +42,6 @@ export async function ArticlePageContent({ toolSlug, articleSlug }: { toolSlug: 
       <StarField />
 
       <div className="relative z-10" style={{ maxWidth: 780, margin: '0 auto', padding: '24px 16px' }}>
-        {jsonLd.map((obj, i) => (
-          <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(obj) }} />
-        ))}
         <ArticleLayout article={article} toolName={meta.name} toolSlug={toolSlug} glow={meta.glow} />
       </div>
     </div>

@@ -16,6 +16,24 @@ import { FeaturedSpotlight } from '@/components/ui/FeaturedSpotlight';
 import { getLiveFaqs } from '@/lib/faqs';
 import { getArticleFaqs } from '@/lib/articleFaqs';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'HowLongUntilX — Live countdown to any event',
+  description: 'Instant countdowns to any event — Christmas, World Cup, salary day and more. Real-time, to the second.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'HowLongUntilX — Live countdown to any event',
+    description: 'Instant countdowns to any event — Christmas, World Cup, salary day and more. Real-time, to the second.',
+    url: '/',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HowLongUntilX — Live countdown to any event',
+    description: 'Instant countdowns to any event — Christmas, World Cup, salary day and more. Real-time, to the second.',
+  },
+};
 
 
 export default async function HomePage() {

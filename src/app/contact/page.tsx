@@ -9,7 +9,7 @@ const CONTACT_EMAIL = 'hello@howlonguntilx.com';
 export const metadata = {
   title: 'Contact HowLongUntil',
   description: 'Get in touch with the HowLongUntil team — tool suggestions, bug reports, partnerships, or general questions.',
-  alternates: { canonical: 'https://www.howlonguntilx.com/contact' },
+  alternates: { canonical: 'https://howlonguntilx.com/contact' },
 };
 
 const REASONS = [
