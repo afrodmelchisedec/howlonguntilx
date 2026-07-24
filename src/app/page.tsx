@@ -54,7 +54,21 @@ export default async function HomePage() {
           <div className="relative z-10 w-full px-4 py-16 text-center" style={{ maxWidth: 760 }}>
             <div className="sg">
 
-              {/* Eyebrow */}
+              {/* Hero mark */}
+                <div className="anim-fade-up flex justify-center mb-6">
+                  <svg width="64" height="64" viewBox="0 0 32 32" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#c98fe0" />
+                        <stop offset="100%" stopColor="#e07ab0" />
+                      </linearGradient>
+                    </defs>
+                    <rect width="32" height="32" rx="8" fill="url(#heroGrad)" />
+                    <path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  </svg>
+                </div>
+
+                {/* Eyebrow */}
               <p className="anim-fade-up text-caption mb-4" style={{ color: 'rgb(var(--accent-brand))' }}>
                 LIVE · REAL-TIME · TO THE SECOND
               </p>
