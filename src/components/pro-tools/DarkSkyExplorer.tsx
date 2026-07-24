@@ -376,7 +376,7 @@ export function DarkSkyExplorer() {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>NATURE, SPACE & SKY</p>
-            <h2 className="text-title2">Dark Sky Explorer</h2>
+            <h2 className="text-title2">Sky Conditions Overview</h2>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleReset} className="ios-card-nested press text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>↺ Reset</button>

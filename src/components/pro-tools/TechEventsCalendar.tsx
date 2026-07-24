@@ -187,7 +187,7 @@ export function TechEventsCalendar() {
         <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
           <div>
             <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>TECH · EVENTS</p>
-            <h2 className="text-title2">Tech Events Calendar</h2>
+            <h2 className="text-title2">This Week's Lineup</h2>
             <p className="text-callout mt-1" style={{ color: 'var(--text-secondary)' }}>
               Every major keynote, launch, and conference on one beautiful calendar.
             </p>
