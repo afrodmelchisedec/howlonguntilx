@@ -6,7 +6,7 @@ const GLOW = '162, 137, 255';
 export const metadata = {
   title: 'About HowLongUntil',
   description: 'HowLongUntil is a live countdown and urgency-tracking platform spanning Tech, Finance, Food, Travel, Leisure, and Scam-safety tools.',
-  alternates: { canonical: 'https://www.howlonguntilx.com/about' },
+  alternates: { canonical: 'https://howlonguntilx.com/about' },
 };
 
 const CATEGORIES = [

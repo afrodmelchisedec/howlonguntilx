@@ -4,7 +4,7 @@ const GLOW = '129, 178, 255';
 export const metadata = {
   title: 'Privacy Policy — HowLongUntil',
   description: 'How HowLongUntil collects, uses, and protects your information.',
-  alternates: { canonical: 'https://www.howlonguntilx.com/privacy' },
+  alternates: { canonical: 'https://howlonguntilx.com/privacy' },
 };
 
 // TODO: Have this reviewed by a lawyer before relying on it for compliance —
