@@ -8,6 +8,7 @@ const CATEGORIES = [
   { slug: 'tech',     label: 'Tech',     emoji: '💻', color: '64, 156, 255'  },
   { slug: 'finance',  label: 'Finance',  emoji: '💰', color: '255, 159, 10'  },
   { slug: 'scam',     label: 'Scam',     emoji: '🔐', color: '255, 75, 110'  },
+  { slug: 'productivity', label: 'Productivity', emoji: '🗂️', color: '218, 143, 255' },
 ];
 
 export function CategoryPills() {

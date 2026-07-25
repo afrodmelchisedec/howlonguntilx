@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
           <div>
             <p className="font-black mb-3" style={{ color: 'var(--text-primary)' }}>
-              How <span style={{ color: 'rgb(var(--accent-brand))' }}>Long </span>Until x
+              How Long<span className="gradient-text"> Until X</span>
             </p>
             <p className="text-xs leading-relaxed">Live countdowns to anything. Real-time. To the second.</p>
           </div>
@@ -37,7 +37,7 @@ export function Footer() {
           </div>
         </div>
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ borderTop: '1px solid var(--border-hairline)' }}>
-          <p>© {new Date().getFullYear()} HowLongUntilx. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} How Long Until x. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/terms" className="transition-colors hover:opacity-80">Terms</Link>
             <Link href="/privacy" className="transition-colors hover:opacity-80">Privacy</Link>

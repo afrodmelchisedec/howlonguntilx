@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from '@/components/ui/Providers';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
+import { ConsentBanner } from '@/components/ui/ConsentBanner';
 
 export const metadata: Metadata = {
   title: { template: '%s | HowLongUntilX', default: 'HowLongUntilX — Live countdown to any event' },
@@ -14,6 +15,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('consent', 'default', {
+                  ad_storage: 'denied',
+                  analytics_storage: 'denied',
+                  ad_user_data: 'denied',
+                  ad_personalization: 'denied',
+                  wait_for_update: 500
+                });
+              `,
+            }}
+          />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -36,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main style={{ flex: 1 }}>{children}</main>
           <Footer />
         </Providers>
+          <ConsentBanner />
       </body>
     </html>
   );

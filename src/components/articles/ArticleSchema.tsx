@@ -26,8 +26,8 @@ export function ArticleSchema({
       headline: article.title,
       description: article.dek,
       image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
-      author: { '@type': 'Organization', name: article.authorName },
-      publisher: { '@type': 'Organization', name: 'How Long Until' },
+      author: { '@type': 'Organization', name: article.authorName, url: `${SITE_URL}/about` },
+      publisher: { '@type': 'Organization', name: 'How Long Until', url: `${SITE_URL}/about` },
       datePublished: article.publishedAt ?? undefined,
       dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
@@ -53,7 +53,22 @@ export function ArticleSchema({
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       description: article.dek,
       url: pageUrl,
-      // location is intentionally omitted — plug in a real Place if/when you store venue data on the Event model.
+      ...(hero.locationName
+        ? {
+            location: {
+              '@type': 'Place',
+              name: hero.locationName,
+              address: {
+                '@type': 'PostalAddress',
+                ...(hero.streetAddress ? { streetAddress: hero.streetAddress } : {}),
+                ...(hero.addressLocality ? { addressLocality: hero.addressLocality } : {}),
+                ...(hero.addressRegion ? { addressRegion: hero.addressRegion } : {}),
+                ...(hero.postalCode ? { postalCode: hero.postalCode } : {}),
+                ...(hero.addressCountry ? { addressCountry: hero.addressCountry } : {}),
+              },
+            },
+          }
+        : {}),
     });
   }
 
