@@ -35,7 +35,7 @@ export default function AboutPage() {
       <div className="text-center mb-14 anim-fade-up">
         <p className="text-caption font-bold mb-2 tracking-wide" style={{ color: `rgb(${GLOW})` }}>ABOUT US</p>
         <h1 className="text-title1 mb-3">
-          How<span style={{ color: `rgb(${GLOW})` }}>Long</span>Until
+          How Long<span className="gradient-text"> Until X</span>
         </h1>
         <p className="text-callout max-w-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>
           A live countdown and urgency-tracking platform — built for anyone counting down to something that matters, across tech, money, food, travel, leisure, and staying safe from scams.

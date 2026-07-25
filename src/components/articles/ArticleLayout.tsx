@@ -1,6 +1,6 @@
 // FILE: src/components/articles/ArticleLayout.tsx
 import Link from 'next/link';
-import { ArticleBlocks, extractHeroCountdown, extractHeadings } from './ArticleBlocks';
+import { ArticleBlocks, extractHeroCountdown, extractHeadings, extractFaq } from './ArticleBlocks';
 import { ArticleCommentSection } from './ArticleCommentSection';
 import { RelatedArticles } from './RelatedArticles';
 import { ArticleStyles } from './ArticleStyles';
@@ -9,12 +9,16 @@ import { ArticleSchema } from './ArticleSchema';
 import { ArticleTableOfContents } from './ArticleTableOfContents';
 import { ArticleFeaturedPiece } from './ArticleFeaturedPiece';
 import { AdSlot } from './AdSlot';
+import { LikeButton } from './LikeButton';
+import { ShareButton } from './ShareButton';
 
 // `featuredPiece` is optional and fetched by the caller — see the comment block
 // at the top of ArticleFeaturedPiece.tsx for the query shape.
 export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece }: { article: any; toolName: string; toolSlug: string; glow: string; featuredPiece?: any }) {
   const hero = extractHeroCountdown(article.blocks as any);
   const headings = extractHeadings(article.blocks as any);
+  const faqItems = extractFaq(article.blocks as any);
+  const tocHeadings = faqItems && faqItems.length > 0 ? [...headings, { id: 'faq', text: 'FAQs' }] : headings;
 
   const published = article.publishedAt ? new Date(article.publishedAt) : null;
   const updated = article.updatedAt ? new Date(article.updatedAt) : null;
@@ -40,16 +44,18 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <p className="text-caption m-0" style={{ color: 'var(--text-secondary)' }}>
-          By {article.authorName} · {published?.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+          By <Link href="/about" className="hover:underline" style={{ color: 'inherit' }}>{article.authorName}</Link>{!showUpdated && published && ` · ${published.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`}
         </p>
         {showUpdated && (
           <span className="article-freshness-pill text-caption" style={{ color: `rgb(${glow})`, background: `rgba(${glow}, 0.1)`, border: `1px solid rgba(${glow}, 0.25)` }}>
             Updated {updated!.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
         )}
+        <LikeButton articleId={article.id} glow={glow} />
+        <ShareButton glow={glow} title={article.title} />
       </div>
 
-      <ArticleTableOfContents headings={headings} glow={glow} />
+      <ArticleTableOfContents headings={tocHeadings} glow={glow} />
 
       <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} />
 

@@ -27,7 +27,7 @@ export function Nav() {
     <nav className="sticky top-0 z-40 glass px-4 sm:px-6 py-2.5 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <Link href="/" className="press font-black text-lg tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c98fe0" /><stop offset="100%" stopColor="#e07ab0" /></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#navGrad)" /><path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>How <span className="gradient-text">Long </span>Until x
+          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c98fe0" /><stop offset="100%" stopColor="#e07ab0" /></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#navGrad)" /><path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>How Long<span className="gradient-text"> Until x</span>
         </Link>
         <div className="hidden sm:flex items-center gap-0.5">
           {NAV_LINKS.map(l => (

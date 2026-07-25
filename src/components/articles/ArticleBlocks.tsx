@@ -5,13 +5,25 @@ import { ArticleFaq } from './ArticleFaq';
 
 type Block =
   | { type: 'heading'; text: string }
-  | { type: 'paragraph'; text: string }
+  | { type: 'paragraph'; text: string; sourceUrl?: string; sourceLabel?: string }
   | { type: 'image'; src: string; alt: string }
   | { type: 'tool_embed'; widget: string; config: Record<string, any> }
   | { type: 'tool_embed_full' }
   | { type: 'chart'; title: string; data: { label: string; value: number }[] }
   | { type: 'faq'; items: { q: string; a: string }[] }
-  | { type: 'hero_countdown'; targetDate: string; label: string };
+  | {
+      type: 'hero_countdown';
+      targetDate: string;
+      label: string;
+      // Optional — populates Event.location in JSON-LD when the event has a
+      // known physical venue. Omit entirely for virtual/TBD-location events.
+      locationName?: string;
+      streetAddress?: string;
+      addressLocality?: string;
+      addressRegion?: string;
+      postalCode?: string;
+      addressCountry?: string;
+    };
 
 // hero_countdown is rendered separately at the top of ArticleLayout, not inline —
 // this filters it out of the normal block stream.
@@ -54,7 +66,27 @@ export function ArticleBlocks({ toolSlug, blocks, glow }: { toolSlug: string; bl
           const id = headings[headingCursor++]?.id;
           return <h2 key={i} id={id} className="text-title3 mt-2 anim-fade-up scroll-mt-24" style={delay}>{b.text}</h2>;
         }
-        if (b.type === 'paragraph') return <p key={i} className="text-callout anim-fade-up" style={{ ...delay, color: 'var(--text-secondary)' }}>{b.text}</p>;
+        if (b.type === 'paragraph') {
+          return (
+            <p key={i} className="text-callout anim-fade-up" style={{ ...delay, color: 'var(--text-secondary)' }}>
+              {b.text}
+              {b.sourceUrl && (
+                <>
+                  {' '}
+                  <a
+                    href={b.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-caption1 underline underline-offset-2"
+                    style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}
+                  >
+                    {b.sourceLabel ?? 'Source'}
+                  </a>
+                </>
+              )}
+            </p>
+          );
+        }
         if (b.type === 'image') return <img key={i} src={b.src} alt={b.alt} className="rounded-2xl w-full anim-fade-up" style={delay} loading="lazy" />;
         if (b.type === 'chart') return <ArticleChart key={i} title={b.title} data={b.data} glow={glow} />;
         if (b.type === 'faq') return <ArticleFaq key={i} items={b.items} glow={glow} />;
