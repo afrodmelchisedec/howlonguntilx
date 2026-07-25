@@ -14,6 +14,8 @@ const GLOW_MAP: Record<string, string> = {
   tech:    'var(--glow-tech)',
   finance: 'var(--glow-finance)',
   scam:    'var(--glow-personal)',
+  productivity: 'var(--glow-work)',
+  health:       'var(--glow-health)',
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

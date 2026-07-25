@@ -54,12 +54,29 @@ async function main() {
         { slug: 'salary-payroll', name: 'Salary & Payroll Events', emoji: '💵', description: 'Payday countdowns and payroll events' },
       ],
     },
+    {
+      slug: 'productivity', name: 'Productivity', emoji: '🗂️',
+      description: 'Meetings, deadlines and focus tools',
+      children: [
+        { slug: 'meeting-overlap', name: 'Meeting Overlap', emoji: '🕒', description: 'Timezone overlap and scheduling windows' },
+        { slug: 'deadline-buffer', name: 'Deadline Buffers', emoji: '⏳', description: 'Buffer time and deadline planning' },
+        { slug: 'focus-blocks', name: 'Focus Blocks', emoji: '🎯', description: 'Deep work and focus block scheduling' },
+      ],
+    },
+    {
+      slug: 'health', name: 'Health', emoji: '🩺',
+      description: 'Health timelines, medical guidance and body recovery windows',
+      children: [
+        { slug: 'medical-timelines', name: 'Medical Timelines', emoji: '🩺', description: 'Recovery, treatment, and symptom duration timelines' },
+        { slug: 'testing-detection', name: 'Testing & Detection', emoji: '🧪', description: 'Test accuracy windows and detection timeframes' },
+      ],
+    },
   ];
 
   for (const cat of categories) {
     const parent = await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: {},
+      update: { name: cat.name, emoji: cat.emoji, description: cat.description },
       create: {
         slug: cat.slug, name: cat.name,
         emoji: cat.emoji, description: cat.description,
@@ -68,7 +85,7 @@ async function main() {
     for (const child of cat.children) {
       await prisma.category.upsert({
         where: { slug: child.slug },
-        update: {},
+        update: { name: child.name, emoji: child.emoji, description: child.description, parentId: parent.id },
         create: {
           slug: child.slug, name: child.name,
           emoji: child.emoji, description: child.description,

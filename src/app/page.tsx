@@ -134,11 +134,6 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Scroll hint */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
-            <p className="text-caption">Scroll to explore</p>
-            <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, var(--text-tertiary), transparent)' }} />
-          </div>
         </div>
 
         {/* ══════════════════════════════════════════════════════

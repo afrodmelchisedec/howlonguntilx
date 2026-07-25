@@ -9,6 +9,7 @@ const CATEGORIES = [
   { slug: 'finance',  label: 'Finance',  emoji: '💰', color: '255, 159, 10'  },
   { slug: 'scam',     label: 'Scam',     emoji: '🔐', color: '255, 75, 110'  },
   { slug: 'productivity', label: 'Productivity', emoji: '🗂️', color: '218, 143, 255' },
+  { slug: 'health', label: 'Health', emoji: '🩺', color: '255, 120, 110' },
 ];
 
 export function CategoryPills() {

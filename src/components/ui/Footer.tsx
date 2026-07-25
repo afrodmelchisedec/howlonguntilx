@@ -1,4 +1,6 @@
+// FILE: src/components/ui/Footer.tsx
 import Link from 'next/link';
+import { NAV_LINKS, INFO_LINKS } from '@/lib/nav-links';
 
 export function Footer() {
   return (
@@ -14,17 +16,25 @@ export function Footer() {
           <div>
             <p className="text-caption mb-3">Product</p>
             <div className="space-y-2 text-xs">
-              <Link href="/categories" className="block transition-colors hover:opacity-80">Categories</Link>
-              <Link href="/embed" className="block transition-colors hover:opacity-80">Embed widget</Link>
+              {NAV_LINKS.map(l => (
+                <Link key={l.label} href={l.href}
+                  {...(l.ext ? { target: '_blank' } : {})}
+                  className="block transition-colors hover:opacity-80">
+                  {l.label}
+                </Link>
+              ))}
               <Link href="/upgrade" className="block transition-colors hover:opacity-80">Pricing</Link>
               <Link href="/auth/signup" className="block transition-colors hover:opacity-80">Sign up free</Link>
             </div>
           </div>
           <div>
-            <p className="text-caption mb-3">Developers</p>
+            <p className="text-caption mb-3">Company</p>
             <div className="space-y-2 text-xs">
-              <a href="/api/countdown?event=christmas" target="_blank" className="block transition-colors hover:opacity-80">REST API</a>
-              <Link href="/embed" className="block transition-colors hover:opacity-80">WordPress plugin</Link>
+              {INFO_LINKS.map(l => (
+                <Link key={l.label} href={l.href} className="block transition-colors hover:opacity-80">
+                  {l.label}
+                </Link>
+              ))}
             </div>
           </div>
           <div>
