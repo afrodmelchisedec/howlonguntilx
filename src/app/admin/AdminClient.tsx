@@ -1,5 +1,9 @@
+// FILE: src/app/admin/AdminClient.tsx
 'use client';
 import { useState } from 'react';
+import { useToast, ToastHost } from '@/components/ui/Toast';
+import { useTheme } from '@/components/ui/ThemeProvider';
+import { CategoriesManager } from '@/components/admin/CategoriesManager';
 
 interface User {
   id: string; name: string | null; email: string | null;
@@ -7,12 +11,23 @@ interface User {
   createdAt: Date; lastSeen: Date | null;
   _count: { timers: number; sessions: number };
 }
-interface EventRow { id: string; slug: string; name: string; category: string; views: number; targetDate: Date }
+interface EventRow {
+  id: string; slug: string; name: string; views: number; targetDate: Date;
+  categoryId: string | null; subcategoryId: string | null;
+  category: CategoryRow | null; subcategory: CategoryRow | null;
+}
+interface CategoryRow { id: string; slug: string; name: string; emoji: string; parentId: string | null }
+interface ArticleRow {
+  id: string; slug: string; title: string; status: string;
+  categoryId: string | null; subcategoryId: string | null;
+  category: CategoryRow | null; subcategory: CategoryRow | null;
+  updatedAt: Date; publishedAt: Date | null;
+}
 interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'events';
+type Tab = 'overview' | 'users' | 'events' | 'articles' | 'categories';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -20,11 +35,166 @@ const STAT_COLORS: Record<string, string> = {
   totalEvents: '#639922', totalViews: '#534AB7',
 };
 
-export function AdminClient({ users, events, stats }: { users: User[]; events: EventRow[]; stats: Stats }) {
+const TAB_ICONS: Record<Tab, string> = {
+  overview: '📊', users: '👥', events: '📅', articles: '📝', categories: '🗂️',
+};
+
+function Pagination({
+  page, totalPages, onPageChange, pageSize, onPageSizeChange, totalItems,
+}: {
+  page: number; totalPages: number; onPageChange: (p: number) => void;
+  pageSize: number; onPageSizeChange: (n: number) => void; totalItems: number;
+}) {
+  if (totalItems === 0) return null;
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500">
+      <div className="flex items-center gap-2">
+        <span>Rows per page:</span>
+        <select
+          value={pageSize}
+          onChange={e => onPageSizeChange(Number(e.target.value))}
+          className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none">
+          {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          ← Prev
+        </button>
+        <span>Page {page} of {totalPages}</span>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          Next →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type SortDir = 'asc' | 'desc';
+interface SortState { key: string; dir: SortDir }
+
+function toggleSort(current: SortState | null, key: string): SortState {
+  if (current?.key === key) return { key, dir: current.dir === 'asc' ? 'desc' : 'asc' };
+  return { key, dir: 'asc' };
+}
+
+// Generic comparator: strings compare case-insensitively, dates/numbers/booleans
+// compare natively, nulls always sort last regardless of direction.
+function applySort<T>(rows: T[], sort: SortState | null, accessor: (row: T, key: string) => any): T[] {
+  if (!sort) return rows;
+  const sorted = [...rows].sort((a, b) => {
+    const av = accessor(a, sort.key);
+    const bv = accessor(b, sort.key);
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv, undefined, { sensitivity: 'base' });
+    if (av instanceof Date && bv instanceof Date) return av.getTime() - bv.getTime();
+    if (typeof av === 'boolean' && typeof bv === 'boolean') return av === bv ? 0 : av ? -1 : 1;
+    return av > bv ? 1 : av < bv ? -1 : 0;
+  });
+  if (sort.dir === 'desc') sorted.reverse();
+  return sorted;
+}
+
+function SortableTh({
+  label, sortKey, sort, onSort,
+}: {
+  label: string; sortKey: string | null; sort: SortState | null; onSort: (key: string) => void;
+}) {
+  if (!sortKey) {
+    return <th className="text-left px-4 py-3 font-medium text-gray-400 text-[11px] uppercase tracking-wide whitespace-nowrap">{label}</th>;
+  }
+  const active = sort?.key === sortKey;
+  return (
+    <th
+      onClick={() => onSort(sortKey)}
+      className="text-left px-4 py-3 font-medium text-gray-400 text-[11px] uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className={active ? 'text-brand-500' : 'text-gray-300 dark:text-gray-700'}>
+          {active ? (sort!.dir === 'asc' ? '▲' : '▼') : '↕'}
+        </span>
+      </span>
+    </th>
+  );
+}
+
+function userAccessor(u: User, key: string) {
+  switch (key) {
+    case 'user': return (u.name ?? u.email ?? '').toLowerCase();
+    case 'status': return u.emailVerified ? 1 : 0;
+    case 'plan': return u.role === 'ADMIN' ? 'PRO (Admin)' : u.plan;
+    case 'timers': return u._count.timers;
+    case 'joined': return new Date(u.createdAt);
+    case 'lastSeen': return u.lastSeen ? new Date(u.lastSeen) : null;
+    default: return null;
+  }
+}
+function eventAccessor(ev: EventRow, key: string) {
+  switch (key) {
+    case 'event': return ev.name.toLowerCase();
+    case 'category': return ev.category ? ev.category.name.toLowerCase() : null;
+    case 'subcategory': return ev.subcategory ? ev.subcategory.name.toLowerCase() : null;
+    case 'targetDate': return new Date(ev.targetDate);
+    case 'views': return ev.views;
+    default: return null;
+  }
+}
+function articleAccessor(a: ArticleRow, key: string) {
+  switch (key) {
+    case 'title': return a.title.toLowerCase();
+    case 'status': return a.status;
+    case 'category': return (a.category?.name ?? '').toLowerCase();
+    case 'subcategory': return (a.subcategory?.name ?? '').toLowerCase();
+    default: return null;
+  }
+}
+
+export function AdminClient({
+  users, events, articles, categories, stats,
+}: {
+  users: User[]; events: EventRow[]; articles: ArticleRow[]; categories: CategoryRow[]; stats: Stats;
+}) {
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const { toast, showToast } = useToast();
+  const { theme } = useTheme();
+
+  // Articles tab state
+  const [jsonInput, setJsonInput] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [articleRows, setArticleRows] = useState(articles);
+  const [eventRows, setEventRows] = useState(events);
+  const [savingRow, setSavingRow] = useState<string | null>(null);
+  const [savingEventRow, setSavingEventRow] = useState<string | null>(null);
+  const [articleSearch, setArticleSearch] = useState('');
+  const [articleCategoryFilter, setArticleCategoryFilter] = useState<string | null>(null);
+  const [eventSearch, setEventSearch] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [userPage, setUserPage] = useState(1);
+  const [eventPage, setEventPage] = useState(1);
+  const [articlePage, setArticlePage] = useState(1);
+  const resetPages = () => { setUserPage(1); setEventPage(1); setArticlePage(1); };
+
+  const [userSort, setUserSort] = useState<SortState | null>(null);
+  const [eventSort, setEventSort] = useState<SortState | null>(null);
+  const [articleSort, setArticleSort] = useState<SortState | null>(null);
+  const onUserSort = (key: string) => { setUserSort(s => toggleSort(s, key)); setUserPage(1); };
+  const onEventSort = (key: string) => { setEventSort(s => toggleSort(s, key)); setEventPage(1); };
+  const onArticleSort = (key: string) => { setArticleSort(s => toggleSort(s, key)); setArticlePage(1); };
+
+  const topLevelCategories = categories.filter(c => !c.parentId);
+  const subcategoriesFor = (parentId: string | null) =>
+    parentId ? categories.filter(c => c.parentId === parentId) : [];
 
   const filtered = users.filter(u => {
     const s = search.toLowerCase();
@@ -50,22 +220,202 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
     window.location.reload();
   }
 
-  const maxViews = Math.max(...events.map(e => e.views), 1);
+  async function deleteEvent(eventId: string, name: string) {
+    if (!confirm('Delete event "' + name + '"? Cannot be undone.')) return;
+    const res = await fetch('/api/admin/events/' + eventId, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('Event deleted', '🗑️');
+      setEventRows(rows => rows.filter(r => r.id !== eventId));
+    } else {
+      showToast('Could not delete event', '⚠️');
+    }
+  }
+
+  function updateEventRowCategory(eventId: string, categoryId: string) {
+    setEventRows(rows => rows.map(r =>
+      r.id === eventId ? { ...r, categoryId: categoryId || null, category: topLevelCategories.find(c => c.id === categoryId) ?? null, subcategoryId: null, subcategory: null } : r
+    ));
+  }
+
+  function updateEventRowSubcategory(eventId: string, subcategoryId: string) {
+    setEventRows(rows => rows.map(r =>
+      r.id === eventId ? { ...r, subcategoryId: subcategoryId || null, subcategory: categories.find(c => c.id === subcategoryId) ?? null } : r
+    ));
+  }
+
+  async function saveEventCategory(eventId: string, categoryId: string | null, subcategoryId: string | null) {
+    setSavingEventRow(eventId);
+    try {
+      const res = await fetch('/api/admin/events/' + eventId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId, subcategoryId }),
+      });
+      if (res.ok) {
+        showToast('Category saved', '💾');
+      } else {
+        showToast('Could not save category', '⚠️');
+      }
+    } catch {
+      showToast('Network error', '⚠️');
+    } finally {
+      setSavingEventRow(null);
+    }
+  }
+
+  async function importArticles() {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonInput);
+    } catch {
+      showToast('Invalid JSON — check syntax', '⚠️');
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch('/api/admin/articles/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? 'Import failed', '⚠️');
+      } else {
+        const { created, updated, failed } = data;
+        if (failed && failed.length > 0) {
+          showToast(`${created} created, ${updated} updated, ${failed.length} failed`, '⚠️');
+          console.error('Import errors:', failed);
+        } else {
+          showToast(`${created} created, ${updated} updated`, '✅');
+          setJsonInput('');
+        }
+        window.location.reload();
+      }
+    } catch {
+      showToast('Network error during import', '⚠️');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function saveArticleCategory(articleId: string, categoryId: string | null, subcategoryId: string | null) {
+    setSavingRow(articleId);
+    try {
+      const res = await fetch('/api/admin/articles/' + articleId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId, subcategoryId }),
+      });
+      if (res.ok) {
+        showToast('Category saved', '💾');
+      } else {
+        showToast('Could not save category', '⚠️');
+      }
+    } catch {
+      showToast('Network error', '⚠️');
+    } finally {
+      setSavingRow(null);
+    }
+  }
+
+  async function togglePublish(articleId: string, currentStatus: string) {
+    const nextStatus = currentStatus === 'published' ? 'draft' : 'published';
+    setSavingRow(articleId);
+    try {
+      const res = await fetch('/api/admin/articles/' + articleId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setArticleRows(rows => rows.map(r =>
+          r.id === articleId ? { ...r, status: updated.status, publishedAt: updated.publishedAt } : r
+        ));
+        showToast(nextStatus === 'published' ? 'Article published!' : 'Moved back to draft', nextStatus === 'published' ? '🚀' : '📝');
+      } else {
+        showToast('Could not update status', '⚠️');
+      }
+    } catch {
+      showToast('Network error', '⚠️');
+    } finally {
+      setSavingRow(null);
+    }
+  }
+
+  async function deleteArticle(articleId: string, title: string) {
+    if (!confirm('Delete article "' + title + '"? Cannot be undone.')) return;
+    const res = await fetch('/api/admin/articles/' + articleId, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('Article deleted', '🗑️');
+      setArticleRows(rows => rows.filter(r => r.id !== articleId));
+    } else {
+      showToast('Could not delete article', '⚠️');
+    }
+  }
+
+  function updateRowCategory(articleId: string, categoryId: string) {
+    setArticleRows(rows => rows.map(r =>
+      r.id === articleId ? { ...r, categoryId: categoryId || null, subcategoryId: null } : r
+    ));
+  }
+
+  function updateRowSubcategory(articleId: string, subcategoryId: string) {
+    setArticleRows(rows => rows.map(r =>
+      r.id === articleId ? { ...r, subcategoryId: subcategoryId || null } : r
+    ));
+  }
+
+  const maxViews = Math.max(...eventRows.map(e => e.views), 1);
+
+  const filteredArticles = articleRows.filter(a => {
+    const s = articleSearch.toLowerCase();
+    const matchSearch = !s || a.title.toLowerCase().includes(s) || a.slug.toLowerCase().includes(s);
+    const matchCategory = !articleCategoryFilter || a.categoryId === articleCategoryFilter;
+    return matchSearch && matchCategory;
+  });
+
+  const filteredEvents = eventRows.filter(ev => {
+    const s = eventSearch.toLowerCase();
+    return !s
+      || ev.name.toLowerCase().includes(s)
+      || ev.slug.toLowerCase().includes(s)
+      || (ev.category?.name ?? '').toLowerCase().includes(s)
+      || (ev.subcategory?.name ?? '').toLowerCase().includes(s);
+  });
+
+  const sortedUsers = applySort(filtered, userSort, userAccessor);
+  const userTotalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
+  const safeUserPage = Math.min(userPage, userTotalPages);
+  const pagedUsers = sortedUsers.slice((safeUserPage - 1) * pageSize, safeUserPage * pageSize);
+
+  const sortedEvents = applySort(filteredEvents, eventSort, eventAccessor);
+  const eventTotalPages = Math.max(1, Math.ceil(sortedEvents.length / pageSize));
+  const safeEventPage = Math.min(eventPage, eventTotalPages);
+  const pagedEvents = sortedEvents.slice((safeEventPage - 1) * pageSize, safeEventPage * pageSize);
+
+  const sortedArticles = applySort(filteredArticles, articleSort, articleAccessor);
+  const articleTotalPages = Math.max(1, Math.ceil(sortedArticles.length / pageSize));
+  const safeArticlePage = Math.min(articlePage, articleTotalPages);
+  const pagedArticles = sortedArticles.slice((safeArticlePage - 1) * pageSize, safeArticlePage * pageSize);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen text-gray-900 dark:text-gray-100" style={{ colorScheme: theme }}>
+      <ToastHost toast={toast} />
+
       {/* Sidebar */}
       <aside className="w-48 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
         <div className="mb-4 px-2 pt-1">
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','events'] as Tab[]).map(t => (
+        {(['overview','users','events','articles','categories'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}>
-            {t === 'overview' ? '📊' : t === 'users' ? '👥' : '📅'} {t}
+            {TAB_ICONS[t]} {t}
           </button>
         ))}
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -129,15 +479,15 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
               <h1 className="text-xl font-medium">All users ({filtered.length} shown)</h1>
             </div>
             <div className="flex gap-3 mb-5 flex-wrap">
-              <input placeholder="Search name or email..." value={search} onChange={e => setSearch(e.target.value)}
+              <input placeholder="Search name or email..." value={search} onChange={e => { setSearch(e.target.value); setUserPage(1); }}
                 className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500" />
-              <select value={planFilter} onChange={e => setPlanFilter(e.target.value)}
+              <select value={planFilter} onChange={e => { setPlanFilter(e.target.value); setUserPage(1); }}
                 className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none">
                 <option value="all">All plans</option>
                 <option value="free">Free</option>
                 <option value="pro">Pro / Paid</option>
               </select>
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setUserPage(1); }}
                 className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none">
                 <option value="all">All status</option>
                 <option value="verified">Verified (clicked link)</option>
@@ -149,13 +499,17 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                     <tr>
-                      {['User','Status','Plan','Timers','Joined','Last seen','Actions'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 font-medium text-gray-400 text-[11px] uppercase tracking-wide whitespace-nowrap">{h}</th>
-                      ))}
+                      <SortableTh label="User" sortKey="user" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Status" sortKey="status" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Plan" sortKey="plan" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Timers" sortKey="timers" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Joined" sortKey="joined" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Last seen" sortKey="lastSeen" sort={userSort} onSort={onUserSort} />
+                      <SortableTh label="Actions" sortKey={null} sort={userSort} onSort={onUserSort} />
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((u, i) => (
+                    {pagedUsers.map((u, i) => (
                       <tr key={u.id} className={'border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 ' + (u.role === 'ADMIN' ? 'bg-amber-50/30 dark:bg-amber-900/10' : '')}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -205,24 +559,37 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
                 {filtered.length === 0 && <p className="text-center text-gray-400 text-sm py-12">No users match your filters</p>}
               </div>
             </div>
+            <Pagination page={safeUserPage} totalPages={userTotalPages} onPageChange={setUserPage} pageSize={pageSize} onPageSizeChange={n => { setPageSize(n); resetPages(); }} totalItems={filtered.length} />
           </div>
         )}
 
         {/* EVENTS */}
         {tab === 'events' && (
           <div>
-            <h1 className="text-xl font-medium mb-5">Top event pages by views</h1>
+            <h1 className="text-xl font-medium mb-5">Top event pages by views ({filteredEvents.length}{eventSearch ? ' of ' + events.length : ''})</h1>
+            <div className="flex gap-3 mb-4">
+              <input
+                placeholder="Search event name, slug, or category..."
+                value={eventSearch}
+                onChange={e => { setEventSearch(e.target.value); setEventPage(1); }}
+                className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500"
+              />
+            </div>
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    {['#','Event','Category','Target date','Views'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 font-medium text-gray-400 text-[11px] uppercase tracking-wide">{h}</th>
-                    ))}
+                    <SortableTh label="#" sortKey={null} sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Event" sortKey="event" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Category" sortKey="category" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Subcategory" sortKey="subcategory" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Target date" sortKey="targetDate" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Views" sortKey="views" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Actions" sortKey={null} sort={eventSort} onSort={onEventSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {events.map((ev, i) => (
+                  {pagedEvents.map((ev, i) => (
                     <tr key={ev.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-4 py-3 text-gray-400 text-xs font-medium w-8">{i + 1}</td>
                       <td className="px-4 py-3">
@@ -230,7 +597,27 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
                         <p className="text-xs text-gray-400 mt-0.5">/how-long-until-{ev.slug}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 capitalize text-gray-600 dark:text-gray-300">{ev.category}</span>
+                        <select
+                          value={ev.categoryId ?? ''}
+                          onChange={e => updateEventRowCategory(ev.id, e.target.value)}
+                          className={'text-xs border rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none ' + (ev.categoryId ? 'border-gray-200 dark:border-gray-700' : 'border-amber-300 dark:border-amber-700')}>
+                          <option value="">— Uncategorized —</option>
+                          {topLevelCategories.map(c => (
+                            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={ev.subcategoryId ?? ''}
+                          onChange={e => updateEventRowSubcategory(ev.id, e.target.value)}
+                          disabled={!ev.categoryId}
+                          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none disabled:opacity-40">
+                          <option value="">— none —</option>
+                          {subcategoriesFor(ev.categoryId).map(c => (
+                            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-400">{new Date(ev.targetDate).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
@@ -241,13 +628,175 @@ export function AdminClient({ users, events, stats }: { users: User[]; events: E
                           <span className="text-xs font-medium text-brand-500">{ev.views.toLocaleString()}</span>
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => saveEventCategory(ev.id, ev.categoryId, ev.subcategoryId)}
+                            disabled={savingEventRow === ev.id}
+                            className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
+                            {savingEventRow === ev.id ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => deleteEvent(ev.id, ev.name)}
+                            className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {filteredEvents.length === 0 && (
+                <p className="text-center text-gray-400 text-sm py-12">
+                  {eventSearch ? 'No events match your search' : 'No events yet'}
+                </p>
+              )}
             </div>
+            <Pagination page={safeEventPage} totalPages={eventTotalPages} onPageChange={setEventPage} pageSize={pageSize} onPageSizeChange={n => { setPageSize(n); resetPages(); }} totalItems={filteredEvents.length} />
           </div>
         )}
+
+        {/* ARTICLES */}
+        {tab === 'articles' && (
+          <div>
+            <h1 className="text-xl font-medium mb-5">Question articles ({filteredArticles.length}{(articleSearch || articleCategoryFilter) ? ' of ' + articleRows.length : ''})</h1>
+
+            {/* Import box */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6">
+              <h2 className="text-sm font-medium mb-3">Import from JSON</h2>
+              <textarea
+                value={jsonInput}
+                onChange={e => setJsonInput(e.target.value)}
+                placeholder='[{"slug": "...", "motherQuestion": "...", "shortAnswer": "...", "blocks": [...], "faqs": [...], "sources": [...]}]'
+                rows={8}
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-xs font-mono bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500 mb-3"
+              />
+              <button
+                onClick={importArticles}
+                disabled={importing || !jsonInput.trim()}
+                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {importing ? 'Importing…' : 'Import articles'}
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="flex gap-3 mb-4">
+              <input
+                placeholder="Search by title or slug..."
+                value={articleSearch}
+                onChange={e => { setArticleSearch(e.target.value); setArticlePage(1); }}
+                className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            {/* Category tag filter row */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              <button
+                onClick={() => { setArticleCategoryFilter(null); setArticlePage(1); }}
+                className={'text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ' + (
+                  articleCategoryFilter === null
+                    ? 'bg-brand-500 border-brand-500 text-white'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                )}>
+                All
+              </button>
+              {topLevelCategories.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => { setArticleCategoryFilter(prev => prev === c.id ? null : c.id); setArticlePage(1); }}
+                  className={'text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ' + (
+                    articleCategoryFilter === c.id
+                      ? 'bg-brand-500 border-brand-500 text-white'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}>
+                  {c.emoji} {c.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Article list */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <SortableTh label="Title / Slug" sortKey="title" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="Status" sortKey="status" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="Category" sortKey="category" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="Subcategory" sortKey="subcategory" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="Actions" sortKey={null} sort={articleSort} onSort={onArticleSort} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedArticles.map(a => (
+                    <tr key={a.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-3">
+                        <a href={'/tools/questions/' + a.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{a.title}</a>
+                        <p className="text-xs text-gray-400 mt-0.5">/{a.slug}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => togglePublish(a.id, a.status)}
+                          disabled={savingRow === a.id}
+                          title={a.status === 'published' && a.publishedAt ? 'Published ' + new Date(a.publishedAt).toLocaleDateString() : 'Click to publish'}
+                          className={'flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium transition-colors disabled:opacity-50 ' + (a.status === 'published' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200')}>
+                          <span className={'w-2 h-2 rounded-full ' + (a.status === 'published' ? 'bg-green-500' : 'bg-gray-400')} />
+                          {a.status === 'published' ? 'Published' : 'Draft'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={a.categoryId ?? ''}
+                          onChange={e => updateRowCategory(a.id, e.target.value)}
+                          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none">
+                          <option value="">— none —</option>
+                          {topLevelCategories.map(c => (
+                            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={a.subcategoryId ?? ''}
+                          onChange={e => updateRowSubcategory(a.id, e.target.value)}
+                          disabled={!a.categoryId}
+                          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none disabled:opacity-40">
+                          <option value="">— none —</option>
+                          {subcategoriesFor(a.categoryId).map(c => (
+                            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => saveArticleCategory(a.id, a.categoryId, a.subcategoryId)}
+                            disabled={savingRow === a.id}
+                            className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
+                            {savingRow === a.id ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => deleteArticle(a.id, a.title)}
+                            className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredArticles.length === 0 && (
+                <p className="text-center text-gray-400 text-sm py-12">
+                  {articleSearch ? 'No articles match your search' : 'No articles yet — import some above'}
+                </p>
+              )}
+            </div>
+            <Pagination page={safeArticlePage} totalPages={articleTotalPages} onPageChange={setArticlePage} pageSize={pageSize} onPageSizeChange={n => { setPageSize(n); resetPages(); }} totalItems={filteredArticles.length} />
+          </div>
+        )}
+
+        {/* CATEGORIES */}
+        {tab === 'categories' && <CategoriesManager />}
 
       </main>
     </div>

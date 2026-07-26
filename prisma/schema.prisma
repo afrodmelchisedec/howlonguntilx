@@ -51,6 +51,7 @@ model User {
   sportsGamesConfig         SportsGamesConfig?
   entertainmentConfig       EntertainmentConfig?
   energyRhythmConfig        EnergyRhythmConfig?
+  symptomTrackerConfig      SymptomTrackerConfig?
   fraudResponseConfig       FraudResponseConfig?
   phishingIdentityConfig    PhishingIdentityConfig?
   darkSkyConfig             DarkSkyConfig?
@@ -68,21 +69,7 @@ enum Role {
   ADMIN
 }
 
-model Category {
-  id          String     @id @default(cuid())
-  slug        String     @unique
-  name        String
-  emoji       String
-  description String
-  featureImageUrl String?
-  parentId    String?
-  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
-  children    Category[] @relation("SubCategories")
-  events      Event[]
-  articlesAsCategory    Article[] @relation("ArticleCategory")
-  articlesAsSubcategory Article[] @relation("ArticleSubcategory")
-  createdAt   DateTime   @default(now())
-}
+
 
 model Timer {
   id         String   @id @default(cuid())
@@ -97,28 +84,33 @@ model Timer {
 }
 
 model Event {
-  id           String    @id @default(cuid())
-  slug         String    @unique
-  name         String
-  description  String?
-  targetDate   DateTime
-  type         EventType @default(COUNTDOWN)
-  categoryId   String?
-  category     Category? @relation(fields: [categoryId], references: [id])
-  categorySlug String    @default("leisure")
-  published    Boolean   @default(true)
-  archived     Boolean   @default(false)
-  userId       String?
-  locale       String    @default("en")
-  views        Int       @default(0)
-  likeCount    Int       @default(0)
-  followCount  Int       @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  content      Json?
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  description   String?
+  targetDate    DateTime
+  type          EventType @default(COUNTDOWN)
+  categoryId    String?
+  category      Category? @relation("EventCategory", fields: [categoryId], references: [id])
+  subcategoryId String?
+  subcategory   Category? @relation("EventSubcategory", fields: [subcategoryId], references: [id])
+  categorySlug  String    @default("leisure")
+  published     Boolean   @default(true)
+  archived      Boolean   @default(false)
+  userId        String?
+  locale        String    @default("en")
+  views         Int       @default(0)
+  likeCount     Int       @default(0)
+  followCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  content       Json?
 
   likes   Like[]
   follows Follow[]
+
+  @@index([categoryId])
+  @@index([subcategoryId])
 }
 
 enum EventType {
@@ -533,5 +525,31 @@ enum SubscriptionStatus {
   cancelled
   suspended
   expired
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  emoji       String
+  description String
+  featureImageUrl String?
+  tools       Json?      // NEW — array of { slug, label, path } tool mappings, only meaningful on subcategories
+  parentId    String?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children    Category[] @relation("SubCategories")
+  events               Event[]   @relation("EventCategory")
+  eventsAsSubcategory  Event[]   @relation("EventSubcategory")
+  articlesAsCategory    Article[] @relation("ArticleCategory")
+  articlesAsSubcategory Article[] @relation("ArticleSubcategory")
+  createdAt   DateTime   @default(now())
+}
+
+model SymptomTrackerConfig {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history   Json
+  updatedAt DateTime @updatedAt
 }
 

@@ -1,16 +1,23 @@
 // FILE: src/components/articles/ArticleBlocks.tsx
-import { widgetsForTool, fullToolForTool } from '@/lib/widgetRegistry';
+import { widgetsForTool, fullToolForTool, toolComponentForSlug } from '@/lib/widgetRegistry';
 import { ArticleChart } from './ArticleChart';
 import { ArticleFaq } from './ArticleFaq';
+
+interface ToolMapping { slug: string; label: string; path: string }
 
 type Block =
   | { type: 'heading'; text: string }
   | { type: 'paragraph'; text: string; sourceUrl?: string; sourceLabel?: string }
   | { type: 'image'; src: string; alt: string }
   | { type: 'tool_embed'; widget: string; config: Record<string, any> }
-  | { type: 'tool_embed_full' }
+  // `toolSlug` is optional — when omitted, resolution falls back to the article's
+  // subcategory tool mapping (see `subcategoryTools` prop on ArticleBlocks below).
+  // Set it explicitly if a subcategory has more than one mapped tool and you need
+  // a specific one rather than whichever is first.
+  | { type: 'tool_embed_full'; toolSlug?: string }
   | { type: 'chart'; title: string; data: { label: string; value: number }[] }
   | { type: 'faq'; items: { q: string; a: string }[] }
+  | { type: 'sources'; items: { label: string; url: string }[] }
   | {
       type: 'hero_countdown';
       targetDate: string;
@@ -28,10 +35,14 @@ type Block =
 // hero_countdown is rendered separately at the top of ArticleLayout, not inline —
 // this filters it out of the normal block stream.
 export function bodyBlocks(blocks: Block[]) {
-  return blocks.filter(b => b.type !== 'hero_countdown');
+  return blocks.filter(b => b.type !== 'hero_countdown' && b.type !== 'sources');
 }
 export function extractHeroCountdown(blocks: Block[]) {
   return (blocks.find(b => b.type === 'hero_countdown') as Extract<Block, { type: 'hero_countdown' }> | undefined) ?? null;
+}
+
+export function extractSources(blocks: Block[]) {
+  return (blocks.find(b => b.type === 'sources') as Extract<Block, { type: 'sources' }> | undefined)?.items ?? null;
 }
 
 function slugify(text: string) {
@@ -51,9 +62,19 @@ export function extractHeadings(blocks: Block[]): { id: string; text: string }[]
     });
 }
 
-export function ArticleBlocks({ toolSlug, blocks, glow }: { toolSlug: string; blocks: Block[]; glow: string }) {
+export function ArticleBlocks({
+  toolSlug, blocks, glow, subcategoryTools,
+}: {
+  toolSlug: string; blocks: Block[]; glow: string;
+  // Tool mapping from the article's subcategory (Category.tools) — used to resolve
+  // tool_embed_full blocks that don't specify an explicit toolSlug. Pass [] or omit
+  // for tools (like tech-events) that use the legacy article.toolSlug-keyed path instead.
+  subcategoryTools?: ToolMapping[];
+}) {
   const widgets = widgetsForTool(toolSlug);
-  const FullTool = fullToolForTool(toolSlug);
+  // Legacy path first (tech-events / dark-sky-explorer, keyed by the article's own toolSlug) —
+  // unchanged from before, so those pages keep working exactly as-is.
+  const LegacyFullTool = fullToolForTool(toolSlug);
   const visible = bodyBlocks(blocks);
   const headings = extractHeadings(blocks);
   let headingCursor = 0;
@@ -95,7 +116,12 @@ export function ArticleBlocks({ toolSlug, blocks, glow }: { toolSlug: string; bl
           return Widget ? <Widget key={i} config={b.config} /> : null;
         }
         if (b.type === 'tool_embed_full') {
-          return FullTool ? <div key={i} className="my-6 anim-fade-up" style={delay}><FullTool /></div> : null;
+          if (LegacyFullTool) {
+            return <div key={i} className="my-6 anim-fade-up" style={delay}><LegacyFullTool /></div>;
+          }
+          const resolvedSlug = b.toolSlug ?? subcategoryTools?.[0]?.slug;
+          const SubTool = toolComponentForSlug(resolvedSlug);
+          return SubTool ? <div key={i} className="my-6 anim-fade-up" style={delay}><SubTool /></div> : null;
         }
         return null;
       })}
