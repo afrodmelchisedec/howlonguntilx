@@ -476,11 +476,16 @@ model Article {
   questionType  QuestionType?
   heroData      Json?
 
+  reviewerName        String?
+  reviewerCredentials String?
+
   @@unique([toolSlug, slug])
   @@index([toolSlug, status, publishedAt])
   @@index([categoryId])
   @@index([subcategoryId])
 }
+
+
 
 enum QuestionType {
   DURATION

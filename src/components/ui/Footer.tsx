@@ -35,16 +35,10 @@ export function Footer() {
                   {l.label}
                 </Link>
               ))}
+              <Link href="/editorial-guidelines" className="block transition-colors hover:opacity-80">Editorial Guidelines</Link>
             </div>
           </div>
-          <div>
-            <p className="text-caption mb-3">Languages</p>
-            <div className="space-y-2 text-xs">
-              <Link href="/" className="block transition-colors hover:opacity-80">🇬🇧 English</Link>
-              <Link href="/hi" className="block transition-colors hover:opacity-80">🇮🇳 हिंदी</Link>
-              <Link href="/ar" className="block transition-colors hover:opacity-80">🇸🇦 العربية</Link>
-            </div>
-          </div>
+
         </div>
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ borderTop: '1px solid var(--border-hairline)' }}>
           <p>© {new Date().getFullYear()} How Long Until x. All rights reserved.</p>

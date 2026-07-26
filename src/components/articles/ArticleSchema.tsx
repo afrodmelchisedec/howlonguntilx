@@ -28,6 +28,9 @@ export function ArticleSchema({
       image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
       author: { '@type': 'Organization', name: article.authorName, url: `${SITE_URL}/about` },
       publisher: { '@type': 'Organization', name: 'How Long Until', url: `${SITE_URL}/about` },
+      ...(article.reviewerName
+        ? { reviewedBy: { '@type': 'Person', name: article.reviewerName, ...(article.reviewerCredentials ? { jobTitle: article.reviewerCredentials } : {}) } }
+        : {}),
       datePublished: article.publishedAt ?? undefined,
       dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
