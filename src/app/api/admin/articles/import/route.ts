@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { pingIndexNow } from '@/lib/indexnow';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, QuestionType } from '@prisma/client';
 
 const TOOL_SLUG = 'questions';
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
@@ -19,6 +19,7 @@ interface QuestionImportItem {
   slug: string;
   motherQuestion: string;
   shortAnswer?: string;
+  questionType?: QuestionType; // 'DURATION' | 'DATED'
   heroData?: Record<string, unknown>;
   blocks: unknown[];
   faqs?: { q: string; a: string }[];
@@ -35,6 +36,9 @@ function buildBlocks(item: QuestionImportItem): unknown[] {
   const blocks = [...(item.blocks ?? [])];
   if (item.faqs && item.faqs.length > 0) {
     blocks.push({ type: 'faq', items: item.faqs.map(f => ({ q: f.q, a: f.a })) });
+  }
+  if (item.sources && item.sources.length > 0) {
+    blocks.push({ type: 'sources', items: item.sources.map(s => ({ label: s.label, url: s.url })) });
   }
   return blocks;
 }
@@ -65,6 +69,16 @@ export async function POST(req: NextRequest) {
       });
       continue;
     }
+    // questionType is required whenever heroData is provided — otherwise heroData
+    // gets stored but never renders, since ArticleLayout gates HeroDuration on both.
+    if (item.heroData && !item.questionType) {
+      results.push({
+        slug: item.slug,
+        status: 'error',
+        error: 'heroData was provided but questionType is missing — set questionType to "DURATION" (or "DATED") or the hero will never render.',
+      });
+      continue;
+    }
 
     try {
       const existing = await prisma.article.findUnique({
@@ -76,6 +90,7 @@ export async function POST(req: NextRequest) {
         dek: item.shortAnswer ?? '',
         blocks: buildBlocks(item) as Prisma.InputJsonValue,
         heroData: (item.heroData ?? null) as Prisma.InputJsonValue,
+        questionType: item.questionType ?? null,
         contentType: 'evergreen',
       };
 

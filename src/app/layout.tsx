@@ -39,6 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   // Dark is the default — only add .light if the user explicitly chose it.
                   if (stored === 'light') {
                     document.documentElement.classList.add('light');
+                  } else {
+                    // Keep Tailwind's dark: classes (darkMode:'class') in sync with
+                    // the default/dark state too, avoiding a flash on hydration.
+                    document.documentElement.classList.add('dark');
                   }
                 } catch (e) {}
               })();

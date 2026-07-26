@@ -13,7 +13,7 @@ export const TOOL_META: Record<string, { name: string; glow: string }> = {
   'questions': { name: 'Questions', glow: '255, 120, 110' },
 };
 
-const FALLBACK_IMAGE = '/images/default-article-hero.jpg';
+const FALLBACK_IMAGE = '/images/default-article-hero.svg';
 
 function resolveHeroImage(article: any): string {
   return article.heroImageUrl || article.category?.featureImageUrl || FALLBACK_IMAGE;

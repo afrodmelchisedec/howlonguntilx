@@ -25,6 +25,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // CSS is built around :root (dark default) + a .light override class.
     // This MUST match the blocking script in layout.tsx and globals.css.
     document.documentElement.classList.toggle('light', t === 'light');
+    // Tailwind's darkMode:'class' strategy looks for .dark specifically —
+    // keep it in sync so dark: variant classes (used in admin, dashboard,
+    // settings, etc.) actually activate instead of silently never firing.
+    document.documentElement.classList.toggle('dark', t === 'dark');
     localStorage.setItem('theme', t);
   }
 
