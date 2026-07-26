@@ -5,6 +5,7 @@ import EmailProvider from 'next-auth/providers/email';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './db';
 import { createTransport } from 'nodemailer';
+import bcrypt from 'bcryptjs';
 
 function getEmailProvider() {
   const host = process.env.EMAIL_SERVER_HOST;
@@ -40,9 +41,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        if (!credentials?.email || !credentials?.password) return null;
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        if (!user) return null;
+        if (!user || !user.passwordHash) return null;
+        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
+        if (!valid) return null;
         await prisma.user.update({ where: { id: user.id }, data: { lastSeen: new Date() } });
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },

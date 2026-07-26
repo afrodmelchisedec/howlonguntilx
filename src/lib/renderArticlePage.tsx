@@ -10,7 +10,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? '';
 export const TOOL_META: Record<string, { name: string; glow: string }> = {
   'tech-events': { name: 'Tech Events Calendar', glow: '162, 137, 255' },
   'dark-sky-explorer': { name: 'Dark Sky Explorer', glow: '110, 231, 183' },
+  'questions': { name: 'Questions', glow: '255, 120, 110' },
 };
+
+const FALLBACK_IMAGE = '/images/default-article-hero.jpg';
+
+function resolveHeroImage(article: any): string {
+  return article.heroImageUrl || article.category?.featureImageUrl || FALLBACK_IMAGE;
+}
 
 export async function generateArticleMetadata(toolSlug: string, articleSlug: string) {
   const article = await getPublishedArticle(toolSlug, articleSlug);
@@ -20,8 +27,8 @@ export async function generateArticleMetadata(toolSlug: string, articleSlug: str
     title: article.title,
     description: article.dek,
     alternates: { canonical: url },
-    openGraph: { title: article.title, description: article.dek, images: [article.heroImageUrl], url, type: 'article' },
-    twitter: { card: 'summary_large_image', title: article.title, description: article.dek, images: [article.heroImageUrl] },
+    openGraph: { title: article.title, description: article.dek, images: [resolveHeroImage(article)], url, type: 'article' },
+    twitter: { card: 'summary_large_image', title: article.title, description: article.dek, images: [resolveHeroImage(article)] },
   };
 }
 

@@ -150,7 +150,20 @@ export default function SignInForm() {
                 />
               </div>
 
-              {/* Note: Password structural elements and "Forgot Password" UI have been completely removed here */}
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                  Password
+                </label>
+                <input
+                  type="password" required autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={inputStyle}
+                  onFocus={e => (e.currentTarget.style.borderColor = `rgb(var(--accent-brand))`)}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-hairline)')}
+                />
+              </div>
 
               {error && (
                 <div style={{ background: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.3)', borderRadius: 'var(--r-md)', padding: '12px 16px' }}>

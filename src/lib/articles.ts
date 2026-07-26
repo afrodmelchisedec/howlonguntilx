@@ -2,7 +2,10 @@
 import { prisma } from '@/lib/db';
 
 export async function getPublishedArticle(toolSlug: string, slug: string) {
-  return prisma.article.findFirst({ where: { toolSlug, slug, status: 'published' } });
+  return prisma.article.findFirst({
+    where: { toolSlug, slug, status: 'published' },
+    include: { category: true, subcategory: true },
+  });
 }
 
 export async function listPublishedArticles(toolSlug: string, limit = 24) {

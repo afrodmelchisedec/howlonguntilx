@@ -25,6 +25,7 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
   // Only show a separate "Updated" pill when it's meaningfully after publish —
   // otherwise every article would show it on day one, which reads as noise, not freshness.
   const showUpdated = published && updated && updated.getTime() - published.getTime() > 24 * 60 * 60 * 1000;
+  const heroImageUrl = article.heroImageUrl || article.category?.featureImageUrl || '/images/default-article-hero.jpg';
 
   return (
     <article className="anim-fade-up">
@@ -37,7 +38,7 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
 
       {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
 
-      <img src={article.heroImageUrl} alt={article.heroImageAlt} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
+      <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
       <p className="text-caption mb-1" style={{ color: `rgb(${glow})` }}>{toolName.toUpperCase()}</p>
       <h1 className="text-title1 mb-2">{article.title}</h1>
       <p className="text-callout mb-3" style={{ color: 'var(--text-secondary)' }}>{article.dek}</p>

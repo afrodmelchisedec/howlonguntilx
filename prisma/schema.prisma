@@ -74,10 +74,13 @@ model Category {
   name        String
   emoji       String
   description String
+  featureImageUrl String?
   parentId    String?
   parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
   children    Category[] @relation("SubCategories")
   events      Event[]
+  articlesAsCategory    Article[] @relation("ArticleCategory")
+  articlesAsSubcategory Article[] @relation("ArticleSubcategory")
   createdAt   DateTime   @default(now())
 }
 
@@ -462,8 +465,8 @@ model Article {
   slug         String
   title        String
   dek          String // one-line SEO/social summary
-  heroImageUrl String // must be >=1200px wide
-  heroImageAlt String
+  heroImageUrl String? // must be >=1200px wide when set
+  heroImageAlt String?
   authorName   String    @default("Afrod M (Msc Statistics at Makerere University)")
   blocks       Json // typed block array, see ArticleBlocks.tsx
   status       String    @default("draft") // draft | published | archived
@@ -474,8 +477,22 @@ model Article {
   likeCount    Int       @default(0)
   likes        ArticleLike[]
 
+  categoryId    String?
+  category      Category?     @relation("ArticleCategory", fields: [categoryId], references: [id])
+  subcategoryId String?
+  subcategory   Category?     @relation("ArticleSubcategory", fields: [subcategoryId], references: [id])
+  questionType  QuestionType?
+  heroData      Json?
+
   @@unique([toolSlug, slug])
   @@index([toolSlug, status, publishedAt])
+  @@index([categoryId])
+  @@index([subcategoryId])
+}
+
+enum QuestionType {
+  DURATION
+  DATED
 }
 
 model FeaturedPiece {
