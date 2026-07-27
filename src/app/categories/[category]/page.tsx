@@ -8,14 +8,14 @@ import { StarField } from '@/components/ui/StarField';
 interface Props { params: { category: string } }
 
 const GLOW_MAP: Record<string, string> = {
-  leisure: 'var(--glow-sports)',
-  food:    'var(--glow-nature)',
-  travel:  'var(--glow-travel)',
-  tech:    'var(--glow-tech)',
+  biology: 'var(--glow-nature)',
+  family:  'var(--glow-personal)',
   finance: 'var(--glow-finance)',
-  scam:    'var(--glow-personal)',
-  productivity: 'var(--glow-work)',
-  health:       'var(--glow-health)',
+  food:    'var(--glow-nature)',
+  culture: 'var(--glow-work)',
+  health:  'var(--glow-health)',
+  science: 'var(--glow-tech)',
+  time:    'var(--glow-sports)',
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -77,7 +77,14 @@ export default async function CategoryPage({ params }: Props) {
             style={{ background: `radial-gradient(circle, rgb(${glowRgb}), transparent)` }} />
           <div className="relative z-10">
             <div className="text-5xl mb-4">{cat.emoji}</div>
-            <h1 className="text-largetitle mb-2">{cat.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <h1 className="text-largetitle">{cat.name}</h1>
+              <span
+                className="text-[10px] font-mono px-2 py-0.5 rounded-full border tracking-wide"
+                style={{ borderColor: `rgba(${glowRgb}, 0.35)`, color: `rgb(${glowRgb})` }}>
+                {cat.slug}
+              </span>
+            </div>
             <p style={{ color: 'var(--text-secondary)' }} className="text-callout max-w-md">{cat.description}</p>
             <div className="flex gap-3 mt-5 flex-wrap">
               {cat.children.map(sub => (

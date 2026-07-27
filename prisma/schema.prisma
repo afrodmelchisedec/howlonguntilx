@@ -95,6 +95,11 @@ model Event {
   subcategoryId String?
   subcategory   Category? @relation("EventSubcategory", fields: [subcategoryId], references: [id])
   categorySlug  String    @default("leisure")
+  heroImageUrl        String?
+  heroImageAlt        String?
+  authorName          String    @default("Afrod M (Msc Statistics at Makerere University)")
+  reviewerName        String?
+  reviewerCredentials String?
   published     Boolean   @default(true)
   archived      Boolean   @default(false)
   userId        String?

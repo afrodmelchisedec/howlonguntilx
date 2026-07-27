@@ -1,6 +1,12 @@
 // FILE: src/lib/seo.ts
 
+export interface EventContentBodyBlock {
+  type: 'paragraph' | 'heading';
+  text: string;
+}
+
 export interface EventContent {
+  body?: EventContentBodyBlock[];
   heroFact?: string;
   quickFacts?: { label: string; value: string }[];
   faqs?: { question: string; answer: string }[];

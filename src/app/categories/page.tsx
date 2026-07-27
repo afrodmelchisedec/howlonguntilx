@@ -5,16 +5,18 @@ import { StarField } from '@/components/ui/StarField';
 
 export const metadata: Metadata = {
   title: 'Browse Countdown Categories | HowLongUntilX',
-  description: 'Live countdowns for leisure, food, travel, tech, finance and scam events worldwide.',
+  description: 'Live countdowns across health, family, biology, food, finance, culture, science, and time.',
 };
 
 const GLOW_MAP: Record<string, string> = {
-  leisure: '48, 219, 91',
-  food:    '88, 214, 113',
-  travel:  '100, 240, 235',
-  tech:    '64, 156, 255',
+  biology: '48, 219, 91',
+  family:  '255, 105, 180',
   finance: '255, 159, 10',
-  scam:    '255, 75, 110',
+  food:    '88, 214, 113',
+  culture: '175, 82, 222',
+  health:  '255, 69, 58',
+  science: '100, 240, 235',
+  time:    '64, 156, 255',
 };
 
 export default async function CategoriesPage() {
@@ -56,7 +58,14 @@ export default async function CategoriesPage() {
                     {cat.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-headline group-hover:text-brand-500 transition-colors">{cat.name}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-headline group-hover:text-brand-500 transition-colors">{cat.name}</div>
+                      <span
+                        className="text-[10px] font-mono px-2 py-0.5 rounded-full border tracking-wide"
+                        style={{ borderColor: `rgba(${glow}, 0.35)`, color: `rgb(${glow})` }}>
+                        {cat.slug}
+                      </span>
+                    </div>
                     <div className="text-footnote mt-0.5 line-clamp-2">{cat.description}</div>
                     <div className="mt-2 text-caption" style={{ color: `rgb(${glow})` }}>
                       {cat._count.events} events

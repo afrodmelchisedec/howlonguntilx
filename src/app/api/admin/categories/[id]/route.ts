@@ -10,7 +10,11 @@ async function isAdmin() {
   return s?.user?.role === 'ADMIN' ? s : null;
 }
 
-// PATCH — update name/emoji/description/tools on a category or subcategory.
+function slugify(text: string) {
+  return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+// PATCH — update name/emoji/description/slug/tools on a category or subcategory.
 // `tools` is the full replacement array: [{ slug, label, path }, ...]
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   if (!(await isAdmin())) {
@@ -19,6 +23,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+
+  const existing = await prisma.category.findUnique({ where: { id: params.id } });
+  if (!existing) return NextResponse.json({ error: 'Category not found' }, { status: 404 });
 
   const data: Record<string, unknown> = {};
   if (typeof body.name === 'string') data.name = body.name;
@@ -34,12 +41,38 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.tools = body.tools;
   }
 
+  let slugChanged = false;
+  let newSlug = existing.slug;
+  if (typeof body.slug === 'string' && body.slug.trim()) {
+    newSlug = slugify(body.slug);
+    if (!newSlug) {
+      return NextResponse.json({ error: 'Slug cannot be empty after normalization' }, { status: 400 });
+    }
+    if (newSlug !== existing.slug) {
+      const clash = await prisma.category.findUnique({ where: { slug: newSlug } });
+      if (clash && clash.id !== params.id) {
+        return NextResponse.json({ error: `A category with slug "${newSlug}" already exists` }, { status: 409 });
+      }
+      data.slug = newSlug;
+      slugChanged = true;
+    }
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   }
 
   try {
-    const updated = await prisma.category.update({ where: { id: params.id }, data });
+    // If the slug changed, cascade it to every Event's denormalized categorySlug
+    // in the same transaction — otherwise events assigned to this category keep
+    // pointing sitemap chunks at the old slug (the same drift class fixed in Phase 5).
+    const [updated] = await prisma.$transaction([
+      prisma.category.update({ where: { id: params.id }, data }),
+      ...(slugChanged
+        ? [prisma.event.updateMany({ where: { categoryId: params.id }, data: { categorySlug: newSlug } })]
+        : []),
+    ]);
+
     revalidatePath('/categories');
     revalidatePath('/admin');
     return NextResponse.json(updated);
@@ -87,7 +120,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
     await prisma.$transaction([
       prisma.category.updateMany({ where: { parentId: id }, data: { parentId: reassignTo } }),
-      prisma.event.updateMany({ where: { categoryId: id }, data: { categoryId: reassignTo } }),
+      prisma.event.updateMany({ where: { categoryId: id }, data: { categoryId: reassignTo, categorySlug: target.slug } }),
       prisma.event.updateMany({ where: { subcategoryId: id }, data: { subcategoryId: reassignTo } }),
       prisma.article.updateMany({ where: { categoryId: id }, data: { categoryId: reassignTo } }),
       prisma.article.updateMany({ where: { subcategoryId: id }, data: { subcategoryId: reassignTo } }),

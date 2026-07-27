@@ -1,10 +1,11 @@
+// FILE: src/app/api/sitemap-static/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const BASE = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
 
 export async function GET() {
   try {

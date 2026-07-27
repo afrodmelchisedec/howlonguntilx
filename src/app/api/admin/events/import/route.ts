@@ -3,11 +3,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
-import { upsertEventFromJson, type EventUploadItem } from '@/lib/events-admin';
+import { prisma } from '@/lib/db';
+import { pingIndexNow } from '@/lib/indexnow';
+import type { Prisma } from '@prisma/client';
+import type { EventContent } from '@/lib/seo';
+
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
 
 async function isAdmin() {
   const s = await getServerSession(authOptions);
   return s?.user?.role === 'ADMIN' ? s : null;
+}
+
+interface EventImportItem {
+  slug: string; // must match an existing Event.slug — this only updates, never creates
+  heroImageUrl?: string;
+  heroImageAlt?: string;
+  authorName?: string;
+  reviewerName?: string;
+  reviewerCredentials?: string;
+  content?: EventContent;
+}
+
+interface ImportResult {
+  slug: string;
+  status: 'updated' | 'error';
+  error?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -15,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let items: EventUploadItem[];
+  let items: EventImportItem[];
   try {
     const body = await req.json();
     items = Array.isArray(body) ? body : body.items;
@@ -24,19 +45,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid JSON payload' }, { status: 400 });
   }
 
-  const results = [];
+  const results: ImportResult[] = [];
+  const publishedUrls: string[] = [];
+
   for (const item of items) {
-    const result = await upsertEventFromJson(item);
-    results.push(result);
+    if (!item.slug) {
+      results.push({ slug: item.slug ?? '(missing slug)', status: 'error', error: 'Missing required field: slug.' });
+      continue;
+    }
+    if (item.heroImageUrl && !item.heroImageAlt) {
+      results.push({ slug: item.slug, status: 'error', error: 'heroImageUrl was provided but heroImageAlt is missing — every custom image needs descriptive alt text.' });
+      continue;
+    }
+
+    try {
+      const existing = await prisma.event.findUnique({ where: { slug: item.slug } });
+      if (!existing) {
+        results.push({ slug: item.slug, status: 'error', error: 'No Event found with this slug — this route only updates existing events, it does not create new ones.' });
+        continue;
+      }
+
+      const data: Prisma.EventUpdateInput = {
+        ...(item.heroImageUrl !== undefined ? { heroImageUrl: item.heroImageUrl } : {}),
+        ...(item.heroImageAlt !== undefined ? { heroImageAlt: item.heroImageAlt } : {}),
+        ...(item.authorName !== undefined ? { authorName: item.authorName } : {}),
+        ...(item.reviewerName !== undefined ? { reviewerName: item.reviewerName } : {}),
+        ...(item.reviewerCredentials !== undefined ? { reviewerCredentials: item.reviewerCredentials } : {}),
+        ...(item.content !== undefined ? { content: item.content as Prisma.InputJsonValue } : {}),
+      };
+
+      await prisma.event.update({ where: { slug: item.slug }, data });
+      results.push({ slug: item.slug, status: 'updated' });
+
+      revalidatePath(`/how-long-until-${item.slug}`);
+      publishedUrls.push(`${BASE}/how-long-until-${item.slug}`);
+    } catch (err) {
+      results.push({ slug: item.slug, status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+    }
   }
 
-  revalidatePath('/admin');
-  revalidatePath('/categories');
   revalidatePath('/sitemap.xml');
+  if (publishedUrls.length > 0) {
+    await pingIndexNow(publishedUrls);
+  }
 
-  const created = results.filter(r => r.status === 'created').length;
   const updated = results.filter(r => r.status === 'updated').length;
   const failed = results.filter(r => r.status === 'error');
 
-  return NextResponse.json({ created, updated, failed, errors: failed });
+  return NextResponse.json({ updated, failed, errors: failed });
 }

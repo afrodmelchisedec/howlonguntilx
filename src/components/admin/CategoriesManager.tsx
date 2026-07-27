@@ -49,6 +49,7 @@ export function CategoriesManager() {
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editSlug, setEditSlug] = useState('');
 
   // Tool editor — keyed by subcategory id, holds the working (unsaved) tools array
   const [toolDrafts, setToolDrafts] = useState<Record<string, ToolMapping[]>>({});
@@ -91,20 +92,22 @@ export function CategoriesManager() {
     setEditName(c.name);
     setEditEmoji(c.emoji);
     setEditDesc(c.description ?? '');
+    setEditSlug(c.slug);
   }
 
   async function saveEdit(id: string) {
     const res = await fetch(`/api/admin/categories/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editName, emoji: editEmoji, description: editDesc }),
+      body: JSON.stringify({ name: editName, emoji: editEmoji, description: editDesc, slug: editSlug }),
     });
     if (res.ok) {
       showToast('Saved', '💾');
       setEditingId(null);
       load();
     } else {
-      showToast('Could not save', '⚠️');
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error ?? 'Could not save', '⚠️');
     }
   }
 
@@ -256,6 +259,14 @@ export function CategoriesManager() {
                 <div className="flex flex-wrap gap-2 items-center flex-1">
                   <input value={editEmoji} onChange={e => setEditEmoji(e.target.value)} className="w-12 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none" />
                   <input value={editName} onChange={e => setEditName(e.target.value)} className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none" />
+                  <div className="flex flex-col">
+                    <input
+                      value={editSlug}
+                      onChange={e => setEditSlug(e.target.value)}
+                      placeholder="slug"
+                      className="border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none w-36" />
+                    <span className="text-[10px] text-amber-500 mt-0.5">changes URLs & sitemap chunk</span>
+                  </div>
                   <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" className="flex-1 min-w-32 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none" />
                   <button onClick={() => saveEdit(cat.id)} className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg">Save</button>
                   <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 px-2 py-1">Cancel</button>
@@ -264,7 +275,7 @@ export function CategoriesManager() {
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{cat.emoji}</span>
                   <div>
-                    <p className="text-sm font-medium">{cat.name}</p>
+                    <p className="text-sm font-medium">{cat.name} <span className="text-[10px] text-gray-400 font-normal">/{cat.slug}</span></p>
                     <p className="text-xs text-gray-400">{cat.description}</p>
                   </div>
                 </div>
@@ -301,13 +312,18 @@ export function CategoriesManager() {
                       <div className="flex flex-wrap gap-2 items-center flex-1">
                         <input value={editEmoji} onChange={e => setEditEmoji(e.target.value)} className="w-12 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none" />
                         <input value={editName} onChange={e => setEditName(e.target.value)} className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none" />
+                        <input
+                          value={editSlug}
+                          onChange={e => setEditSlug(e.target.value)}
+                          placeholder="slug"
+                          className="border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-900 focus:outline-none w-32" />
                         <button onClick={() => saveEdit(sub.id)} className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg">Save</button>
                         <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 px-2 py-1">Cancel</button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <span>{sub.emoji}</span>
-                        <p className="text-sm">{sub.name}</p>
+                        <p className="text-sm">{sub.name} <span className="text-[10px] text-gray-400">/{sub.slug}</span></p>
                         <span className="text-[10px] text-gray-400">
                           {refCount(sub) > 0 ? `${refCount(sub)} in use` : 'unused'}
                         </span>

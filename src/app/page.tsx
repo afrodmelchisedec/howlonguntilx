@@ -10,6 +10,7 @@ import { InteractiveGlobe } from '@/components/countdown/InteractiveGlobe';
 import { CommunityBarRace } from '@/components/countdown/CommunityBarRace';
 import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
 import { getPopularEvents } from '@/lib/events';
+import { prisma } from '@/lib/db';
 import { CategoryPills } from '@/components/ui/CategoryPills';
 import { FaqSection } from '@/components/ui/FaqSection';
 import { FeaturedSpotlight } from '@/components/ui/FeaturedSpotlight';
@@ -36,12 +37,35 @@ export const metadata: Metadata = {
 };
 
 
+
+const GLOW_MAP: Record<string, string> = {
+  biology: '48, 219, 91',
+  family:  '255, 105, 180',
+  finance: '255, 159, 10',
+  food:    '88, 214, 113',
+  culture: '175, 82, 222',
+  health:  '255, 69, 58',
+  science: '100, 240, 235',
+  time:    '64, 156, 255',
+};
+
 export default async function HomePage() {
-  const [events, faqs, articleFaqs] = await Promise.all([
+  const [events, faqs, articleFaqs, categories] = await Promise.all([
     getPopularEvents(8),
     getLiveFaqs(),
     getArticleFaqs(),
+    prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: { name: 'asc' },
+    }),
   ]);
+
+  const pillCategories = categories.map(c => ({
+    slug: c.slug,
+    label: c.slug.charAt(0).toUpperCase() + c.slug.slice(1),
+    emoji: c.emoji,
+    color: GLOW_MAP[c.slug] || '83, 74, 217',
+  }));
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
@@ -129,7 +153,7 @@ export default async function HomePage() {
                 <HeroTicker />
               </div>
 
-              <CategoryPills />
+              <CategoryPills categories={pillCategories} />
 
             </div>
           </div>

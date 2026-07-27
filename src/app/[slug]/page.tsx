@@ -15,6 +15,8 @@ import { EmbedCta } from '@/components/embed/EmbedCta';
 import { RecentLogger } from '@/components/countdown/RecentLogger';
 import { SignupTeaser } from '@/components/ui/SignupTeaser';
 import { StarField } from '@/components/ui/StarField';
+import { EventBody } from '@/components/countdown/EventBody';
+import { pickDefaultImage } from '@/lib/defaultImages';
 import { buildCountdownResponse } from '@/lib/countdown';
 import type { EventContent } from '@/lib/seo';
 
@@ -64,6 +66,9 @@ export default async function EventPage({ params }: Props) {
   const months = Math.floor(countdown.days_left / 30);
   const hoursTotal = countdown.days_left * 24 + countdown.hours_left;
   const content = (event.content ?? {}) as EventContent;
+  const categoryDefault = pickDefaultImage(event.categorySlug, event.slug);
+  const heroImageUrl = event.heroImageUrl || event.category?.featureImageUrl || categoryDefault;
+  const updated = event.updatedAt ? new Date(event.updatedAt) : null;
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
@@ -81,6 +86,19 @@ export default async function EventPage({ params }: Props) {
             />
           </div>
 
+          <img
+            src={heroImageUrl}
+            alt={event.heroImageAlt || event.name}
+            className="w-full rounded-2xl mb-5"
+            style={{ aspectRatio: '16/9', objectFit: 'cover', maxWidth: 560, margin: '0 auto 20px' }}
+          />
+          <p className="text-caption mb-6" style={{ color: 'var(--text-secondary)' }}>
+            By {event.authorName}{updated ? ` · Updated ${updated.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+            {event.reviewerName && (
+              <> · Reviewed by {event.reviewerName}{event.reviewerCredentials ? `, ${event.reviewerCredentials}` : ''}</>
+            )}
+          </p>
+
           <CountdownDisplay event={event} />
           <ShareBar name={event.name} slug={rawSlug} />
           <EmbedCta slug={rawSlug} />
@@ -93,6 +111,8 @@ export default async function EventPage({ params }: Props) {
             </div>
           </div>
         )}
+
+        <EventBody blocks={content.body} />
 
         <div className="max-w-2xl mx-auto px-4 pb-8">
           <QuickFacts

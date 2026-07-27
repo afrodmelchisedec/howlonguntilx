@@ -1,6 +1,6 @@
 // FILE: src/app/admin/AdminClient.tsx
 'use client';
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { useTheme } from '@/components/ui/ThemeProvider';
 import { CategoriesManager } from '@/components/admin/CategoriesManager';
@@ -15,6 +15,13 @@ interface EventRow {
   id: string; slug: string; name: string; views: number; targetDate: Date;
   categoryId: string | null; subcategoryId: string | null;
   category: CategoryRow | null; subcategory: CategoryRow | null;
+  heroImageUrl?: string | null;
+  heroImageAlt?: string | null;
+  authorName?: string | null;
+  reviewerName?: string | null;
+  reviewerCredentials?: string | null;
+  content?: any;
+  updatedAt?: Date;
 }
 interface CategoryRow { id: string; slug: string; name: string; emoji: string; parentId: string | null }
 interface ArticleRow {
@@ -22,6 +29,12 @@ interface ArticleRow {
   categoryId: string | null; subcategoryId: string | null;
   category: CategoryRow | null; subcategory: CategoryRow | null;
   updatedAt: Date; publishedAt: Date | null;
+  dek?: string | null;
+  blocks?: any;
+  heroData?: any;
+  questionType?: string | null;
+  heroImageUrl?: string | null;
+  heroImageAlt?: string | null;
 }
 interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
@@ -144,8 +157,58 @@ function eventAccessor(ev: EventRow, key: string) {
     case 'subcategory': return ev.subcategory ? ev.subcategory.name.toLowerCase() : null;
     case 'targetDate': return new Date(ev.targetDate);
     case 'views': return ev.views;
+    case 'seoScore': return computeEventSeoScore(ev).score;
     default: return null;
   }
+}
+
+function computeEventSeoScore(ev: EventRow): SeoResult {
+  const bodyBlocks = Array.isArray(ev.content?.body) ? ev.content.body : [];
+  const words = bodyBlocks.reduce((sum: number, b: any) => sum + String(b?.text ?? '').trim().split(/\s+/).filter(Boolean).length, 0);
+  const faqs = Array.isArray(ev.content?.faqs) ? ev.content.faqs : [];
+  const sources = Array.isArray(ev.content?.sources) ? ev.content.sources : [];
+
+  const checks: (SeoCheck & { weight: number })[] = [
+    {
+      label: 'Custom hero image set',
+      passed: !!ev.heroImageUrl,
+      detail: ev.heroImageUrl ? 'Using a custom per-event image.' : 'No heroImageUrl set — falling back to the shared category-pool image.',
+      weight: 15,
+    },
+    {
+      label: 'Hero image alt text',
+      passed: !!ev.heroImageUrl && !!ev.heroImageAlt,
+      detail: !ev.heroImageUrl ? 'Set a custom image first, then add matching alt text.' : ev.heroImageAlt ? 'Alt text present.' : 'heroImageUrl is set but heroImageAlt is missing.',
+      weight: 5,
+    },
+    {
+      label: 'Category + subcategory assigned',
+      passed: !!ev.categoryId && !!ev.subcategoryId,
+      detail: !ev.categoryId ? 'No category assigned.' : !ev.subcategoryId ? 'Category set, but no subcategory.' : 'Fully categorized.',
+      weight: 20,
+    },
+    {
+      label: 'Body content depth (≥300 words)',
+      passed: words >= 300,
+      detail: words === 0 ? 'No body content — add paragraphs/headings via content.body.' : words < 300 ? '~' + words + ' words — add more for depth.' : '~' + words + ' words — solid depth.',
+      weight: 30,
+    },
+    {
+      label: 'FAQ coverage (≥3 questions)',
+      passed: faqs.length >= 3,
+      detail: faqs.length === 0 ? 'No FAQs in content.faqs.' : 'Only ' + faqs.length + ' FAQ' + (faqs.length === 1 ? '' : 's') + ' — add more.',
+      weight: 15,
+    },
+    {
+      label: 'Sources present (≥1)',
+      passed: sources.length >= 1,
+      detail: sources.length === 0 ? 'No sources in content.sources.' : sources.length + ' source(s) present.',
+      weight: 15,
+    },
+  ];
+
+  const score = checks.reduce((sum, c) => sum + (c.passed ? c.weight : 0), 0);
+  return { score, checks: checks.map(({ weight, ...c }) => c) };
 }
 function articleAccessor(a: ArticleRow, key: string) {
   switch (key) {
@@ -153,8 +216,152 @@ function articleAccessor(a: ArticleRow, key: string) {
     case 'status': return a.status;
     case 'category': return (a.category?.name ?? '').toLowerCase();
     case 'subcategory': return (a.subcategory?.name ?? '').toLowerCase();
+    case 'seoScore': return computeSeoScore(a).score;
     default: return null;
   }
+}
+// --- SEO scorer -------------------------------------------------------
+// Pure client-side scoring against fields already present on ArticleRow —
+// no extra API calls. Each check is weighted; weights sum to 100.
+interface SeoCheck { label: string; passed: boolean; detail: string }
+interface SeoResult { score: number; checks: SeoCheck[] }
+
+function blocksArray(a: ArticleRow): any[] {
+  return Array.isArray(a.blocks) ? a.blocks : [];
+}
+function wordCount(a: ArticleRow): number {
+  return blocksArray(a)
+    .filter(b => b?.type === 'paragraph' || b?.type === 'heading')
+    .reduce((sum, b) => sum + String(b.text ?? '').split(/\s+/).filter(Boolean).length, 0);
+}
+function faqItems(a: ArticleRow): any[] {
+  return blocksArray(a).find(b => b?.type === 'faq')?.items ?? [];
+}
+function sourceItems(a: ArticleRow): any[] {
+  return blocksArray(a).find(b => b?.type === 'sources')?.items ?? [];
+}
+function hasChart(a: ArticleRow): boolean {
+  return blocksArray(a).some(b => b?.type === 'chart');
+}
+function hasHeroCountdownBlock(a: ArticleRow): boolean {
+  return blocksArray(a).some(b => b?.type === 'hero_countdown');
+}
+function sourcesAreDeepLinked(a: ArticleRow): boolean {
+  const items = sourceItems(a);
+  if (items.length === 0) return false;
+  return items.every(s => {
+    try { return new URL(s.url).pathname.replace(/\/+$/, '').length > 1; }
+    catch { return false; }
+  });
+}
+
+function computeSeoScore(a: ArticleRow): SeoResult {
+  const dekLen = (a.dek ?? '').length;
+  const faqs = faqItems(a);
+  const sources = sourceItems(a);
+  const words = wordCount(a);
+  const heroOk = (a.questionType === 'DURATION' && !!a.heroData) || hasHeroCountdownBlock(a);
+
+  const checks: (SeoCheck & { weight: number })[] = [
+    {
+      label: 'Meta description content',
+      // dek is auto-truncated to ~155 chars at render time (see truncateDescription()
+      // in renderArticlePage.tsx) — so the live meta tag is safe regardless of stored
+      // length. This only flags genuinely missing or excessively long content.
+      passed: dekLen >= 40 && dekLen <= 400,
+      detail: dekLen === 0
+        ? 'No dek/shortAnswer set — meta description will be empty.'
+        : dekLen < 40
+          ? 'Currently ' + dekLen + ' chars — quite thin as an on-page summary; consider expanding it a bit.'
+          : dekLen > 400
+            ? 'Currently ' + dekLen + ' chars — very long even as an on-page summary; consider tightening it.'
+            : 'Currently ' + dekLen + ' chars — auto-truncated to ~155 for the meta tag, full length shown on-page. Fine as-is.',
+      weight: 10,
+    },
+    {
+      label: 'Custom hero image set',
+      passed: !!a.heroImageUrl,
+      detail: a.heroImageUrl
+        ? 'Using a custom per-article image.'
+        : 'No heroImageUrl set — falling back to the shared category-pool image, which may not match this article.',
+      weight: 10,
+    },
+    {
+      label: 'Hero image alt text',
+      passed: !!a.heroImageUrl && !!a.heroImageAlt,
+      detail: !a.heroImageUrl
+        ? 'Set a custom image first, then add matching alt text.'
+        : a.heroImageAlt
+          ? 'Alt text present.'
+          : 'heroImageUrl is set but heroImageAlt is missing — add descriptive alt text for accessibility and image SEO.',
+      weight: 5,
+    },
+    {
+      label: 'Category + subcategory assigned',
+      passed: !!a.categoryId && !!a.subcategoryId,
+      detail: !a.categoryId
+        ? 'No category assigned — set both Category and Subcategory in the dropdowns.'
+        : !a.subcategoryId
+          ? 'Category set, but no subcategory — add one for full classification.'
+          : 'Fully categorized.',
+      weight: 15,
+    },
+    {
+      label: 'FAQ coverage (≥3 questions)',
+      passed: faqs.length >= 3,
+      detail: faqs.length === 0
+        ? 'No FAQ block — add at least 3 FAQs to help long-tail search coverage and FAQPage rich results.'
+        : 'Only ' + faqs.length + ' FAQ' + (faqs.length === 1 ? '' : 's') + ' — add more to reach at least 3.',
+      weight: 15,
+    },
+    {
+      label: 'Sources (≥2, deep-linked)',
+      passed: sources.length >= 2 && sourcesAreDeepLinked(a),
+      detail: sources.length === 0
+        ? 'No sources block — add at least 2 authoritative, deep-linked sources.'
+        : sources.length < 2
+          ? 'Only ' + sources.length + ' source — add at least one more.'
+          : !sourcesAreDeepLinked(a)
+            ? 'Some sources link to homepages instead of the specific page — deep-link them.'
+            : sources.length + ' sources, all deep-linked.',
+      weight: 15,
+    },
+    {
+      label: 'Visual content (chart/graph)',
+      passed: hasChart(a),
+      detail: hasChart(a) ? 'Chart block present.' : 'No chart block — a supporting chart improves comprehension and dwell time.',
+      weight: 10,
+    },
+    {
+      label: 'Content depth (≥600 words)',
+      passed: words >= 600,
+      detail: words === 0
+        ? 'No body content detected.'
+        : words < 600
+          ? '~' + words + ' words — thin for a competitive query; aim for 600+ across paragraphs/headings.'
+          : '~' + words + ' words — solid depth.',
+      weight: 15,
+    },
+    {
+      label: 'Hero/questionType consistency',
+      passed: heroOk,
+      detail: heroOk
+        ? 'Hero renders correctly for this question type.'
+        : a.questionType
+          ? 'questionType is "' + a.questionType + '" but no matching heroData/hero_countdown block was found.'
+          : 'No questionType set and no hero_countdown block — this article has no hero at all.',
+      weight: 5,
+    },
+  ];
+
+  const score = checks.reduce((sum, c) => sum + (c.passed ? c.weight : 0), 0);
+  return { score, checks: checks.map(({ weight, ...c }) => c) };
+}
+
+function seoScoreColor(score: number): string {
+  if (score >= 90) return '#1D9E75'; // green
+  if (score >= 70) return '#BA7517'; // amber
+  return '#D85A30'; // red
 }
 
 export function AdminClient({
@@ -172,6 +379,8 @@ export function AdminClient({
   // Articles tab state
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
+  const [eventJsonInput, setEventJsonInput] = useState('');
+  const [importingEvents, setImportingEvents] = useState(false);
   const [articleRows, setArticleRows] = useState(articles);
   const [eventRows, setEventRows] = useState(events);
   const [savingRow, setSavingRow] = useState<string | null>(null);
@@ -191,6 +400,7 @@ export function AdminClient({
   const onUserSort = (key: string) => { setUserSort(s => toggleSort(s, key)); setUserPage(1); };
   const onEventSort = (key: string) => { setEventSort(s => toggleSort(s, key)); setEventPage(1); };
   const onArticleSort = (key: string) => { setArticleSort(s => toggleSort(s, key)); setArticlePage(1); };
+  const [expandedSeoId, setExpandedSeoId] = useState<string | null>(null);
 
   const topLevelCategories = categories.filter(c => !c.parentId);
   const subcategoriesFor = (parentId: string | null) =>
@@ -296,6 +506,41 @@ export function AdminClient({
       showToast('Network error during import', '⚠️');
     } finally {
       setImporting(false);
+    }
+  }
+  async function importEvents() {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(eventJsonInput);
+    } catch {
+      showToast('Invalid JSON — check syntax', '⚠️');
+      return;
+    }
+    setImportingEvents(true);
+    try {
+      const res = await fetch('/api/admin/events/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error ?? 'Import failed', '⚠️');
+      } else {
+        const { updated, failed } = data;
+        if (failed && failed.length > 0) {
+          showToast(`${updated} updated, ${failed.length} failed`, '⚠️');
+          console.error('Import errors:', failed);
+        } else {
+          showToast(`${updated} updated`, '✅');
+          setEventJsonInput('');
+        }
+        window.location.reload();
+      }
+    } catch {
+      showToast('Network error during import', '⚠️');
+    } finally {
+      setImportingEvents(false);
     }
   }
 
@@ -567,6 +812,23 @@ export function AdminClient({
         {tab === 'events' && (
           <div>
             <h1 className="text-xl font-medium mb-5">Top event pages by views ({filteredEvents.length}{eventSearch ? ' of ' + events.length : ''})</h1>
+            {/* Import box */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6">
+              <h2 className="text-sm font-medium mb-3">Import from JSON (updates existing events only — matched by slug)</h2>
+              <textarea
+                value={eventJsonInput}
+                onChange={e => setEventJsonInput(e.target.value)}
+                placeholder='[{"slug": "easter", "authorName": "...", "heroImageUrl": "...", "heroImageAlt": "...", "content": {"heroFact": "...", "body": [{"type":"heading","text":"..."},{"type":"paragraph","text":"..."}], "faqs": [...], "sources": [...]}}]'
+                rows={8}
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-xs font-mono bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500 mb-3"
+              />
+              <button
+                onClick={importEvents}
+                disabled={importingEvents || !eventJsonInput.trim()}
+                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {importingEvents ? 'Importing…' : 'Import events'}
+              </button>
+            </div>
             <div className="flex gap-3 mb-4">
               <input
                 placeholder="Search event name, slug, or category..."
@@ -585,6 +847,7 @@ export function AdminClient({
                     <SortableTh label="Subcategory" sortKey="subcategory" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Target date" sortKey="targetDate" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Views" sortKey="views" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="SEO" sortKey="seoScore" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Actions" sortKey={null} sort={eventSort} onSort={onEventSort} />
                   </tr>
                 </thead>
@@ -627,6 +890,14 @@ export function AdminClient({
                           </div>
                           <span className="text-xs font-medium text-brand-500">{ev.views.toLocaleString()}</span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => { const seo = computeEventSeoScore(ev); return (
+                          <span className="text-xs font-bold px-2 py-1 rounded-lg"
+                            style={{ color: seoScoreColor(seo.score), background: seoScoreColor(seo.score) + '1a', border: '1px solid ' + seoScoreColor(seo.score) + '40' }}>
+                            {seo.score}%
+                          </span>
+                        ); })()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -723,11 +994,16 @@ export function AdminClient({
                     <SortableTh label="Status" sortKey="status" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Category" sortKey="category" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Subcategory" sortKey="subcategory" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="SEO" sortKey="seoScore" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Actions" sortKey={null} sort={articleSort} onSort={onArticleSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedArticles.map(a => (
+                  {pagedArticles.map(a => {
+                  const seo = computeSeoScore(a);
+                  const seoOpen = expandedSeoId === a.id;
+                  return (
+                  <Fragment key={a.id}>
                     <tr key={a.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-4 py-3">
                         <a href={'/tools/questions/' + a.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{a.title}</a>
@@ -767,6 +1043,16 @@ export function AdminClient({
                         </select>
                       </td>
                       <td className="px-4 py-3">
+                        <button
+                          onClick={() => setExpandedSeoId(seoOpen ? null : a.id)}
+                          title="Click for SEO details"
+                          className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full transition-colors"
+                          style={{ color: seoScoreColor(seo.score), background: seoScoreColor(seo.score) + '1a', border: '1px solid ' + seoScoreColor(seo.score) + '40' }}>
+                          {seo.score}%
+                          <span style={{ fontSize: 9 }}>{seoOpen ? '▲' : '▼'}</span>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => saveArticleCategory(a.id, a.categoryId, a.subcategoryId)}
@@ -782,7 +1068,29 @@ export function AdminClient({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {seoOpen && (
+                      <tr className="bg-gray-50 dark:bg-gray-800/40 border-b border-gray-100 dark:border-gray-800">
+                        <td colSpan={6} className="px-4 py-4">
+                          <p className="text-xs font-bold mb-2" style={{ color: seoScoreColor(seo.score) }}>
+                            SEO score: {seo.score}% — {seo.score >= 90 ? 'Excellent' : seo.score >= 70 ? 'Needs work' : 'Poor'}
+                          </p>
+                          <ul className="flex flex-col gap-1.5">
+                            {seo.checks.map(c => (
+                              <li key={c.label} className="flex items-start gap-2 text-xs">
+                                <span className={c.passed ? 'text-green-500' : 'text-red-500'}>{c.passed ? '✓' : '✗'}</span>
+                                <span>
+                                  <span className="font-medium">{c.label}:</span>{' '}
+                                  <span className="text-gray-500">{c.detail}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                  );
+                  })}
                 </tbody>
               </table>
               {filteredArticles.length === 0 && (

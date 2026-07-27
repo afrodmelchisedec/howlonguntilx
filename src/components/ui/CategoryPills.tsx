@@ -1,21 +1,17 @@
 'use client';
 import Link from 'next/link';
 
-const CATEGORIES = [
-  { slug: 'leisure',  label: 'Leisure',  emoji: '⚽', color: '48, 219, 91'   },
-  { slug: 'food',     label: 'Food',     emoji: '🍽️', color: '88, 214, 113'  },
-  { slug: 'travel',   label: 'Travel',   emoji: '✈️', color: '100, 240, 235' },
-  { slug: 'tech',     label: 'Tech',     emoji: '💻', color: '64, 156, 255'  },
-  { slug: 'finance',  label: 'Finance',  emoji: '💰', color: '255, 159, 10'  },
-  { slug: 'scam',     label: 'Scam',     emoji: '🔐', color: '255, 75, 110'  },
-  { slug: 'productivity', label: 'Productivity', emoji: '🗂️', color: '218, 143, 255' },
-  { slug: 'health', label: 'Health', emoji: '🩺', color: '255, 120, 110' },
-];
+type PillCategory = {
+  slug: string;
+  label: string;
+  emoji: string;
+  color: string;
+};
 
-export function CategoryPills() {
+export function CategoryPills({ categories }: { categories: PillCategory[] }) {
   return (
     <div className="flex flex-wrap justify-center gap-2 mt-6">
-      {CATEGORIES.map(c => (
+      {categories.map(c => (
         <Link key={c.slug} href={`/categories/${c.slug}`}
           className="press flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
           style={{

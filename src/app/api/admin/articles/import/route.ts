@@ -21,6 +21,8 @@ interface QuestionImportItem {
   shortAnswer?: string;
   questionType?: QuestionType; // 'DURATION' | 'DATED'
   heroData?: Record<string, unknown>;
+  heroImageUrl?: string;
+  heroImageAlt?: string;
   blocks: unknown[];
   faqs?: { q: string; a: string }[];
   sources?: { label: string; url: string }[];
@@ -79,6 +81,16 @@ export async function POST(req: NextRequest) {
       });
       continue;
     }
+    // heroImageUrl and heroImageAlt should travel together — an image with no alt
+    // text is an accessibility/SEO miss, and alt text with no image is meaningless.
+    if (item.heroImageUrl && !item.heroImageAlt) {
+      results.push({
+        slug: item.slug,
+        status: 'error',
+        error: 'heroImageUrl was provided but heroImageAlt is missing — every custom image needs descriptive alt text.',
+      });
+      continue;
+    }
 
     try {
       const existing = await prisma.article.findUnique({
@@ -91,6 +103,8 @@ export async function POST(req: NextRequest) {
         blocks: buildBlocks(item) as Prisma.InputJsonValue,
         heroData: (item.heroData ?? null) as Prisma.InputJsonValue,
         questionType: item.questionType ?? null,
+        heroImageUrl: item.heroImageUrl ?? null,
+        heroImageAlt: item.heroImageAlt ?? null,
         contentType: 'evergreen',
       };
 
@@ -108,8 +122,6 @@ export async function POST(req: NextRequest) {
             status: 'draft',
             categoryId: null,
             subcategoryId: null,
-            heroImageUrl: null,
-            heroImageAlt: null,
             ...data,
           },
         });
