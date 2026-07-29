@@ -2,6 +2,8 @@
 import { widgetsForTool, fullToolForTool, toolComponentForSlug } from '@/lib/widgetRegistry';
 import { ArticleChart } from './ArticleChart';
 import { ArticleFaq } from './ArticleFaq';
+import { AffiliateBanner } from './AffiliateBanner';
+import { Fragment } from 'react';
 
 interface ToolMapping { slug: string; label: string; path: string }
 
@@ -63,13 +65,16 @@ export function extractHeadings(blocks: Block[]): { id: string; text: string }[]
 }
 
 export function ArticleBlocks({
-  toolSlug, blocks, glow, subcategoryTools,
+  toolSlug, blocks, glow, subcategoryTools, affiliateBanner,
 }: {
   toolSlug: string; blocks: Block[]; glow: string;
   // Tool mapping from the article's subcategory (Category.tools) — used to resolve
   // tool_embed_full blocks that don't specify an explicit toolSlug. Pass [] or omit
   // for tools (like tech-events) that use the legacy article.toolSlug-keyed path instead.
   subcategoryTools?: ToolMapping[];
+  // Fetched server-side by the caller (ArticleLayout) via getAffiliateBanner(category.slug).
+  // Rendered once, right before the FAQ block, themed with the page's glow color.
+  affiliateBanner?: { title: string; description: string; ctaLabel: string; href: string; imageUrl: string | null } | null;
 }) {
   const widgets = widgetsForTool(toolSlug);
   // Legacy path first (tech-events / dark-sky-explorer, keyed by the article's own toolSlug) —
@@ -110,7 +115,14 @@ export function ArticleBlocks({
         }
         if (b.type === 'image') return <img key={i} src={b.src} alt={b.alt} className="rounded-2xl w-full anim-fade-up" style={delay} loading="lazy" />;
         if (b.type === 'chart') return <ArticleChart key={i} title={b.title} data={b.data} glow={glow} />;
-        if (b.type === 'faq') return <ArticleFaq key={i} items={b.items} glow={glow} />;
+        if (b.type === 'faq') {
+          return (
+            <Fragment key={i}>
+              {affiliateBanner && <AffiliateBanner banner={affiliateBanner} glow={glow} />}
+              <ArticleFaq items={b.items} glow={glow} />
+            </Fragment>
+          );
+        }
         if (b.type === 'tool_embed') {
           const Widget = widgets[b.widget];
           return Widget ? <Widget key={i} config={b.config} /> : null;

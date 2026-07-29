@@ -17,8 +17,18 @@ import { SignupTeaser } from '@/components/ui/SignupTeaser';
 import { StarField } from '@/components/ui/StarField';
 import { EventBody } from '@/components/countdown/EventBody';
 import { pickDefaultImage } from '@/lib/defaultImages';
+import { getAffiliateBanner } from '@/lib/affiliateBanners';
+import { AffiliateBanner } from '@/components/articles/AffiliateBanner';
+import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 import { buildCountdownResponse } from '@/lib/countdown';
 import type { EventContent } from '@/lib/seo';
+import { ArticleDisclaimer } from '@/components/articles/ArticleDisclaimer';
+import { ArticleAboutNote } from '@/components/articles/ArticleAboutNote';
+import { AdSlot } from '@/components/articles/AdSlot';
+import { ArticleCommentSection } from '@/components/articles/ArticleCommentSection';
+import { ArticleTableOfContents } from '@/components/articles/ArticleTableOfContents';
+import { ArticleSchema } from '@/components/articles/ArticleSchema';
+import { extractHeadings, extractFaq } from '@/components/articles/ArticleBlocks';
 
 interface Props { params: { slug: string } }
 
@@ -69,12 +79,36 @@ export default async function EventPage({ params }: Props) {
   const categoryDefault = pickDefaultImage(event.categorySlug, event.slug);
   const heroImageUrl = event.heroImageUrl || event.category?.featureImageUrl || categoryDefault;
   const updated = event.updatedAt ? new Date(event.updatedAt) : null;
+  const affiliateBanner = await getAffiliateBanner(event.categorySlug);
+
+  const glow = getCategoryGlowRGB(event.categorySlug);
+  const blocks = Array.isArray(content.body) ? content.body : [];
+  const headings = extractHeadings(blocks.map(b => ({ ...b, type: b.type })));
+  const faqItems = extractFaq(blocks.map(b => ({ ...b, type: b.type })));
+  const tocHeadings = faqItems && faqItems.length > 0 ? [...headings, { id: 'faq', text: 'FAQs' }] : headings;
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>
       <StarField />
       <div className="relative z-10">
         <PageJsonLd event={event} countdown={countdown} />
+        <ArticleSchema
+          article={{
+            id: event.id,
+            slug: rawSlug,
+            title: event.name + ' - Countdown',
+            dek: event.description || 'Countdown to ' + event.name,
+            heroImageUrl: heroImageUrl,
+            authorName: event.authorName || 'HowLongUntilX',
+            reviewerName: event.reviewerName || undefined,
+            reviewerCredentials: event.reviewerCredentials || undefined,
+            publishedAt: event.createdAt,
+            updatedAt: event.updatedAt,
+            blocks: blocks.map(b => ({ ...b, type: b.type })),
+          }}
+          toolName={event.category?.name || 'Countdown'}
+          toolSlug={event.categorySlug || 'events'}
+        />
         <RecentLogger slug={rawSlug} name={event.name} />
 
         <div className="max-w-2xl mx-auto px-4 py-12 text-center">
@@ -99,9 +133,73 @@ export default async function EventPage({ params }: Props) {
             )}
           </p>
 
-          <CountdownDisplay event={event} />
+          <CountdownDisplay event={event} glow={glow} />
           <ShareBar name={event.name} slug={rawSlug} />
           <EmbedCta slug={rawSlug} />
+
+          {/* Disclaimer and About note */}
+          <div className="max-w-2xl mx-auto px-4 pb-4 text-left">
+            <ArticleDisclaimer categorySlug={event.categorySlug} glow={glow} />
+            {!event.reviewerName && (
+              <ArticleAboutNote
+                authorName={event.authorName}
+                updatedAt={event.updatedAt}
+                categorySlug={event.categorySlug}
+                glow={glow}
+              />
+            )}
+          </div>
+
+          {/* Table of Contents */}
+          {tocHeadings.length > 1 && (
+            <div className="max-w-2xl mx-auto px-4 pb-4">
+              <ArticleTableOfContents headings={tocHeadings} glow={glow} />
+            </div>
+          )}
+
+          {/* Ad Slot after hero */}
+          <div className="max-w-2xl mx-auto px-4 pb-4">
+            <AdSlot slotId="event-hero" minHeight={280} />
+          </div>
+
+          {/* Event Body (rich blocks) */}
+          <EventBody blocks={blocks} glow={glow} />
+
+          {affiliateBanner && (
+            <div className="max-w-2xl mx-auto px-4">
+              <AffiliateBanner banner={affiliateBanner} glow={glow} />
+            </div>
+          )}
+          {/* FAQ section rendered from content.faqs */}
+          {faqItems && faqItems.length > 0 && (
+            <div id="faq" className="max-w-2xl mx-auto px-4 pb-8 scroll-mt-24">
+              <h2 className="text-title3 mb-3">Frequently asked questions</h2>
+              <div className="flex flex-col gap-2">
+                {faqItems.map((item, i) => (
+                  <details
+                    key={i}
+                    className="ios-card-nested p-4 anim-fade-up"
+                    style={{
+                      animationDelay: (i * 70) + 'ms',
+                      border: '1px solid rgba(' + glow + ', 0.15)',
+                    }}
+                  >
+                    <summary className="text-headline cursor-pointer" style={{ color: 'rgb(' + glow + ')' }}>
+                      {item.q}
+                    </summary>
+                    <p className="text-footnote mt-2" style={{ color: 'var(--text-secondary)' }}>
+                      {item.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ad Slot before related */}
+          <div className="max-w-2xl mx-auto px-4 pb-4">
+            <AdSlot slotId="event-lower" minHeight={280} />
+          </div>
         </div>
 
         {content.heroFact && (
@@ -111,8 +209,6 @@ export default async function EventPage({ params }: Props) {
             </div>
           </div>
         )}
-
-        <EventBody blocks={content.body} />
 
         <div className="max-w-2xl mx-auto px-4 pb-8">
           <QuickFacts
@@ -127,7 +223,7 @@ export default async function EventPage({ params }: Props) {
         </div>
 
         <div className="max-w-2xl mx-auto px-4 pb-8">
-          <CategoryTool categorySlug={event.categorySlug} eventName={event.name} />
+          <CategoryTool categorySlug={event.categorySlug} eventName={event.name} subcategoryTools={event.subcategory?.tools as any} />
         </div>
 
         {content.timeline && content.timeline.length > 0 && (
@@ -145,6 +241,11 @@ export default async function EventPage({ params }: Props) {
         )}
 
         <SignupTeaser eventName={event.name} />
+
+        {/* Comments section */}
+        <div className="max-w-2xl mx-auto px-4 pb-8" id="comments-section">
+          <ArticleCommentSection glow={glow} />
+        </div>
 
         <div className="max-w-2xl mx-auto px-4 pb-12">
           <RelatedEvents categorySlug={event.categorySlug} currentSlug={rawSlug} />

@@ -11,12 +11,25 @@ interface CountdownState {
   justHit: boolean; // true the moment the clock hits 0:0:0:0
 }
 
+// Deterministic placeholder used for both the server render and the client's
+// very first paint — guarantees they match, avoiding the hydration mismatch
+// that comes from calling Date.now() during render (server time != client time).
+const PLACEHOLDER: CountdownState = {
+  days: 0, hours: 0, minutes: 0, seconds: 0,
+  progress: 0, isPast: false, justHit: false,
+};
+
 export function useCountdown(target: Date): CountdownState {
-  const [state, setState] = useState<CountdownState>(compute(target));
+  const [state, setState] = useState<CountdownState>(PLACEHOLDER);
+
   useEffect(() => {
+    // Compute immediately on mount (client-only, so Date.now() here never
+    // needs to match anything the server produced) then tick every second.
+    setState(compute(target));
     const id = setInterval(() => setState(compute(target)), 1000);
     return () => clearInterval(id);
   }, [target]);
+
   return state;
 }
 

@@ -1,3 +1,4 @@
+// FILE: src/app/api/paypal/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
@@ -43,6 +44,63 @@ function resolveStatus(resource: any): 'trialing' | 'active' {
   return 'active';
 }
 
+// PayPal's `resource.id` means a DIFFERENT thing depending on the event:
+// - On BILLING.SUBSCRIPTION.* events, resource.id IS the subscription id.
+// - On PAYMENT.SALE.* events, resource.id is the SALE/transaction id —
+//   the subscription id instead lives at resource.billing_agreement_id.
+// The original code used `resource.id ?? resource.billing_agreement_id`
+// for every event type, which silently mismatched sales/refunds against
+// the wrong id and meant findUser() likely never resolved a user for
+// PAYMENT.SALE.COMPLETED. This resolves it per event type instead.
+function resolveSubscriptionId(eventType: string, resource: any): string | undefined {
+  if (eventType.startsWith('PAYMENT.SALE.')) {
+    return resource.billing_agreement_id ?? resource.id;
+  }
+  return resource.id;
+}
+
+function centsFromAmount(amount: { total?: string; value?: string; currency?: string; currency_code?: string } | undefined) {
+  const raw = amount?.total ?? amount?.value;
+  const currency = amount?.currency ?? amount?.currency_code ?? 'USD';
+  if (!raw) return null;
+  const cents = Math.round(parseFloat(raw) * 100);
+  if (Number.isNaN(cents)) return null;
+  return { cents, currency };
+}
+
+// Idempotent insert — PayPal can and does redeliver the same webhook.
+// paypalTransactionId is unique, so a redelivery is a silent no-op.
+async function logPayment(opts: {
+  userId?: string;
+  userEmail?: string | null;
+  paypalTransactionId: string;
+  paypalSubscriptionId?: string;
+  eventType: string;
+  type: 'SALE' | 'REFUND';
+  amountCents: number;
+  currency: string;
+}) {
+  try {
+    await prisma.payment.create({
+      data: {
+        userId: opts.userId,
+        userEmail: opts.userEmail ?? undefined,
+        paypalTransactionId: opts.paypalTransactionId,
+        paypalSubscriptionId: opts.paypalSubscriptionId,
+        eventType: opts.eventType,
+        type: opts.type,
+        amountCents: opts.amountCents,
+        currency: opts.currency,
+      },
+    });
+  } catch (err: any) {
+    // Unique constraint violation = duplicate webhook delivery, not a real error.
+    if (err?.code !== 'P2002') {
+      console.error('Failed to log Payment:', err);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
@@ -62,7 +120,7 @@ export async function POST(req: NextRequest) {
   const eventType = event.event_type as string;
   const resource = event.resource ?? {};
   const userId: string | undefined = resource.custom_id;
-  const subscriptionId: string | undefined = resource.id ?? resource.billing_agreement_id;
+  const subscriptionId = resolveSubscriptionId(eventType, resource);
 
   const findUser = async () => {
     if (userId) {
@@ -111,11 +169,47 @@ export async function POST(req: NextRequest) {
     }
     case 'PAYMENT.SALE.COMPLETED': {
       const user = await findUser();
-      if (!user) break;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { plan: 'PRO', subscriptionStatus: 'active', trialEndsAt: null },
-      });
+      if (!user) console.error('No matching user for PAYMENT.SALE.COMPLETED', { userId, subscriptionId });
+
+      if (user) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { plan: 'PRO', subscriptionStatus: 'active', trialEndsAt: null },
+        });
+      }
+
+      const money = centsFromAmount(resource.amount);
+      if (money && resource.id) {
+        await logPayment({
+          userId: user?.id,
+          userEmail: user?.email,
+          paypalTransactionId: resource.id,
+          paypalSubscriptionId: subscriptionId,
+          eventType,
+          type: 'SALE',
+          amountCents: money.cents,
+          currency: money.currency,
+        });
+      }
+      break;
+    }
+    case 'PAYMENT.SALE.REFUNDED': {
+      // Not previously handled at all — refunds silently didn't show up
+      // anywhere, which would have quietly inflated earnings totals.
+      const user = await findUser();
+      const money = centsFromAmount(resource.amount);
+      if (money && resource.id) {
+        await logPayment({
+          userId: user?.id,
+          userEmail: user?.email,
+          paypalTransactionId: resource.id,
+          paypalSubscriptionId: subscriptionId,
+          eventType,
+          type: 'REFUND',
+          amountCents: Math.abs(money.cents),
+          currency: money.currency,
+        });
+      }
       break;
     }
     default:

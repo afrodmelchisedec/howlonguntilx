@@ -12,7 +12,16 @@ export async function RelatedArticles({ toolSlug, excludeSlug, glow }: { toolSlu
       <h2 className="text-title3 mb-4">Related reading</h2>
       <div className="grid sm:grid-cols-3 gap-3">
         {related.map(a => (
-          <ArticleCard key={a.slug} toolSlug={toolSlug} slug={a.slug} title={a.title} dek={a.dek} heroImageUrl={a.heroImageUrl} glow={glow} />
+          <ArticleCard
+            key={a.slug}
+            toolSlug={toolSlug}
+            slug={a.slug}
+            title={a.title}
+            dek={a.dek}
+            heroImageUrl={a.heroImageUrl}
+            glow={glow}
+            category={a.category ? { slug: a.category.slug, name: a.category.name, emoji: a.category.emoji } : null}
+          />
         ))}
       </div>
     </div>

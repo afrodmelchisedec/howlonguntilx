@@ -13,6 +13,7 @@ export async function listPublishedArticles(toolSlug: string, limit = 24) {
     where: { toolSlug, status: 'published' },
     orderBy: { publishedAt: 'desc' },
     take: limit,
+    include: { category: { select: { slug: true, name: true, emoji: true } } },
   });
 }
 

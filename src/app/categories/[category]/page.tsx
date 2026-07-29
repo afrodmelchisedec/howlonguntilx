@@ -4,19 +4,9 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { buildCountdownResponse } from '@/lib/countdown';
 import { StarField } from '@/components/ui/StarField';
+import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 
 interface Props { params: { category: string } }
-
-const GLOW_MAP: Record<string, string> = {
-  biology: 'var(--glow-nature)',
-  family:  'var(--glow-personal)',
-  finance: 'var(--glow-finance)',
-  food:    'var(--glow-nature)',
-  culture: 'var(--glow-work)',
-  health:  'var(--glow-health)',
-  science: 'var(--glow-tech)',
-  time:    'var(--glow-sports)',
-};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cat = await prisma.category.findUnique({ where: { slug: params.category } });
@@ -38,7 +28,7 @@ export default async function CategoryPage({ params }: Props) {
             orderBy: { views: 'desc' },
             take: 3,
           },
-          _count: { select: { events: true } },
+          _count: { select: { events: true, articlesAsSubcategory: true } },
         },
       },
       events: {
@@ -46,12 +36,13 @@ export default async function CategoryPage({ params }: Props) {
         orderBy: { views: 'desc' },
         take: 6,
       },
+      _count: { select: { articlesAsCategory: true } },
     },
   });
 
   if (!cat) notFound();
 
-  const glowRgb = GLOW_MAP[params.category] || 'var(--glow-brand)';
+  const glowRgb = getCategoryGlowRGB(params.category);
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
@@ -86,6 +77,9 @@ export default async function CategoryPage({ params }: Props) {
               </span>
             </div>
             <p style={{ color: 'var(--text-secondary)' }} className="text-callout max-w-md">{cat.description}</p>
+            <div className="mt-2 text-caption" style={{ color: `rgb(${glowRgb})` }}>
+              {cat.events.length > 0 ? '' : ''}{cat._count.articlesAsCategory} articles
+            </div>
             <div className="flex gap-3 mt-5 flex-wrap">
               {cat.children.map(sub => (
                 <Link key={sub.slug} href={`/categories/${cat.slug}/${sub.slug}`}
@@ -111,7 +105,7 @@ export default async function CategoryPage({ params }: Props) {
                       <span className="text-2xl">{sub.emoji}</span>
                       <div>
                         <div className="text-headline">{sub.name}</div>
-                        <div className="text-footnote mt-0.5">{sub._count.events} events</div>
+                        <div className="text-footnote mt-0.5">{sub._count.events} events · {sub._count.articlesAsSubcategory} articles</div>
                       </div>
                     </div>
                     <span style={{ color: 'var(--text-tertiary)' }} className="text-lg">›</span>
@@ -164,7 +158,7 @@ export default async function CategoryPage({ params }: Props) {
           </div>
         )}
 
-        {cat.events.length === 0 && cat.children.every(c => c._count.events === 0) && (
+        {cat.events.length === 0 && cat._count.articlesAsCategory === 0 && cat.children.every(c => c._count.events === 0 && c._count.articlesAsSubcategory === 0) && (
           <div className="ios-card p-10 text-center" style={{ color: 'var(--text-tertiary)' }}>
             <div className="text-4xl mb-3">⏳</div>
             <div className="text-headline mb-1">No events yet</div>

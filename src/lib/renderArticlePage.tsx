@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getPublishedArticle } from '@/lib/articles';
 import { ArticleLayout } from '@/components/articles/ArticleLayout';
 import { StarField } from '@/components/ui/StarField';
+import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? '';
 
@@ -74,7 +75,7 @@ export async function ArticlePageContent({ toolSlug, articleSlug }: { toolSlug: 
       <StarField />
 
       <div className="relative z-10" style={{ maxWidth: 780, margin: '0 auto', padding: '24px 16px' }}>
-        <ArticleLayout article={article} toolName={meta.name} toolSlug={toolSlug} glow={meta.glow} />
+        <ArticleLayout article={article} toolName={meta.name} toolSlug={toolSlug} glow={getCategoryGlowRGB(article.category?.slug)} />
       </div>
     </div>
   );

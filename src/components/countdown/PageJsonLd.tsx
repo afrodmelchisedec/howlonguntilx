@@ -1,4 +1,4 @@
-import { buildFaqList, prettifySlug, type EventContent } from '@/lib/seo';
+import { buildFaqList, prettifySlug, type EventContent, type FaqPair } from '@/lib/seo';
 
 interface EventLike {
   slug: string;
@@ -23,7 +23,13 @@ export function PageJsonLd({ event, countdown }: Props) {
   const content = (event.content ?? {}) as EventContent;
   const categoryLabel = prettifySlug(event.categorySlug);
   const description = event.description ?? `Live countdown to ${event.name}. Updated every second.`;
-  const faqs = buildFaqList(event, countdown, content.faqs);
+    let faqs: FaqPair[] = [];
+  try {
+    faqs = buildFaqList(event, countdown, content.faqs);
+  } catch (e) {
+    console.warn('Failed to build FAQ list for JSON-LD:', e);
+    faqs = [];
+  }
 
   const graph: Record<string, unknown>[] = [
     {

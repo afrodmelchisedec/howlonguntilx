@@ -57,6 +57,8 @@ model User {
   darkSkyConfig             DarkSkyConfig?
   techEventsConfig          TechEventsConfig?
   shoppingDealsConfig       ShoppingDealsConfig?
+  payments Payment[]
+  lifeExpectancyProfile  LifeExpectancyProfile?
 }
 
 enum Plan {
@@ -555,6 +557,19 @@ model Category {
   createdAt   DateTime   @default(now())
 }
 
+model AffiliateBanner {
+  id          String   @id @default(cuid())
+  categorySlug String  @unique // one banner per top-level category, e.g. "finance"
+  title       String
+  description String
+  ctaLabel    String   @default("Learn more")
+  href        String
+  imageUrl    String?
+  active      Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
 model SymptomTrackerConfig {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -562,4 +577,80 @@ model SymptomTrackerConfig {
   history   Json
   updatedAt DateTime @updatedAt
 }
+
+// ── ADD to prisma/schema.prisma ──────────────────────────────────────────
+
+model Payment {
+  id                   String      @id @default(cuid())
+  userId               String?
+  user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail            String?     // snapshot, survives user deletion
+  paypalTransactionId  String      @unique  // PayPal sale/refund id — makes webhook inserts idempotent
+  paypalSubscriptionId String?
+  eventType            String      // raw PayPal event_type, e.g. "PAYMENT.SALE.COMPLETED"
+  type                 PaymentType @default(SALE)
+  amountCents          Int         // always positive; use `type` to determine sign in reports
+  currency             String      @default("USD")
+  createdAt            DateTime    @default(now())
+
+  @@index([userId])
+  @@index([paypalSubscriptionId])
+  @@index([createdAt])
+}
+
+enum PaymentType {
+  SALE
+  REFUND
+}
+
+// ── ADD this relation field inside the existing `model User { ... }` block ─
+//   payments  Payment[]
+
+
+// ── ADD to prisma/schema.prisma ──────────────────────────────────────────
+
+// Source-of-truth actuarial data, admin-editable/importable, versioned by
+// sourceYear so you can add a newer release without deleting the old one
+// (compute always queries the latest sourceYear per region+sex+age).
+model LifeExpectancyTable {
+  id             String   @id @default(cuid())
+  region         String   // 'US' | 'EUROPE' | 'AFRICA' | 'MIDDLE_EAST' | 'CHINA' | 'INDIA'
+  countryLabel   String   // display label, e.g. "United States", "European Union (avg)"
+  sex            Sex
+  age            Int      // single year of age, 0–110
+  remainingYears Float    // life expectancy AT this age, i.e. average years left
+  source         String   // e.g. "CDC NVSS U.S. Life Tables"
+  sourceUrl      String?
+  published      Boolean  @default(false)   // <-- add this line
+  sourceYear     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([region, sex, age, sourceYear])
+  @@index([region, sex, sourceYear])
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+// One row per Pro user — lets the countdown timer persist across visits
+// instead of resetting on every reload (the free-tier tease).
+model LifeExpectancyProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region        String
+  age           Int
+  sex           Sex
+  factors       Json     // { smoking: boolean, exercise: boolean, ... }
+  familyMembers Json?    // [{ label, age, sex, region }] — self-entered, not public figures
+  expectedAge   Float    // computed result, cached so the timer target is stable
+  targetDate    DateTime // now() + remaining years at time of save
+  updatedAt     DateTime @updatedAt
+}
+
+// ── ADD these relation fields inside the existing `model User { ... }` block ─
+//   lifeExpectancyProfile  LifeExpectancyProfile?
 

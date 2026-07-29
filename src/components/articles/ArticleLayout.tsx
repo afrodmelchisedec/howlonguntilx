@@ -16,10 +16,12 @@ import { LikeButton } from './LikeButton';
 import { ShareButton } from './ShareButton';
 import { SourcesFooter } from '../countdown/SourcesFooter';
 import { pickDefaultImage } from '@/lib/defaultImages';
+import { getAffiliateBanner } from '@/lib/affiliateBanners';
+import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 
 // `featuredPiece` is optional and fetched by the caller — see the comment block
 // at the top of ArticleFeaturedPiece.tsx for the query shape.
-export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece }: { article: any; toolName: string; toolSlug: string; glow: string; featuredPiece?: any }) {
+export async function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece }: { article: any; toolName: string; toolSlug: string; glow: string; featuredPiece?: any }) {
   const hero = extractHeroCountdown(article.blocks as any);
   // Duration-type questions (e.g. "how long until X kills you?") have no fixed
   // target date to count down to — they render a min/max range hero instead.
@@ -38,6 +40,10 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
   const showUpdated = published && updated && updated.getTime() - published.getTime() > 24 * 60 * 60 * 1000;
   const categoryDefault = pickDefaultImage(article.category?.slug, article.slug);
   const heroImageUrl = article.heroImageUrl || article.category?.featureImageUrl || categoryDefault;
+  const affiliateBanner = await getAffiliateBanner(article.category?.slug);
+
+  const catGlow = article.category?.slug ? getCategoryGlowRGB(article.category.slug) : null;
+  const catLabel = article.category?.slug ? article.category.slug.charAt(0).toUpperCase() + article.category.slug.slice(1) : null;
 
   return (
     <article className="anim-fade-up">
@@ -53,7 +59,24 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
 
       <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
       <p className="text-caption mb-1" style={{ color: `rgb(${glow})` }}>{toolName.toUpperCase()}</p>
-      <h1 className="text-title1 mb-2">{article.title}</h1>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+        <h1 className="text-title1 m-0">{article.title}</h1>
+        {catGlow && catLabel && (
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+            style={{
+              background: `rgba(${catGlow}, 0.1)`,
+              color: `rgb(${catGlow})`,
+              border: `1px solid rgba(${catGlow}, 0.25)`,
+            }}
+          >
+            {article.category?.emoji && <span>{article.category.emoji}</span>}
+            <span>{catLabel}</span>
+          </span>
+        )}
+      </div>
+
       <p className="text-callout mb-3" style={{ color: 'var(--text-secondary)' }}>{article.dek}</p>
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -86,7 +109,7 @@ export function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece
 
       <ArticleTableOfContents headings={tocHeadings} glow={glow} />
 
-      <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} />
+      <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} affiliateBanner={affiliateBanner} />
 
       {sources && sources.length > 0 && (
         <div className="mt-6">

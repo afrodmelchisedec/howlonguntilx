@@ -4,16 +4,18 @@ import { ProgressBar } from './ProgressBar';
 
 interface Props {
   event: { name: string; targetDate: Date | string; category?: unknown };
+  glow?: string; // RGB triplet, e.g. "48, 219, 91" — themes the days digit + progress text
 }
 
-export function CountdownDisplay({ event }: Props) {
+export function CountdownDisplay({ event, glow }: Props) {
   const target = new Date(event.targetDate);
   const { days, hours, minutes, seconds, progress, isPast } = useCountdown(target);
+  const themeColor = glow ? `rgb(${glow})` : 'rgb(var(--accent-brand))';
 
   const urgencyColor =
     days < 1 ? 'rgb(var(--accent-red))' :
     days < 7 ? 'rgb(var(--accent-orange))' :
-    'rgb(var(--accent-brand))';
+    themeColor;
 
   if (isPast) {
     return (
@@ -59,7 +61,7 @@ export function CountdownDisplay({ event }: Props) {
       <ProgressBar progress={progress} />
 
       <p className="text-footnote mt-3">
-        You are <span style={{ color: 'rgb(var(--accent-brand))', fontWeight: 600 }}>{progress}%</span> of the way there
+        You are <span style={{ color: themeColor, fontWeight: 600 }}>{progress}%</span> of the way there
       </p>
     </div>
   );

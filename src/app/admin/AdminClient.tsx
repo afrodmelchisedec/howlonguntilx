@@ -4,6 +4,9 @@ import { useState, Fragment } from 'react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { useTheme } from '@/components/ui/ThemeProvider';
 import { CategoriesManager } from '@/components/admin/CategoriesManager';
+import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersManager';
+import SubscribersPanel from './SubscribersPanel';
+import LifeExpectancyPanel from './LifeExpectancyPanel';
 
 interface User {
   id: string; name: string | null; email: string | null;
@@ -40,7 +43,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'events' | 'articles' | 'categories';
+type Tab = 'overview' | 'users' | 'subscribers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -49,7 +52,10 @@ const STAT_COLORS: Record<string, string> = {
 };
 
 const TAB_ICONS: Record<Tab, string> = {
-  overview: '📊', users: '👥', events: '📅', articles: '📝', categories: '🗂️',
+  overview: '📊', users: '👥', subscribers: '💳', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗',
+};
+const TAB_LABELS: Record<Tab, string> = {
+  overview: 'overview', users: 'users', subscribers: 'subscribers', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners',
 };
 
 function Pagination({
@@ -381,6 +387,11 @@ export function AdminClient({
   const [importing, setImporting] = useState(false);
   const [eventJsonInput, setEventJsonInput] = useState('');
   const [importingEvents, setImportingEvents] = useState(false);
+  const [eventImportResults, setEventImportResults] = useState<{
+    updated: number;
+    created: number;
+    failed: { slug: string; error?: string }[];
+  } | null>(null);
   const [articleRows, setArticleRows] = useState(articles);
   const [eventRows, setEventRows] = useState(events);
   const [savingRow, setSavingRow] = useState<string | null>(null);
@@ -517,24 +528,39 @@ export function AdminClient({
       return;
     }
     setImportingEvents(true);
+    setEventImportResults(null);
     try {
       const res = await fetch('/api/admin/events/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed),
       });
-      const data = await res.json();
+
+      // The route can fail before it ever produces JSON (auth, body parse,
+      // unexpected server error). Guard the parse so a non-JSON response
+      // (e.g. Next's HTML error page) doesn't get swallowed as a silent
+      // "network error" with no explanation.
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        showToast(`Import failed — server returned a non-JSON response (HTTP ${res.status})`, '⚠️');
+        return;
+      }
+
       if (!res.ok) {
-        showToast(data.error ?? 'Import failed', '⚠️');
+        showToast(data.error ?? `Import failed (HTTP ${res.status})`, '⚠️');
+        return;
+      }
+
+      const { updated = 0, created = 0, failed = [] } = data;
+      setEventImportResults({ updated, created, failed });
+
+      if (failed.length > 0) {
+        showToast(`${updated} updated, ${created} created, ${failed.length} failed — see details below`, '⚠️');
       } else {
-        const { updated, failed } = data;
-        if (failed && failed.length > 0) {
-          showToast(`${updated} updated, ${failed.length} failed`, '⚠️');
-          console.error('Import errors:', failed);
-        } else {
-          showToast(`${updated} updated`, '✅');
-          setEventJsonInput('');
-        }
+        showToast(`${updated} updated, ${created} created`, '✅');
+        setEventJsonInput('');
         window.location.reload();
       }
     } catch {
@@ -655,12 +681,12 @@ export function AdminClient({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','events','articles','categories'] as Tab[]).map(t => (
+        {(['overview','users','subscribers','longevity','events','articles','categories','affiliateBanners'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}>
-            {TAB_ICONS[t]} {t}
+            {TAB_ICONS[t]} {TAB_LABELS[t]}
           </button>
         ))}
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -828,6 +854,23 @@ export function AdminClient({
                 className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {importingEvents ? 'Importing…' : 'Import events'}
               </button>
+
+              {eventImportResults && (
+                <div className="mt-4 text-sm">
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    {eventImportResults.updated} updated · {eventImportResults.created} created · {eventImportResults.failed.length} failed
+                  </p>
+                  {eventImportResults.failed.length > 0 && (
+                    <ul className="space-y-1">
+                      {eventImportResults.failed.map((f, i) => (
+                        <li key={i} className="text-red-500 dark:text-red-400 text-xs font-mono">
+                          <span className="font-semibold">{f.slug}</span>: {f.error ?? 'Unknown error'}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 mb-4">
               <input
@@ -1103,8 +1146,16 @@ export function AdminClient({
           </div>
         )}
 
+        {/* SUBSCRIBERS */}
+        {tab === 'subscribers' && <SubscribersPanel />}
+
+        {/* LIFE EXPECTANCY DATA */}
+        {tab === 'longevity' && <LifeExpectancyPanel />}
+
         {/* CATEGORIES */}
         {tab === 'categories' && <CategoriesManager />}
+        {/* AFFILIATE BANNERS */}
+        {tab === 'affiliateBanners' && <AffiliateBannersManager />}
 
       </main>
     </div>

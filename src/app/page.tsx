@@ -139,8 +139,10 @@ export default async function HomePage() {
                 Not an AI guess but a live clock ticking to your exact moment.
               </p>
 
-              {/* Wider search bar */}
-              <div className="anim-fade-up w-full mx-auto mb-2" style={{ maxWidth: 680 }}>
+              {/* Wider search bar — elevated above HeroTicker's own stacking
+                  context, since anim-fade-up creates a stacking context via
+                  its transform-based keyframe animation on both wrappers */}
+              <div className="anim-fade-up w-full mx-auto mb-2" style={{ maxWidth: 680, position: 'relative', zIndex: 300 }}>
                 <SearchBar />
               </div>
 
@@ -149,7 +151,7 @@ export default async function HomePage() {
               </p>
 
               {/* Hero Ticker — wide, swipeable */}
-              <div className="anim-fade-up">
+              <div className="anim-fade-up" style={{ position: 'relative', zIndex: 1 }}>
                 <HeroTicker />
               </div>
 

@@ -92,11 +92,22 @@ export function buildFaqList(
         { q: `How many weeks until ${name}?`, a: `There are approximately ${weeks} weeks until ${name}.` },
       ];
 
-  const extra: FaqPair[] = (custom ?? []).map(f => ({ q: f.question, a: f.answer }));
+  // Support both { q, a } and { question, answer } shapes
+  const extra: FaqPair[] = (custom ?? [])
+    .filter(f => f && typeof f === 'object')
+    .map((f: any) => {
+      if (f.q && f.a) return { q: f.q, a: f.a };
+      if (f.question && f.answer) return { q: f.question, a: f.answer };
+      // If neither, log a warning and skip this item
+      console.warn('Invalid FAQ item:', f);
+      return null;
+    })
+    .filter((f): f is FaqPair => f !== null);
 
   const seen = new Set<string>();
   const merged: FaqPair[] = [];
   for (const pair of [...base, ...extra]) {
+    if (!pair || !pair.q || typeof pair.q !== 'string' || pair.q.trim().length === 0) continue;
     const key = pair.q.trim().toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

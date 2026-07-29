@@ -3,7 +3,7 @@ import { prisma } from './db';
 export async function getEventBySlug(slug: string) {
   return prisma.event.findUnique({
     where: { slug },
-    include: { category: true }, // optional bonus data, never required
+    include: { category: true, subcategory: true }, // both needed — subcategory carries the mapped tool
   });
 }
 
@@ -35,5 +35,6 @@ export async function getRelatedEvents(categorySlug: string, excludeSlug: string
     where: { categorySlug, published: true, NOT: { slug: excludeSlug } },
     orderBy: { views: 'desc' },
     take: limit,
+    include: { category: true }, // related events
   });
 }
