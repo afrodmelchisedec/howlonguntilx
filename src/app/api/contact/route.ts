@@ -27,12 +27,16 @@ export async function POST(req: NextRequest) {
   const { name, email, category, message, company, formRenderedAt } = body;
 
   if (typeof company === 'string' && company.trim().length > 0) {
+    console.warn('[contact] dropped submission: honeypot field was filled', { company });
     return NextResponse.json({ success: true });
   }
 
   if (typeof formRenderedAt === 'number' && Date.now() - formRenderedAt < 2000) {
+    console.warn('[contact] dropped submission: submitted too fast', { elapsedMs: Date.now() - formRenderedAt });
     return NextResponse.json({ success: true });
   }
+
+  console.log('[contact] submission passed bot checks, proceeding to send', { name, email, category });
 
   if (!name || typeof name !== 'string' || name.trim().length < 2) {
     return NextResponse.json({ error: 'Please enter your name.' }, { status: 400 });
