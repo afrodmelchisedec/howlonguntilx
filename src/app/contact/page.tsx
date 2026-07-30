@@ -1,9 +1,8 @@
 // FILE: src/app/contact/page.tsx
 import Link from 'next/link';
+import { ContactForm } from '@/components/contact/ContactForm';
 
-const GLOW = '255, 159, 10'; // warm accent — distinct from About/Tech Events, matches "reach out" energy
-
-// TODO: replace with your real support inbox
+const GLOW = '255, 159, 10';
 const CONTACT_EMAIL = 'hello@howlonguntilx.com';
 
 export const metadata = {
@@ -13,10 +12,10 @@ export const metadata = {
 };
 
 const REASONS = [
-  { emoji: '💡', title: 'Suggest a tool', body: 'Have an idea for a countdown or tracker we haven\'t built yet? Tell us the category and the interaction you\'re picturing.' },
-  { emoji: '🐛', title: 'Report a bug', body: 'Something broken or behaving oddly? Include the tool name and what you were doing right before it happened.' },
-  { emoji: '🤝', title: 'Partnerships', body: 'Interested in integrating, embedding, or collaborating? We\'d love to hear the details.' },
-  { emoji: '❓', title: 'Something else', body: 'Genuinely anything else — feedback, press, or just to say hi.' },
+  { emoji: '💡', title: 'Suggest a tool', body: 'Have an idea for a countdown or tracker we haven\'t built yet? Tell us the category and the interaction you\'re picturing.', category: 'suggest_tool' },
+  { emoji: '🐛', title: 'Report a bug', body: 'Something broken or behaving oddly? Include the tool name and what you were doing right before it happened.', category: 'report_bug' },
+  { emoji: '🤝', title: 'Partnerships', body: 'Interested in integrating, embedding, or collaborating? We\'d love to hear the details.', category: 'partnership' },
+  { emoji: '❓', title: 'Something else', body: 'Genuinely anything else — feedback, press, or just to say hi.', category: 'other' },
 ];
 
 export default function ContactPage() {
@@ -35,8 +34,12 @@ export default function ContactPage() {
         </p>
       </div>
 
+      <div className="mb-10">
+        <ContactForm />
+      </div>
+
       <div className="ios-card p-6 sm:p-8 mb-10 text-center anim-fade-up" style={{ boxShadow: `0 0 0 1.5px rgba(${GLOW}, 0.25), 0 0 40px rgba(${GLOW}, 0.1)`, animationDelay: '80ms' }}>
-        <p className="text-caption mb-2" style={{ color: 'var(--text-secondary)' }}>EMAIL US DIRECTLY</p>
+        <p className="text-caption mb-2" style={{ color: 'var(--text-secondary)' }}>PREFER EMAIL DIRECTLY?</p>
         <a href={`mailto:${CONTACT_EMAIL}`} className="text-title3 font-bold" style={{ color: `rgb(${GLOW})` }}>{CONTACT_EMAIL}</a>
         <p className="text-footnote mt-3" style={{ color: 'var(--text-secondary)' }}>We typically reply within a couple of business days.</p>
       </div>

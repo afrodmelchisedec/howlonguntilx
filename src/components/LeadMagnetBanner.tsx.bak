@@ -152,11 +152,11 @@ export default function LeadMagnetBanner() {
               required
               value={form.region}
               onChange={(e) => setForm({ ...form, region: e.target.value })}
-              style={{ ...inputStyle, marginTop: 8, colorScheme: 'dark' }}
+              style={{ ...inputStyle, marginTop: 8 }}
             >
-              <option value="" disabled style={optionStyle}>Select your region</option>
+              <option value="" disabled>Select your region</option>
               {REGIONS.map((r) => (
-                <option key={r.value} value={r.value} style={optionStyle}>{r.label}</option>
+                <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
             {status === 'error' && (
@@ -191,11 +191,6 @@ const closeBtnStyle: React.CSSProperties = {
   fontSize: 14,
   cursor: 'pointer',
   padding: 4,
-};
-
-const optionStyle: React.CSSProperties = {
-  color: '#f3f4f6',
-  background: '#1f2937',
 };
 
 const inputStyle: React.CSSProperties = {
