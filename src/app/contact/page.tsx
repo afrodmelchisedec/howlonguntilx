@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ContactForm } from '@/components/contact/ContactForm';
 
 const GLOW = '255, 159, 10';
-const CONTACT_EMAIL = 'hello@howlonguntilx.com';
+const CONTACT_EMAIL = 'support@howlonguntilx.com';
 
 export const metadata = {
   title: 'Contact HowLongUntil',

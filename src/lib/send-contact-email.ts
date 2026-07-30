@@ -5,6 +5,12 @@ import { resend } from '@/lib/resend';
 // is set up to forward it to an inbox you actually check (same pattern as isxsafe.com).
 const NOTIFY_TO = 'afrodmwine@gmail.com';
 
+// Dedicated sender for contact-form emails, kept separate from RESEND_FROM_EMAIL
+// (which the lead magnet uses) so the two don't share a "from" identity.
+// The domain is already verified with Resend for sending, so support@ works
+// immediately — no inbound/receiving setup required just to send FROM it.
+const CONTACT_FROM_EMAIL = 'How Long Until X Support <support@howlonguntilx.com>';
+
 const CATEGORY_LABELS: Record<string, string> = {
   suggest_tool: 'Suggest a tool',
   report_bug: 'Report a bug',
@@ -28,7 +34,7 @@ function escapeHtml(str: string) {
 }
 
 export async function sendContactNotification({ name, email, category, message }: SendContactNotificationInput) {
-  const from = process.env.RESEND_FROM_EMAIL || 'How Long Until X <hello@howlonguntilx.com>';
+  const from = CONTACT_FROM_EMAIL;
   const categoryLabel = CATEGORY_LABELS[category] || 'Something else';
   const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
 
@@ -58,7 +64,7 @@ export async function sendContactNotification({ name, email, category, message }
 }
 
 export async function sendContactConfirmation({ name, email }: { name: string; email: string }) {
-  const from = process.env.RESEND_FROM_EMAIL || 'How Long Until X <hello@howlonguntilx.com>';
+  const from = CONTACT_FROM_EMAIL;
   const firstName = name.trim().split(' ')[0] || 'there';
 
   const html = `
