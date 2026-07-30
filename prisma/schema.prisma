@@ -654,3 +654,40 @@ model LifeExpectancyProfile {
 // ── ADD these relation fields inside the existing `model User { ... }` block ─
 //   lifeExpectancyProfile  LifeExpectancyProfile?
 
+enum LeadRegion {
+  AMERICAS
+  EUROPE
+  ASIA
+  AFRICA
+  MIDDLE_EAST
+  AUSTRALIA
+}
+
+// Singleton row (always fetched/updated by a fixed id) holding the
+// sitewide lead magnet banner's editable content.
+model LeadMagnetConfig {
+  id          String   @id @default(cuid())
+  headline    String   @default("Get the free 2026–2027 Event Calendar")
+  description String   @default("50+ dates worth planning around — holidays, sports finals, tax deadlines, eclipses and more — delivered to your inbox.")
+  ctaLabel    String   @default("Send me the calendar")
+  fileUrl     String   @default("")
+  active      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+// Lightweight capture table — deliberately NOT your full User/auth model.
+// No password, no account, just a marketing contact tied to a download.
+model LeadMagnetSubscriber {
+  id        String     @id @default(cuid())
+  name      String
+  email     String
+  region    LeadRegion
+  source    String     @default("global_banner")
+  createdAt DateTime   @default(now())
+
+  // Same email can exist once per "source" — lets you reuse this table
+  // for a second lead magnet later without colliding on email alone.
+  @@unique([email, source])
+  @@index([region])
+  @@index([createdAt])
+}
