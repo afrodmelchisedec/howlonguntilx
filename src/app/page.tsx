@@ -147,7 +147,7 @@ export default async function HomePage() {
               </div>
 
               <p className="anim-fade-up text-caption mb-6" style={{ color: 'var(--text-tertiary)' }}>
-                Try: "Christmas" · "FIFA World Cup" · "Solar Eclipse" · "Salary Day"
+                Try: "How" . "When" . "Christmas" · "FIFA World Cup" · "Solar Eclipse" · "Salary Day"
               </p>
 
               {/* Hero Ticker — wide, swipeable */}

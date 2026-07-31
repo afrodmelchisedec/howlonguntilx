@@ -29,6 +29,7 @@ model User {
   createdAt     DateTime  @default(now())
   lastSeen      DateTime?
 
+  apiKeys  ApiKey[]
   accounts                  Account[]
   sessions                  Session[]
   timers                    Timer[]
@@ -691,3 +692,49 @@ model LeadMagnetSubscriber {
   @@index([region])
   @@index([createdAt])
 }
+
+
+enum ApiTier {
+  GROWTH
+  SCALE
+}
+
+enum ApiKeyStatus {
+  pending    // subscription created client-side, awaiting webhook confirmation
+  active
+  suspended  // payment failed / subscription suspended in PayPal
+  cancelled
+}
+
+model ApiKey {
+  id                   String       @id @default(cuid())
+  key                  String       @unique // e.g. "hlx_live_xxxxxxxxxxxxxxxx" — shown once at issuance
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier                 ApiTier
+  creditLimit          Int          // monthly cap: 20000 for GROWTH, 250000 for SCALE
+  creditsUsed          Int          @default(0)
+  periodStart          DateTime     @default(now())
+  periodEnd            DateTime
+  paypalSubscriptionId String?      @unique
+  status               ApiKeyStatus @default(pending)
+  createdAt            DateTime     @default(now())
+  revokedAt            DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Free-tier usage, tracked per IP per calendar month. DB-backed (not
+// in-memory) so it survives Netlify serverless cold starts.
+model ApiUsageIp {
+  id        String   @id @default(cuid())
+  ip        String
+  yearMonth String   // "2026-07"
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([ip, yearMonth])
+}
+
+

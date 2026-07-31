@@ -1,10 +1,20 @@
 // FILE: src/app/api/search/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { rateLimit } from '@/lib/rateLimit';
+import { checkApiCredits, creditHeaders } from '@/lib/apiAuth';
 
 export async function GET(req: NextRequest) {
+  // Burst protection — search wasn't rate-limited before; now that it's a
+  // documented public endpoint, it gets the same guard as Countdown.
+  const limited = await rateLimit(req);
+  if (limited) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+
+  const access = await checkApiCredits(req);
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
-  if (q.length < 2) return NextResponse.json([]);
+  if (q.length < 2) return NextResponse.json([], { headers: creditHeaders(access) });
 
   const [events, articles] = await Promise.all([
     prisma.event.findMany({
@@ -51,5 +61,5 @@ export async function GET(req: NextRequest) {
   }));
 
   const combined = [...eventResults, ...articleResults].slice(0, 8);
-  return NextResponse.json(combined);
+  return NextResponse.json(combined, { headers: creditHeaders(access) });
 }

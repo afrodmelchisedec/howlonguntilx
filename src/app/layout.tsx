@@ -5,6 +5,7 @@ import { Providers } from '@/components/ui/Providers';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { ConsentBanner } from '@/components/ui/ConsentBanner';
+import { ChromeGate } from '@/components/ui/ChromeGate';
 
 export const metadata: Metadata = {
   title: { template: '%s | HowLongUntilX', default: 'HowLongUntilX — Live countdown to any event' },
@@ -37,12 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               (function() {
                 try {
                   var stored = localStorage.getItem('theme');
-                  // Dark is the default — only add .light if the user explicitly chose it.
                   if (stored === 'light') {
                     document.documentElement.classList.add('light');
                   } else {
-                    // Keep Tailwind's dark: classes (darkMode:'class') in sync with
-                    // the default/dark state too, avoiding a flash on hydration.
                     document.documentElement.classList.add('dark');
                   }
                 } catch (e) {}
@@ -53,12 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Providers>
-          <Nav />
+          <ChromeGate><Nav /></ChromeGate>
           <main style={{ flex: 1 }}>{children}</main>
-          <Footer />
+          <ChromeGate><Footer /></ChromeGate>
         </Providers>
-          <ConsentBanner />
-              <LeadMagnetBanner />
+        <ChromeGate><ConsentBanner /></ChromeGate>
+        <ChromeGate><LeadMagnetBanner /></ChromeGate>
       </body>
     </html>
   );
