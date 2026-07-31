@@ -7,11 +7,23 @@ import Link from 'next/link';
 
 type Tier = 'GROWTH' | 'SCALE';
 
-const MODE = process.env.NEXT_PUBLIC_PAYPAL_MODE === 'live' ? 'LIVE' : 'SANDBOX';
-const CLIENT_ID = process.env[`NEXT_PUBLIC_PAYPAL_CLIENT_ID_${MODE}`];
+const IS_LIVE = process.env.NEXT_PUBLIC_PAYPAL_MODE === 'live';
+
+// NOTE: these must be static, literal `process.env.NEXT_PUBLIC_X` references —
+// Next.js inlines NEXT_PUBLIC_* vars into the client bundle via a build-time
+// find/replace. Dynamic bracket access like process.env[`FOO_${mode}`] can't
+// be resolved at build time, so it silently returns undefined in the browser.
+const CLIENT_ID = IS_LIVE
+  ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID_LIVE
+  : process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID_SANDBOX;
+
 const PLAN_IDS: Record<Tier, string | undefined> = {
-  GROWTH: process.env[`NEXT_PUBLIC_PAYPAL_API_GROWTH_PLAN_ID_${MODE}`],
-  SCALE: process.env[`NEXT_PUBLIC_PAYPAL_API_SCALE_PLAN_ID_${MODE}`],
+  GROWTH: IS_LIVE
+    ? process.env.NEXT_PUBLIC_PAYPAL_API_GROWTH_PLAN_ID_LIVE
+    : process.env.NEXT_PUBLIC_PAYPAL_API_GROWTH_PLAN_ID_SANDBOX,
+  SCALE: IS_LIVE
+    ? process.env.NEXT_PUBLIC_PAYPAL_API_SCALE_PLAN_ID_LIVE
+    : process.env.NEXT_PUBLIC_PAYPAL_API_SCALE_PLAN_ID_SANDBOX,
 };
 
 let sdkLoadPromise: Promise<void> | null = null;
