@@ -593,7 +593,7 @@ export function DarkSkyExplorer() {
               <p className="text-footnote font-bold mb-0.5">🔒 Free plan: 7-night forecast, 1 unsaved spot</p>
               <p className="text-caption">Upgrade to Premium for a 30-night forecast, up to {MAX_SPOTS} saved Sky Spots, every event, and saving your setup.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

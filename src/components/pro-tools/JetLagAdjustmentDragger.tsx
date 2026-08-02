@@ -421,7 +421,7 @@ export function JetLagAdjustmentDragger() {
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 5 prep days, 30-min precision'}</p>
               <p className="text-caption">Upgrade to Premium for up to {PRO_MAX_PREP_DAYS} prep days, {PRO_SNAP_MINUTES}-minute drag precision, and saving your setup.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

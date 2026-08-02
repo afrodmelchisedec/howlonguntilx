@@ -595,7 +595,7 @@ export function FraudResponseClock() {
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : `🔒 Free plan: ${FREE_MAX_INCIDENTS} incidents, fixed deadlines`}</p>
               <p className="text-caption">Upgrade to Premium for up to {PRO_MAX_INCIDENTS} incidents, editable deadline windows, custom checklist steps, a self-assessed Risk Radar, and saving your tracker.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

@@ -632,7 +632,7 @@ export function EntertainmentWatchlist() {
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ Watchlist full" : `🔒 Free plan: ${FREE_MAX_ITEMS} titles, current month only`}</p>
               <p className="text-caption">Upgrade to Premium for up to {PRO_MAX_ITEMS} titles, custom titles, binge tracking on every show, a 2-month calendar, and saving your watchlist.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

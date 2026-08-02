@@ -646,7 +646,7 @@ export function DeadlineBufferSlider() {
               <p className="text-footnote font-bold mb-0.5">⭐ You've hit the free limit</p>
               <p className="text-caption">Upgrade to Premium to plan up to {PRO_MAX_DAYS_OUT} days out, add custom phases, mark holidays, and save your setup.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

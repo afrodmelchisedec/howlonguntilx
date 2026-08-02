@@ -580,7 +580,7 @@ export function SavingsGoalSlider() {
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 3 goals, $2,000/mo cap'}</p>
               <p className="text-caption">Upgrade to Premium to plan up to {formatMoney(PRO_MAX_MONTHLY)}/mo, add up to {MAX_GOALS} goals, lock allocations, and save your setup.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

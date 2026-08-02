@@ -43,7 +43,7 @@ export function ToolProGate({
             <div className="text-3xl mb-3">⭐</div>
             <p className="text-headline mb-1">{title}</p>
             <p className="text-footnote mb-5">{desc}</p>
-            <button className="btn-filled w-full">Start free trial — $9.99/mo after 7 days</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled w-full">Start free trial — $9.99/mo after 7 days</button>
             <p className="text-footnote mt-2">Cancel anytime · 7-day free trial · card required</p>
           </div>
         </div>

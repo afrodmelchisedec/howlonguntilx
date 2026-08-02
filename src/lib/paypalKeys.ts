@@ -7,7 +7,7 @@ import crypto from 'crypto';
 const MODE = process.env.NEXT_PUBLIC_PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
 const IS_LIVE = MODE === 'live';
 
-const API_BASE = IS_LIVE ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+export const API_BASE = IS_LIVE ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 
 function env(name: string): string {
   const suffix = IS_LIVE ? '_LIVE' : '_SANDBOX';
@@ -21,7 +21,7 @@ export function generateApiKey(): string {
   return prefix + crypto.randomBytes(20).toString('hex');
 }
 
-async function getAccessToken(): Promise<string> {
+export async function getAccessToken(): Promise<string> {
   const clientId = env('PAYPAL_CLIENT_ID');
   const clientSecret = env('PAYPAL_CLIENT_SECRET');
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');

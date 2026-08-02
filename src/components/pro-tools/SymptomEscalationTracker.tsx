@@ -296,7 +296,7 @@ export function SymptomEscalationTracker() {
               <p className="text-footnote font-bold mb-0.5">🔒 Free plan: check-in only, no history</p>
               <p className="text-caption">Upgrade to log daily, track your trend, build a streak, and add custom symptoms.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

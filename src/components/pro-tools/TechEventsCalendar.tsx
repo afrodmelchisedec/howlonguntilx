@@ -400,7 +400,7 @@ export function TechEventsCalendar() {
               <p className="text-footnote font-bold mb-0.5">🔒 Free plan: {FREE_MONTHS_AHEAD + 1}-month browsing window, no saved watchlist</p>
               <p className="text-caption">Upgrade to Premium to browse any month past or future and save your own event watchlist.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0" onClick={() => showToast('Redirecting to upgrade…')}>Upgrade to Premium — $4/mo</button>
+            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0" onClick={() => showToast('Redirecting to upgrade…')}>Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

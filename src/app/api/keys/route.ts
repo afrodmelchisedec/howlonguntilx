@@ -4,9 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
-// Stopgap for testing before a real dashboard UI exists — lets a signed-in
-// user fetch their own API key(s) and current usage. Never exposes other
-// users' keys; scoped strictly to session.user.id.
+// Lets a signed-in user fetch their own API key(s) and current usage. Never
+// exposes other users' keys; scoped strictly to session.user.id.
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -17,6 +16,7 @@ export async function GET() {
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
     select: {
+      id: true,
       key: true,
       tier: true,
       status: true,

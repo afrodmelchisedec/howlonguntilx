@@ -7,6 +7,7 @@ import { CategoriesManager } from '@/components/admin/CategoriesManager';
 import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersManager';
 import { LeadMagnetManager } from '@/components/admin/LeadMagnetManager';
 import SubscribersPanel from './SubscribersPanel';
+import ApiUsersPanel from './ApiUsersPanel';
 import LifeExpectancyPanel from './LifeExpectancyPanel';
 
 interface User {
@@ -44,7 +45,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'subscribers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet';
+type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -53,10 +54,10 @@ const STAT_COLORS: Record<string, string> = {
 };
 
 const TAB_ICONS: Record<Tab, string> = {
-  overview: '📊', users: '👥', subscribers: '💳', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁',
+  overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁',
 };
 const TAB_LABELS: Record<Tab, string> = {
-  overview: 'overview', users: 'users', subscribers: 'subscribers', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet',
+  overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet',
 };
 
 function Pagination({
@@ -682,7 +683,7 @@ export function AdminClient({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','subscribers','longevity','events','articles','categories','affiliateBanners','leadMagnet'] as Tab[]).map(t => (
+        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -1149,6 +1150,8 @@ export function AdminClient({
 
         {/* SUBSCRIBERS */}
         {tab === 'subscribers' && <SubscribersPanel />}
+
+        {tab === 'apiUsers' && <ApiUsersPanel />}
 
         {/* LIFE EXPECTANCY DATA */}
         {tab === 'longevity' && <LifeExpectancyPanel />}

@@ -693,7 +693,7 @@ export function FocusBlockBuilder() {
               <p className="text-footnote font-bold mb-0.5">{atFreeLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 4 blocks, 15-min snap'}</p>
               <p className="text-caption">Upgrade to Premium for up to {MAX_BLOCKS} blocks, {PRO_SNAP_MINUTES}-minute drag precision, fully custom-named blocks, and saving your day.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

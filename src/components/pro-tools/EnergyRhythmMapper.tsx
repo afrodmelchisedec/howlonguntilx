@@ -547,7 +547,7 @@ export function EnergyRhythmMapper() {
               <p className="text-footnote font-bold mb-0.5">🔒 Free plan: 8 points, 10% snap</p>
               <p className="text-caption">Upgrade to Premium for 12-point resolution, 2% precision, daily logging, streaks, and your 7-day heatmap.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

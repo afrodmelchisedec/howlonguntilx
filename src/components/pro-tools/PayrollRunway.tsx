@@ -775,7 +775,7 @@ export function PayrollRunway() {
               <p className="text-footnote font-bold mb-0.5">{atFreeBillLimit ? "⭐ You've hit the free limit" : '🔒 Free plan: 3 bills, current period only'}</p>
               <p className="text-caption">Upgrade to Premium for up to {PRO_MAX_BILLS} bills, insurance/custom deductions, a {PRO_PERIODS_AHEAD}-period projection, the Raise Simulator, and saving your setup.</p>
             </div>
-            <button className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={() => window.location.href = "/upgrade"} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

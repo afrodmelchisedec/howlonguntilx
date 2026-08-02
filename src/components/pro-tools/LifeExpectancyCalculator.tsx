@@ -544,7 +544,7 @@ export function LifeExpectancyCalculator() {
               <p className="text-footnote font-bold mb-0.5">🔒 Free plan: 1 lifestyle factor, no saved timer</p>
               <p className="text-caption">Upgrade to stack every factor, save your countdown, and compare with family.</p>
             </div>
-            <button onClick={handleSave} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $4/mo</button>
+            <button onClick={handleSave} className="btn-filled press text-xs px-4 py-2 flex-shrink-0">Upgrade to Premium — $9.99/mo</button>
           </div>
         )}
 

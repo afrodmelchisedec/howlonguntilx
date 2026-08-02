@@ -55,7 +55,7 @@ export function ProGate({ title, desc, children }: { title: string; desc: string
           <p className="text-headline mb-1">{title}</p>
           <p className="text-footnote mb-5">{desc}</p>
           <button className="btn-filled w-full">
-            Upgrade to Premium — $4/mo
+            Upgrade to Premium — $9.99/mo
           </button>
           <p className="text-footnote mt-2">Cancel anytime · No credit card trial</p>
         </div>
