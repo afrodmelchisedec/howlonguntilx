@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: { template: '%s | HowLongUntilX', default: 'HowLongUntilX — Live countdown to any event' },
   description: 'Instant countdowns to any event — Christmas, World Cup, salary day and more. Real-time, to the second.',
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com'),
+  // TODO: verification: { google: 'PASTE_SEARCH_CONSOLE_CONTENT_VALUE_HERE' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               `,
             }}
           />
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+            `,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
