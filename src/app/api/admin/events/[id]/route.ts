@@ -17,7 +17,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const event = await prisma.event.findUnique({ where: { id: params.id } });
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  let body: { categoryId?: string | null; subcategoryId?: string | null };
+  let body: {
+    categoryId?: string | null;
+    subcategoryId?: string | null;
+    reviewerId?: string | null;
+    reviewEnabled?: boolean;
+  };
   try {
     body = await req.json();
   } catch {
@@ -25,7 +30,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   // Only touch fields that were actually sent, same convention as the articles PATCH route.
-  const data: { categoryId?: string | null; subcategoryId?: string | null; categorySlug?: string } = {};
+  const data: {
+    categoryId?: string | null;
+    subcategoryId?: string | null;
+    categorySlug?: string;
+    reviewerId?: string | null;
+    reviewEnabled?: boolean;
+    reviewedAt?: Date | null;
+  } = {};
 
   if ('categoryId' in body) {
     const categoryId = body.categoryId || null;
@@ -43,14 +55,29 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   if ('subcategoryId' in body) data.subcategoryId = body.subcategoryId || null;
 
+  // Reviewer assignment. reviewedAt is derived server-side (not trusted from the
+  // client) so it always reflects the moment a reviewer+enabled combo actually
+  // went live — this is what powers the "Last reviewed on {date}" public copy.
+  if ('reviewerId' in body || 'reviewEnabled' in body) {
+    const nextReviewerId = 'reviewerId' in body ? (body.reviewerId || null) : event.reviewerId;
+    const nextReviewEnabled = 'reviewEnabled' in body ? !!body.reviewEnabled : event.reviewEnabled;
+
+    if ('reviewerId' in body) data.reviewerId = nextReviewerId;
+    if ('reviewEnabled' in body) data.reviewEnabled = nextReviewEnabled;
+
+    const willShowPublicly = !!nextReviewerId && nextReviewEnabled;
+    data.reviewedAt = willShowPublicly ? new Date() : null;
+  }
+
   const updated = await prisma.event.update({
     where: { id: params.id },
     data,
-    include: { category: true, subcategory: true },
+    include: { category: true, subcategory: true, reviewer: true },
   });
 
   revalidatePath('/admin');
   revalidatePath('/categories');
+  revalidatePath('/how-long-until-' + updated.slug);
 
   return NextResponse.json(updated);
 }

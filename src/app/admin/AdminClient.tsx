@@ -6,6 +6,7 @@ import { useTheme } from '@/components/ui/ThemeProvider';
 import { CategoriesManager } from '@/components/admin/CategoriesManager';
 import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersManager';
 import { LeadMagnetManager } from '@/components/admin/LeadMagnetManager';
+import { ReviewersManager } from '@/components/admin/ReviewersManager';
 import SubscribersPanel from './SubscribersPanel';
 import ApiUsersPanel from './ApiUsersPanel';
 import LifeExpectancyPanel from './LifeExpectancyPanel';
@@ -16,6 +17,7 @@ interface User {
   createdAt: Date; lastSeen: Date | null;
   _count: { timers: number; sessions: number };
 }
+interface ReviewerRow { id: string; slug: string; name: string; credentials: string | null; active: boolean }
 interface EventRow {
   id: string; slug: string; name: string; views: number; targetDate: Date;
   categoryId: string | null; subcategoryId: string | null;
@@ -25,6 +27,8 @@ interface EventRow {
   authorName?: string | null;
   reviewerName?: string | null;
   reviewerCredentials?: string | null;
+  reviewerId?: string | null;
+  reviewEnabled?: boolean;
   content?: any;
   updatedAt?: Date;
 }
@@ -40,12 +44,14 @@ interface ArticleRow {
   questionType?: string | null;
   heroImageUrl?: string | null;
   heroImageAlt?: string | null;
+  reviewerId?: string | null;
+  reviewEnabled?: boolean;
 }
 interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet';
+type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -54,10 +60,10 @@ const STAT_COLORS: Record<string, string> = {
 };
 
 const TAB_ICONS: Record<Tab, string> = {
-  overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁',
+  overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
 };
 const TAB_LABELS: Record<Tab, string> = {
-  overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet',
+  overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
 };
 
 function Pagination({
@@ -373,9 +379,9 @@ function seoScoreColor(score: number): string {
 }
 
 export function AdminClient({
-  users, events, articles, categories, stats,
+  users, events, articles, categories, stats, reviewers = [],
 }: {
-  users: User[]; events: EventRow[]; articles: ArticleRow[]; categories: CategoryRow[]; stats: Stats;
+  users: User[]; events: EventRow[]; articles: ArticleRow[]; categories: CategoryRow[]; stats: Stats; reviewers?: ReviewerRow[];
 }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
@@ -418,6 +424,15 @@ export function AdminClient({
   const topLevelCategories = categories.filter(c => !c.parentId);
   const subcategoriesFor = (parentId: string | null) =>
     parentId ? categories.filter(c => c.parentId === parentId) : [];
+  // Inactive reviewers can still be shown if already assigned to a row (so the
+  // dropdown doesn't silently blank out an existing assignment), but never
+  // offered as a fresh pick.
+  const activeReviewers = reviewers.filter(r => r.active);
+  const reviewerOptionsFor = (currentId: string | null | undefined) => {
+    const assigned = currentId ? reviewers.find(r => r.id === currentId) : null;
+    if (assigned && !assigned.active) return [assigned, ...activeReviewers];
+    return activeReviewers;
+  };
 
   const filtered = users.filter(u => {
     const s = search.toLowerCase();
@@ -466,18 +481,36 @@ export function AdminClient({
     ));
   }
 
-  async function saveEventCategory(eventId: string, categoryId: string | null, subcategoryId: string | null) {
+  function updateEventRowReviewer(eventId: string, reviewerId: string) {
+    setEventRows(rows => rows.map(r =>
+      r.id === eventId ? { ...r, reviewerId: reviewerId || null } : r
+    ));
+  }
+
+  function updateEventRowReviewEnabled(eventId: string, reviewEnabled: boolean) {
+    setEventRows(rows => rows.map(r =>
+      r.id === eventId ? { ...r, reviewEnabled } : r
+    ));
+  }
+
+  async function saveEventCategory(
+    eventId: string,
+    categoryId: string | null,
+    subcategoryId: string | null,
+    reviewerId?: string | null,
+    reviewEnabled?: boolean,
+  ) {
     setSavingEventRow(eventId);
     try {
       const res = await fetch('/api/admin/events/' + eventId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId, subcategoryId }),
+        body: JSON.stringify({ categoryId, subcategoryId, reviewerId, reviewEnabled }),
       });
       if (res.ok) {
-        showToast('Category saved', '💾');
+        showToast('Saved', '💾');
       } else {
-        showToast('Could not save category', '⚠️');
+        showToast('Could not save', '⚠️');
       }
     } catch {
       showToast('Network error', '⚠️');
@@ -572,18 +605,24 @@ export function AdminClient({
     }
   }
 
-  async function saveArticleCategory(articleId: string, categoryId: string | null, subcategoryId: string | null) {
+  async function saveArticleCategory(
+    articleId: string,
+    categoryId: string | null,
+    subcategoryId: string | null,
+    reviewerId?: string | null,
+    reviewEnabled?: boolean,
+  ) {
     setSavingRow(articleId);
     try {
       const res = await fetch('/api/admin/articles/' + articleId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId, subcategoryId }),
+        body: JSON.stringify({ categoryId, subcategoryId, reviewerId, reviewEnabled }),
       });
       if (res.ok) {
-        showToast('Category saved', '💾');
+        showToast('Saved', '💾');
       } else {
-        showToast('Could not save category', '⚠️');
+        showToast('Could not save', '⚠️');
       }
     } catch {
       showToast('Network error', '⚠️');
@@ -640,6 +679,18 @@ export function AdminClient({
     ));
   }
 
+  function updateRowReviewer(articleId: string, reviewerId: string) {
+    setArticleRows(rows => rows.map(r =>
+      r.id === articleId ? { ...r, reviewerId: reviewerId || null } : r
+    ));
+  }
+
+  function updateRowReviewEnabled(articleId: string, reviewEnabled: boolean) {
+    setArticleRows(rows => rows.map(r =>
+      r.id === articleId ? { ...r, reviewEnabled } : r
+    ));
+  }
+
   const maxViews = Math.max(...eventRows.map(e => e.views), 1);
 
   const filteredArticles = articleRows.filter(a => {
@@ -683,7 +734,7 @@ export function AdminClient({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet'] as Tab[]).map(t => (
+        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -890,6 +941,7 @@ export function AdminClient({
                     <SortableTh label="Event" sortKey="event" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Category" sortKey="category" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Subcategory" sortKey="subcategory" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Reviewer" sortKey={null} sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Target date" sortKey="targetDate" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Views" sortKey="views" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="SEO" sortKey="seoScore" sort={eventSort} onSort={onEventSort} />
@@ -927,6 +979,28 @@ export function AdminClient({
                           ))}
                         </select>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={ev.reviewerId ?? ''}
+                            onChange={e => updateEventRowReviewer(ev.id, e.target.value)}
+                            className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none">
+                            <option value="">— N/A —</option>
+                            {reviewerOptionsFor(ev.reviewerId).map(r => (
+                              <option key={r.id} value={r.id}>{r.name}{r.credentials ? `, ${r.credentials}` : ''}</option>
+                            ))}
+                          </select>
+                          <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <input
+                              type="checkbox"
+                              checked={!!ev.reviewEnabled}
+                              disabled={!ev.reviewerId}
+                              onChange={e => updateEventRowReviewEnabled(ev.id, e.target.checked)}
+                            />
+                            Show publicly
+                          </label>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-xs text-gray-400">{new Date(ev.targetDate).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -947,7 +1021,7 @@ export function AdminClient({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => saveEventCategory(ev.id, ev.categoryId, ev.subcategoryId)}
+                            onClick={() => saveEventCategory(ev.id, ev.categoryId, ev.subcategoryId, ev.reviewerId, ev.reviewEnabled)}
                             disabled={savingEventRow === ev.id}
                             className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
                             {savingEventRow === ev.id ? 'Saving…' : 'Save'}
@@ -1039,6 +1113,7 @@ export function AdminClient({
                     <SortableTh label="Status" sortKey="status" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Category" sortKey="category" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Subcategory" sortKey="subcategory" sort={articleSort} onSort={onArticleSort} />
+                    <SortableTh label="Reviewer" sortKey={null} sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="SEO" sortKey="seoScore" sort={articleSort} onSort={onArticleSort} />
                     <SortableTh label="Actions" sortKey={null} sort={articleSort} onSort={onArticleSort} />
                   </tr>
@@ -1088,6 +1163,28 @@ export function AdminClient({
                         </select>
                       </td>
                       <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={a.reviewerId ?? ''}
+                            onChange={e => updateRowReviewer(a.id, e.target.value)}
+                            className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-900 focus:outline-none">
+                            <option value="">— N/A —</option>
+                            {reviewerOptionsFor(a.reviewerId).map(r => (
+                              <option key={r.id} value={r.id}>{r.name}{r.credentials ? `, ${r.credentials}` : ''}</option>
+                            ))}
+                          </select>
+                          <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <input
+                              type="checkbox"
+                              checked={!!a.reviewEnabled}
+                              disabled={!a.reviewerId}
+                              onChange={e => updateRowReviewEnabled(a.id, e.target.checked)}
+                            />
+                            Show publicly
+                          </label>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => setExpandedSeoId(seoOpen ? null : a.id)}
                           title="Click for SEO details"
@@ -1100,7 +1197,7 @@ export function AdminClient({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => saveArticleCategory(a.id, a.categoryId, a.subcategoryId)}
+                            onClick={() => saveArticleCategory(a.id, a.categoryId, a.subcategoryId, a.reviewerId, a.reviewEnabled)}
                             disabled={savingRow === a.id}
                             className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
                             {savingRow === a.id ? 'Saving…' : 'Save'}
@@ -1115,7 +1212,7 @@ export function AdminClient({
                     </tr>
                     {seoOpen && (
                       <tr className="bg-gray-50 dark:bg-gray-800/40 border-b border-gray-100 dark:border-gray-800">
-                        <td colSpan={6} className="px-4 py-4">
+                        <td colSpan={7} className="px-4 py-4">
                           <p className="text-xs font-bold mb-2" style={{ color: seoScoreColor(seo.score) }}>
                             SEO score: {seo.score}% — {seo.score >= 90 ? 'Excellent' : seo.score >= 70 ? 'Needs work' : 'Poor'}
                           </p>
@@ -1161,6 +1258,7 @@ export function AdminClient({
         {/* AFFILIATE BANNERS */}
         {tab === 'affiliateBanners' && <AffiliateBannersManager />}
         {tab === 'leadMagnet' && <LeadMagnetManager />}
+        {tab === 'reviewers' && <ReviewersManager />}
 
       </main>
     </div>

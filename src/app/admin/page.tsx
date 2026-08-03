@@ -11,16 +11,17 @@ export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'ADMIN') redirect('/');
 
-  const [users, events, timerCount, articles, categories] = await Promise.all([
+  const [users, events, timerCount, articles, categories, reviewers] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: 'desc' }, include: { _count: { select: { timers: true, sessions: true } } } }),
-    prisma.event.findMany({ orderBy: { views: 'desc' }, take: 20, include: { category: true, subcategory: true } }),
+    prisma.event.findMany({ orderBy: { views: 'desc' }, take: 20, include: { category: true, subcategory: true, reviewer: true } }),
     prisma.timer.count(),
     prisma.article.findMany({
       where: { toolSlug: 'questions' },
       orderBy: { createdAt: 'desc' },
-      include: { category: true, subcategory: true },
+      include: { category: true, subcategory: true, reviewer: true },
     }),
     prisma.category.findMany({ orderBy: { name: 'asc' } }),
+    prisma.reviewer.findMany({ orderBy: { name: 'asc' } }),
   ]);
 
   const stats = {
@@ -40,6 +41,7 @@ export default async function AdminPage() {
       events={events as any}
       articles={articles as any}
       categories={categories as any}
+      reviewers={reviewers as any}
       stats={stats}
     />
   );

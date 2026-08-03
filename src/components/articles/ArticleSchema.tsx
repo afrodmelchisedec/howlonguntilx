@@ -28,7 +28,16 @@ export function ArticleSchema({
       image: article.heroImageUrl ? [article.heroImageUrl] : undefined,
       author: { '@type': 'Organization', name: article.authorName, url: `${SITE_URL}/about` },
       publisher: { '@type': 'Organization', name: 'How Long Until', url: `${SITE_URL}/about` },
-      ...(article.reviewerName
+      ...(article.reviewEnabled && article.reviewer
+        ? {
+            reviewedBy: {
+              '@type': 'Person',
+              name: article.reviewer.name,
+              url: `${SITE_URL}/reviewers/${article.reviewer.slug}`,
+              ...(article.reviewer.credentials ? { jobTitle: article.reviewer.credentials } : {}),
+            },
+          }
+        : article.reviewerName
         ? { reviewedBy: { '@type': 'Person', name: article.reviewerName, ...(article.reviewerCredentials ? { jobTitle: article.reviewerCredentials } : {}) } }
         : {}),
       datePublished: article.publishedAt ?? undefined,

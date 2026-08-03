@@ -17,4 +17,5 @@ export const INFO_LINKS = [
   { label: 'Contact', href: '/contact' },
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms',   href: '/terms'   },
+  { label: 'Pricing',   href: '/upgrade'   },
 ];

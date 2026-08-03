@@ -103,6 +103,10 @@ model Event {
   authorName          String    @default("Afrod M (Msc Statistics at Makerere University)")
   reviewerName        String?
   reviewerCredentials String?
+  reviewerId          String?
+  reviewer            Reviewer?  @relation(fields: [reviewerId], references: [id])
+  reviewEnabled       Boolean    @default(false)
+  reviewedAt          DateTime?
   published     Boolean   @default(true)
   archived      Boolean   @default(false)
   userId        String?
@@ -486,6 +490,10 @@ model Article {
 
   reviewerName        String?
   reviewerCredentials String?
+  reviewerId          String?
+  reviewer            Reviewer?  @relation(fields: [reviewerId], references: [id])
+  reviewEnabled       Boolean    @default(false)
+  reviewedAt          DateTime?
 
   @@unique([toolSlug, slug])
   @@index([toolSlug, status, publishedAt])
@@ -735,6 +743,26 @@ model ApiUsageIp {
   updatedAt DateTime @updatedAt
 
   @@unique([ip, yearMonth])
+}
+
+
+//
+
+model Reviewer {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  credentials String?
+  title       String?
+  specialty   String?
+  bio         String   @db.Text
+  photoUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles Article[]
+  events   Event[]
 }
 
 

@@ -19,7 +19,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!article) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json();
-  const data: { categoryId?: string | null; subcategoryId?: string | null; status?: string; publishedAt?: Date } = {};
+  const data: {
+    categoryId?: string | null;
+    subcategoryId?: string | null;
+    status?: string;
+    publishedAt?: Date;
+    reviewerId?: string | null;
+    reviewEnabled?: boolean;
+    reviewedAt?: Date | null;
+  } = {};
   if ('categoryId' in body) data.categoryId = body.categoryId || null;
   if ('subcategoryId' in body) data.subcategoryId = body.subcategoryId || null;
   if ('status' in body && (body.status === 'draft' || body.status === 'published')) {
@@ -29,7 +37,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  const updated = await prisma.article.update({ where: { id: params.id }, data });
+  // Reviewer assignment. reviewedAt is derived server-side (not trusted from the
+  // client) so it always reflects the moment a reviewer+enabled combo actually
+  // went live — this is what powers the "Last reviewed on {date}" public copy.
+  if ('reviewerId' in body || 'reviewEnabled' in body) {
+    const nextReviewerId = 'reviewerId' in body ? (body.reviewerId || null) : article.reviewerId;
+    const nextReviewEnabled = 'reviewEnabled' in body ? !!body.reviewEnabled : article.reviewEnabled;
+
+    if ('reviewerId' in body) data.reviewerId = nextReviewerId;
+    if ('reviewEnabled' in body) data.reviewEnabled = nextReviewEnabled;
+
+    const willShowPublicly = !!nextReviewerId && nextReviewEnabled;
+    data.reviewedAt = willShowPublicly ? new Date() : null;
+  }
+
+  const updated = await prisma.article.update({
+    where: { id: params.id },
+    data,
+    include: { category: true, subcategory: true, reviewer: true },
+  });
 
   revalidatePath(`/tools/${updated.toolSlug}/${updated.slug}`);
   revalidatePath('/categories');

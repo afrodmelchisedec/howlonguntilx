@@ -45,6 +45,13 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
   const catGlow = article.category?.slug ? getCategoryGlowRGB(article.category.slug) : null;
   const catLabel = article.category?.slug ? article.category.slug.charAt(0).toUpperCase() + article.category.slug.slice(1) : null;
 
+  // Reviewer fallback chain: structured Reviewer record (only when explicitly
+  // enabled by the admin) -> legacy free-text reviewerName -> no reviewer at
+  // all (in which case ArticleAboutNote covers the trust-signal gap below).
+  const structuredReviewer = article.reviewEnabled && article.reviewer ? article.reviewer : null;
+  const legacyReviewerName = !structuredReviewer ? article.reviewerName : null;
+  const hasAnyReviewer = !!structuredReviewer || !!legacyReviewerName;
+
   return (
     <article className="anim-fade-up">
       <ArticleStyles />
@@ -92,18 +99,28 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
         <ShareButton glow={glow} title={article.title} />
       </div>
 
-      {article.reviewerName && (
+      {structuredReviewer && (
         <p className="text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
-          ✓ Medically reviewed by {article.reviewerName}
+          ✓ Medically reviewed by{' '}
+          <Link href={`/reviewers/${structuredReviewer.slug}`} className="hover:underline" style={{ color: 'inherit' }}>
+            {structuredReviewer.name}
+          </Link>
+          {structuredReviewer.credentials ? `, ${structuredReviewer.credentials}` : ''}
+        </p>
+      )}
+      {legacyReviewerName && (
+        <p className="text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
+          ✓ Medically reviewed by {legacyReviewerName}
           {article.reviewerCredentials ? `, ${article.reviewerCredentials}` : ''}
         </p>
       )}
 
       <ArticleDisclaimer categorySlug={article.category?.slug} glow={glow} />
 
-      {/* Only shows when there's no real reviewer set — the moment article.reviewerName
-          is populated, the badge above takes over and this note disappears on its own. */}
-      {!article.reviewerName && (
+      {/* Only shows when there's no reviewer set at all — the moment a structured
+          or legacy reviewer is populated, the badge above takes over and this
+          note disappears on its own. */}
+      {!hasAnyReviewer && (
         <ArticleAboutNote authorName={article.authorName} updatedAt={article.updatedAt} categorySlug={article.category?.slug} glow={glow} />
       )}
 

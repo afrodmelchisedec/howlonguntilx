@@ -3,7 +3,7 @@ import { prisma } from './db';
 export async function getEventBySlug(slug: string) {
   return prisma.event.findUnique({
     where: { slug },
-    include: { category: true, subcategory: true }, // both needed — subcategory carries the mapped tool
+    include: { category: true, subcategory: true, reviewer: true }, // subcategory carries the mapped tool; reviewer powers the "Reviewed by" badge
   });
 }
 

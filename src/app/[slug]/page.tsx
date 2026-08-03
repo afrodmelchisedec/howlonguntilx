@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getEventBySlug, incrementViews, getAllEventSlugs } from '@/lib/events';
@@ -82,6 +83,11 @@ export default async function EventPage({ params }: Props) {
   const affiliateBanner = await getAffiliateBanner(event.categorySlug);
 
   const glow = getCategoryGlowRGB(event.categorySlug);
+  // Reviewer fallback chain — mirrors ArticleLayout.tsx: structured Reviewer
+  // record (only when explicitly enabled by the admin) -> legacy free-text
+  // reviewerName -> no reviewer badge at all.
+  const structuredReviewer = (event as any).reviewEnabled && (event as any).reviewer ? (event as any).reviewer : null;
+  const legacyReviewerName = !structuredReviewer ? event.reviewerName : null;
   const blocks = Array.isArray(content.body) ? content.body : [];
   const headings = extractHeadings(blocks.map(b => ({ ...b, type: b.type })));
   const faqItems = extractFaq(blocks.map(b => ({ ...b, type: b.type })));
@@ -100,6 +106,8 @@ export default async function EventPage({ params }: Props) {
             dek: event.description || 'Countdown to ' + event.name,
             heroImageUrl: heroImageUrl,
             authorName: event.authorName || 'HowLongUntilX',
+            reviewer: structuredReviewer || undefined,
+            reviewEnabled: (event as any).reviewEnabled,
             reviewerName: event.reviewerName || undefined,
             reviewerCredentials: event.reviewerCredentials || undefined,
             publishedAt: event.createdAt,
@@ -128,8 +136,17 @@ export default async function EventPage({ params }: Props) {
           />
           <p className="text-caption mb-6" style={{ color: 'var(--text-secondary)' }}>
             By {event.authorName}{updated ? ` · Updated ${updated.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
-            {event.reviewerName && (
-              <> · Reviewed by {event.reviewerName}{event.reviewerCredentials ? `, ${event.reviewerCredentials}` : ''}</>
+            {structuredReviewer && (
+              <>
+                {' '}· Reviewed by{' '}
+                <Link href={`/reviewers/${structuredReviewer.slug}`} className="hover:underline" style={{ color: 'inherit' }}>
+                  {structuredReviewer.name}
+                </Link>
+                {structuredReviewer.credentials ? `, ${structuredReviewer.credentials}` : ''}
+              </>
+            )}
+            {legacyReviewerName && (
+              <> · Reviewed by {legacyReviewerName}{event.reviewerCredentials ? `, ${event.reviewerCredentials}` : ''}</>
             )}
           </p>
 
@@ -140,7 +157,7 @@ export default async function EventPage({ params }: Props) {
           {/* Disclaimer and About note */}
           <div className="max-w-2xl mx-auto px-4 pb-4 text-left">
             <ArticleDisclaimer categorySlug={event.categorySlug} glow={glow} />
-            {!event.reviewerName && (
+            {!structuredReviewer && !legacyReviewerName && (
               <ArticleAboutNote
                 authorName={event.authorName}
                 updatedAt={event.updatedAt}
