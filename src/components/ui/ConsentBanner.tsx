@@ -16,6 +16,17 @@ function applyConsent(state: ConsentState) {
     ad_user_data: state.ads ? 'granted' : 'denied',
     ad_personalization: state.ads ? 'granted' : 'denied',
   });
+  // The gtag('config', ...) call in layout.tsx fires immediately on page
+  // load and tries to auto-send an initial pageview - but at that point
+  // analytics_storage is still 'denied' by default, so that hit gets
+  // silently suppressed. Consent Mode does NOT retroactively resend a
+  // suppressed hit once consent changes, so without this, anyone who
+  // accepts (or who returns with a previously-saved "accepted" choice)
+  // would generate zero data for their pageview. Firing it explicitly
+  // here, only when analytics is actually granted, closes that gap.
+  if (state.analytics) {
+    gtag('event', 'page_view');
+  }
 }
 
 export function ConsentBanner() {
