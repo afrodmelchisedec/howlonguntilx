@@ -6,6 +6,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { ConsentBanner } from '@/components/ui/ConsentBanner';
 import { ChromeGate } from '@/components/ui/ChromeGate';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: { template: '%s | HowLongUntilX', default: 'HowLongUntilX — Live countdown to any event' },
@@ -15,38 +16,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('consent', 'default', {
-                  ad_storage: 'denied',
-                  analytics_storage: 'denied',
-                  ad_user_data: 'denied',
-                  ad_personalization: 'denied',
-                  wait_for_update: 500
-                });
-              `,
-            }}
-          />
-        <script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
-            `,
-          }}
-        />
+        {/* Theme Initialization (blocking to prevent flash of wrong theme) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -72,6 +47,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Providers>
         <ChromeGate><ConsentBanner /></ChromeGate>
         <ChromeGate><LeadMagnetBanner /></ChromeGate>
+
+        {/* 1. Default Consent State Script */}
+        <Script
+          id="gtag-consent"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent', 'default', {
+                ad_storage: 'denied',
+                analytics_storage: 'granted', // <-- Set to granted so GA4 receives events
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                wait_for_update: 500
+              });
+            `,
+          }}
+        />
+
+        {/* 2. Load Google Analytics Library */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            {/* 3. Initialize GA Configuration */}
+            <Script
+              id="gtag-init"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${gaId}');
+                `,
+              }}
+            />
+          </>
+        )}
       </body>
     </html>
   );
