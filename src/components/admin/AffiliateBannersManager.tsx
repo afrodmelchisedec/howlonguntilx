@@ -41,7 +41,10 @@ export function AffiliateBannersManager() {
         setError(catData?.error ?? bannerData?.error ?? 'Failed to load');
         return;
       }
-      const topLevel: CategoryRow[] = catData.categories ?? [];
+      // Synthetic row for the /tools page banner — it's not a real Category,
+      // but reuses the same AffiliateBanner system keyed by the reserved slug "tools".
+      const toolsPageRow: CategoryRow = { id: '__tools-page__', slug: 'tools', name: 'Tools page', emoji: '🧰' };
+      const topLevel: CategoryRow[] = [...(catData.categories ?? []), toolsPageRow];
       setCategories(topLevel);
 
       const byCat: Record<string, Banner> = {};

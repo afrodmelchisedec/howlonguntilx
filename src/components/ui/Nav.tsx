@@ -9,6 +9,7 @@ import { NAV_LINKS, INFO_LINKS } from '@/lib/nav-links';
 export function Nav() {
   const { data:session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -19,15 +20,47 @@ export function Nav() {
           <Link href="/" className="press font-black text-lg tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
             <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c98fe0" /><stop offset="100%" stopColor="#e07ab0" /></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#navGrad)" /><path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>How Long<span className="gradient-text"> Until x</span>
           </Link>
+
+          {/* Desktop: single organized "Explore" dropdown instead of a flat row of pills */}
           <div className="hidden sm:flex items-center gap-0.5">
-            {NAV_LINKS.map(l => (
-              <Link key={l.label} href={l.href}
-                {...(l.ext ? { target:'_blank' } : {})}
-                className={`nav-link glow ${l.cls} press text-sm font-semibold`}
-                style={{ color: 'var(--text-secondary)' }}>
-                {l.label}
-              </Link>
-            ))}
+            <div className="relative">
+              <button
+                onClick={() => setExploreOpen(v => !v)}
+                className="nav-link press text-sm font-semibold flex items-center gap-1.5"
+                style={{ color: 'var(--text-secondary)' }}
+                aria-expanded={exploreOpen}
+              >
+                Explore
+                <span
+                  className="text-xs"
+                  style={{ transition: 'transform 0.22s var(--spring)', transform: exploreOpen ? 'rotate(180deg)' : 'none', display: 'inline-block' }}
+                  aria-hidden="true"
+                >
+                  ▾
+                </span>
+              </button>
+
+              {exploreOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setExploreOpen(false)} />
+                  <div className="ios-card anim-scale-in absolute left-0 mt-2 w-72 overflow-hidden z-50 py-1.5" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+                    {NAV_LINKS.map(l => (
+                      <Link key={l.label} href={l.href}
+                        {...(l.ext ? { target: '_blank' } : {})}
+                        onClick={() => setExploreOpen(false)}
+                        className={`sidebar-item ${l.cls} flex items-center gap-3 px-4 py-2.5`}>
+                        <span className="text-lg leading-none" aria-hidden="true">{l.icon}</span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{l.label}</span>
+                          <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{l.description}</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             {isAdmin && (
               <Link href="/admin" className="nav-link glow gc-family press text-sm font-bold" style={{ color: 'rgb(var(--accent-orange))' }}>
                 ⚙ Admin
@@ -125,25 +158,28 @@ export function Nav() {
         </div>
       </div>
 
-      {/* Mobile dropdown panel */}
+      {/* Mobile dropdown panel — grouped into Explore / More so it doesn't read as a flat wall of links */}
       {mobileOpen && (
         <div className="sm:hidden mt-3 pt-3 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-hairline)' }}>
+          <p className="text-caption px-2 mb-1" style={{ color: 'var(--text-tertiary)' }}>Explore</p>
           {NAV_LINKS.map(l => (
             <Link key={l.label} href={l.href}
               {...(l.ext ? { target:'_blank' } : {})}
               onClick={() => setMobileOpen(false)}
-              className="press text-sm font-semibold px-2 py-2.5 rounded-lg"
+              className="press text-sm font-semibold px-2 py-2.5 rounded-lg flex items-center gap-2.5"
               style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-base leading-none" aria-hidden="true">{l.icon}</span>
               {l.label}
             </Link>
           ))}
           {isAdmin && (
             <Link href="/admin" onClick={() => setMobileOpen(false)}
-              className="press text-sm font-bold px-2 py-2.5 rounded-lg" style={{ color: 'rgb(var(--accent-orange))' }}>
+              className="press text-sm font-bold px-2 py-2.5 rounded-lg flex items-center gap-2.5" style={{ color: 'rgb(var(--accent-orange))' }}>
               ⚙ Admin
             </Link>
           )}
-          <div className="mt-1 pt-2 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-hairline)' }}>
+          <div className="mt-2 pt-2 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-hairline)' }}>
+            <p className="text-caption px-2 mb-1" style={{ color: 'var(--text-tertiary)' }}>More</p>
             {INFO_LINKS.map(l => (
               <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
                 className="press text-xs font-medium px-2 py-2 rounded-lg" style={{ color: 'var(--text-tertiary)' }}>
@@ -153,7 +189,7 @@ export function Nav() {
           </div>
           {!session && (
             <Link href="/auth/signin" onClick={() => setMobileOpen(false)}
-              className="press text-sm font-semibold px-2 py-2.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+              className="press text-sm font-semibold px-2 py-2.5 rounded-lg mt-1" style={{ color: 'var(--text-secondary)' }}>
               Sign in
             </Link>
           )}

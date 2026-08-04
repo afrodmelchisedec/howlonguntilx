@@ -10,7 +10,12 @@ async function isAdmin() {
   return s?.user?.role === 'ADMIN' ? s : null;
 }
 
-// PATCH — upsert the banner for a given category slug.
+// Page-level banner slots that aren't backed by a real Category row. Kept as
+// an explicit allowlist (not "any unrecognized slug passes") so a typo in the
+// category slug still fails loudly instead of silently creating orphan rows.
+const RESERVED_PAGE_SLUGS = ['tools'];
+
+// PATCH — upsert the banner for a given category slug, or a reserved page slug.
 // Body: { title, description, ctaLabel?, href, imageUrl?, active? }
 export async function PATCH(req: NextRequest, { params }: { params: { categorySlug: string } }) {
   if (!(await isAdmin())) {
@@ -30,9 +35,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { categorySl
     return NextResponse.json({ error: 'href must be a valid absolute URL' }, { status: 400 });
   }
 
-  const category = await prisma.category.findUnique({ where: { slug: params.categorySlug } });
-  if (!category) {
-    return NextResponse.json({ error: `No category with slug "${params.categorySlug}"` }, { status: 404 });
+  const isReservedPageSlug = RESERVED_PAGE_SLUGS.includes(params.categorySlug);
+  if (!isReservedPageSlug) {
+    const category = await prisma.category.findUnique({ where: { slug: params.categorySlug } });
+    if (!category) {
+      return NextResponse.json({ error: `No category with slug "${params.categorySlug}"` }, { status: 404 });
+    }
   }
 
   const data = {
@@ -51,11 +59,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { categorySl
   });
 
   revalidatePath('/categories');
+  revalidatePath('/tools');
   revalidatePath('/admin');
   return NextResponse.json(banner);
 }
 
-// DELETE — remove the banner for a category (falls back to no banner shown).
+// DELETE — remove the banner for a category or reserved page slug (falls back to no banner shown).
 export async function DELETE(req: NextRequest, { params }: { params: { categorySlug: string } }) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -68,6 +77,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { categoryS
   }
 
   revalidatePath('/categories');
+  revalidatePath('/tools');
   revalidatePath('/admin');
   return NextResponse.json({ deleted: true });
 }
