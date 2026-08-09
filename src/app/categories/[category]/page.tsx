@@ -27,9 +27,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     cat._count.articlesAsCategory === 0 &&
     cat.children.every(c => c._count.events === 0 && c._count.articlesAsSubcategory === 0);
 
+  const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
+
   return {
     title: `${cat.name} Countdowns | HowLongUntilX`,
     description: cat.description,
+    alternates: { canonical: `${BASE}/categories/${cat.slug}` },
     ...(isEmpty ? { robots: { index: false, follow: true } } : {}),
   };
 }

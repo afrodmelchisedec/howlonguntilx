@@ -19,9 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // follow, so it drops from the index without cutting off crawl paths.
   const isEmpty = sub._count.eventsAsSubcategory === 0 && sub._count.articlesAsSubcategory === 0;
 
+  const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
+
   return {
     title: `${sub.name} Countdowns | HowLongUntilX`,
     description: sub.description,
+    alternates: { canonical: `${BASE}/categories/${params.category}/${sub.slug}` },
     ...(isEmpty ? { robots: { index: false, follow: true } } : {}),
   };
 }
