@@ -9,11 +9,28 @@ import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 interface Props { params: { category: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const cat = await prisma.category.findUnique({ where: { slug: params.category } });
+  const cat = await prisma.category.findUnique({
+    where: { slug: params.category },
+    include: {
+      children: { include: { _count: { select: { events: true, articlesAsSubcategory: true } } } },
+      _count: { select: { events: true, articlesAsCategory: true } },
+    },
+  });
   if (!cat) return {};
+
+  // Empty hub pages (no events/articles of its own, and every subcategory is
+  // also empty) shouldn't be indexed — thin content that also drags down
+  // Google's crawl priority for the rest of the site. Still crawlable
+  // (follow) so link equity reaches real subpages once they're populated.
+  const isEmpty =
+    cat._count.events === 0 &&
+    cat._count.articlesAsCategory === 0 &&
+    cat.children.every(c => c._count.events === 0 && c._count.articlesAsSubcategory === 0);
+
   return {
     title: `${cat.name} Countdowns | HowLongUntilX`,
     description: cat.description,
+    ...(isEmpty ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

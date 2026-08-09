@@ -9,11 +9,20 @@ import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 interface Props { params: { category: string; sub: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const sub = await prisma.category.findUnique({ where: { slug: params.sub } });
+  const sub = await prisma.category.findUnique({
+    where: { slug: params.sub },
+    include: { _count: { select: { eventsAsSubcategory: true, articlesAsSubcategory: true } } },
+  });
   if (!sub) return {};
+
+  // Same thin-content rule as the parent category page: noindex but still
+  // follow, so it drops from the index without cutting off crawl paths.
+  const isEmpty = sub._count.eventsAsSubcategory === 0 && sub._count.articlesAsSubcategory === 0;
+
   return {
     title: `${sub.name} Countdowns | HowLongUntilX`,
     description: sub.description,
+    ...(isEmpty ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
