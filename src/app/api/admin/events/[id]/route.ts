@@ -22,6 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     subcategoryId?: string | null;
     reviewerId?: string | null;
     reviewEnabled?: boolean;
+    published?: boolean;
   };
   try {
     body = await req.json();
@@ -37,6 +38,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     reviewerId?: string | null;
     reviewEnabled?: boolean;
     reviewedAt?: Date | null;
+    published?: boolean;
+    publishedAt?: Date | null;
   } = {};
 
   if ('categoryId' in body) {
@@ -67,6 +70,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const willShowPublicly = !!nextReviewerId && nextReviewEnabled;
     data.reviewedAt = willShowPublicly ? new Date() : null;
+  }
+
+  // Publish/unpublish toggle, same convention as Articles: the boolean flips
+  // freely, but publishedAt is a one-time stamp — set the first time an event
+  // goes live, then left alone across later unpublish/republish cycles so the
+  // "Published {date}" tooltip always reflects the original publish date.
+  if ('published' in body) {
+    const nextPublished = !!body.published;
+    data.published = nextPublished;
+    if (nextPublished && !event.publishedAt) {
+      data.publishedAt = new Date();
+    }
   }
 
   const updated = await prisma.event.update({

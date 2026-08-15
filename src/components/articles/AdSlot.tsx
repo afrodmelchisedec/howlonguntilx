@@ -24,6 +24,13 @@ export function AdSlot({ slotId, minHeight = 280 }: { slotId: string; minHeight?
     }
   }, []);
 
+  // No AdSense account configured and we're not in local dev — render nothing.
+  // An empty "ADVERTISEMENT" wireframe box in production hurts layout-quality
+  // and Core Web Vitals scores for no benefit, since there's no ad to show yet.
+  if (!ADSENSE_CLIENT && process.env.NODE_ENV !== 'development') {
+    return null;
+  }
+
   // Reserve real space up front so the ad never causes layout shift once it loads —
   // CLS is both a Core Web Vitals ranking factor and something AdSense reviewers check.
   return (
@@ -42,7 +49,7 @@ export function AdSlot({ slotId, minHeight = 280 }: { slotId: string; minHeight?
           data-full-width-responsive="true"
         />
       ) : (
-        // Dev/pre-approval placeholder so layout and spacing can be reviewed before the account is live.
+        // Dev-only placeholder so layout and spacing can be reviewed before the account is live.
         <div
           className="rounded-2xl flex items-center justify-center text-caption"
           style={{ minHeight, background: 'var(--surface-secondary, rgba(255,255,255,0.03))', color: 'var(--text-secondary)', border: '1px dashed rgba(255,255,255,0.12)' }}

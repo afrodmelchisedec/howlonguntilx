@@ -1,14 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-
-const SHOWCASE = [
-  { name: 'Christmas 2025',      date: new Date('2025-12-25T00:00:00'), emoji: '🎄', color: '48, 219, 91'   },
-  { name: 'FIFA World Cup 2026', date: new Date('2026-06-11T00:00:00'), emoji: '⚽', color: '64, 156, 255'  },
-  { name: 'New Year 2027',       date: new Date('2027-01-01T00:00:00'), emoji: '🎆', color: '125, 118, 255' },
-  { name: 'Solar Eclipse 2026',  date: new Date('2026-08-12T00:00:00'), emoji: '🌑', color: '218, 143, 255' },
-  { name: 'Black Friday 2025',   date: new Date('2025-11-28T00:00:00'), emoji: '🛍️', color: '255, 159, 10'  },
-  { name: 'Super Bowl LX',       date: new Date('2026-02-08T00:00:00'), emoji: '🏈', color: '255, 75, 110'  },
-];
+import type { CalendarEvent } from '@/lib/calendar-shared';
 
 function getTimeLeft(target: Date) {
   const diff = target.getTime() - Date.now();
@@ -23,9 +15,15 @@ function getTimeLeft(target: Date) {
 
 function pad(n: number) { return String(n).padStart(2, '0'); }
 
-export function HeroTicker() {
+interface Props {
+  events: CalendarEvent[];
+}
+
+export function HeroTicker({ events }: Props) {
+  const showcase = events.filter(ev => !!ev.date);
+
   const [idx, setIdx] = useState(0);
-  const [time, setTime] = useState(getTimeLeft(SHOWCASE[0].date));
+  const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const [fade, setFade] = useState(true);
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [dragDelta, setDragDelta] = useState(0);
@@ -39,9 +37,10 @@ export function HeroTicker() {
 
   function resetAuto() {
     if (autoRef.current) clearInterval(autoRef.current);
+    if (showcase.length <= 1) return;
     autoRef.current = setInterval(() => {
       setIdx(i => {
-        const next = (i + 1) % SHOWCASE.length;
+        const next = (i + 1) % showcase.length;
         setFade(false);
         setTimeout(() => setFade(true), 280);
         return next;
@@ -50,14 +49,16 @@ export function HeroTicker() {
   }
 
   useEffect(() => {
-    const t = setInterval(() => setTime(getTimeLeft(SHOWCASE[idx].date)), 1000);
+    if (showcase.length === 0) return;
+    const t = setInterval(() => setTime(getTimeLeft(new Date(showcase[idx].date!))), 1000);
+    setTime(getTimeLeft(new Date(showcase[idx].date!)));
     return () => clearInterval(t);
-  }, [idx]);
+  }, [idx, showcase.length]);
 
   useEffect(() => {
     resetAuto();
     return () => { if (autoRef.current) clearInterval(autoRef.current); };
-  }, []);
+  }, [showcase.length]);
 
   function onPointerDown(e: React.PointerEvent) {
     setDragStart(e.clientX);
@@ -75,10 +76,10 @@ export function HeroTicker() {
     setPressing(false);
     if (dragStart === null) return;
     const delta = e.clientX - dragStart;
-    if (Math.abs(delta) > 40) {
+    if (Math.abs(delta) > 40 && showcase.length > 1) {
       const next = delta < 0
-        ? (idx + 1) % SHOWCASE.length
-        : (idx - 1 + SHOWCASE.length) % SHOWCASE.length;
+        ? (idx + 1) % showcase.length
+        : (idx - 1 + showcase.length) % showcase.length;
       goTo(next);
       resetAuto();
     }
@@ -86,8 +87,10 @@ export function HeroTicker() {
     setDragDelta(0);
   }
 
-  const ev = SHOWCASE[idx];
-  const glow = ev.color;
+  if (showcase.length === 0) return null;
+
+  const ev = showcase[idx];
+  const glow = ev.color ?? '125, 118, 255';
 
   return (
     <div className="my-8 mx-auto w-full" style={{ maxWidth: 680 }}>
@@ -110,8 +113,8 @@ export function HeroTicker() {
 
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 22 }}>{ev.emoji}</span>
-            <span className="text-callout font-bold" style={{ color: 'var(--text-primary)' }}>{ev.name}</span>
+            <span style={{ fontSize: 22 }}>{ev.emoji ?? '📅'}</span>
+            <span className="text-callout font-bold" style={{ color: 'var(--text-primary)' }}>{ev.event}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: `rgb(${glow})`, '--glow': glow } as React.CSSProperties} />
@@ -157,20 +160,22 @@ export function HeroTicker() {
 
         <div className="flex items-center justify-between">
           <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>← swipe to explore →</p>
-          <div className="flex gap-1.5">
-            {SHOWCASE.map((_, i) => (
-              <button key={i}
-                onClick={(e) => { e.stopPropagation(); goTo(i); resetAuto(); }}
-                style={{
-                  width: i === idx ? 20 : 6, height: 6,
-                  borderRadius: 999,
-                  background: i === idx ? `rgb(${glow})` : `rgba(${glow}, 0.25)`,
-                  transition: 'all 0.3s var(--spring)',
-                  border: 'none', cursor: 'pointer', padding: 0,
-                }}
-              />
-            ))}
-          </div>
+          {showcase.length > 1 && (
+            <div className="flex gap-1.5">
+              {showcase.map((_, i) => (
+                <button key={i}
+                  onClick={(e) => { e.stopPropagation(); goTo(i); resetAuto(); }}
+                  style={{
+                    width: i === idx ? 20 : 6, height: 6,
+                    borderRadius: 999,
+                    background: i === idx ? `rgb(${glow})` : `rgba(${glow}, 0.25)`,
+                    transition: 'all 0.3s var(--spring)',
+                    border: 'none', cursor: 'pointer', padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

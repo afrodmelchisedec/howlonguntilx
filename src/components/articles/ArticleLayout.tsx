@@ -61,10 +61,10 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
         <Link href="/">Home</Link> / <Link href={`/tools/${toolSlug}`}>{toolName}</Link> / <span>{article.title}</span>
       </nav>
 
-      {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
-      {heroDuration && <HeroDuration heroData={heroDuration} glow={glow} />}
-
-      <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
+      {/* H1 + direct answer surface above the hero image/illustration, so both
+          users and search bots see the actual answer without scrolling past a
+          large image first. The live countdown/duration widget — the "primary
+          summary calculation" — stays grouped with them, also above the image. */}
       <p className="text-caption mb-1" style={{ color: `rgb(${glow})` }}>{toolName.toUpperCase()}</p>
 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
@@ -85,6 +85,11 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
       </div>
 
       <p className="text-callout mb-3" style={{ color: 'var(--text-secondary)' }}>{article.dek}</p>
+
+      {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
+      {heroDuration && <HeroDuration heroData={heroDuration} glow={glow} />}
+
+      <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <p className="text-caption m-0" style={{ color: 'var(--text-secondary)' }}>

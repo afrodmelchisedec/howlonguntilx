@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { SAVINGS_GOAL_COMMENTS } from './savingsGoalComments';
 
 interface Goal {
@@ -603,6 +604,7 @@ export function SavingsGoalSlider() {
       </div>
 
       {/* Comments waterfall */}
+      <EmbedCodeButton slug="savings-goal-slider" title="Goal Stack Planner" glow={GLOW} />
       <ToolCommentSection seedComments={SAVINGS_GOAL_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
 
       <ToastHost toast={toast} />

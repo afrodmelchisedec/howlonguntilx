@@ -12,11 +12,9 @@ export function ToolsGrid() {
   const [activeCategory, setActiveCategory] = useState<keyof typeof CATEGORY_META | null>(null);
   const [page, setPage] = useState(1);
 
-  // Only show pills for categories that actually have tools, in CATEGORY_META's declared order.
+  // Always show all 8 declared categories, even ones with no tools mapped yet.
   const categoryPills = useMemo(() => {
-    const used = new Set(TOOLS.map(t => t.category));
     return (Object.keys(CATEGORY_META) as (keyof typeof CATEGORY_META)[])
-      .filter(slug => used.has(slug))
       .map(slug => ({ slug, ...CATEGORY_META[slug], rgb: getCategoryGlowRGB(slug) }));
   }, []);
 
@@ -169,29 +167,6 @@ export function ToolsGrid() {
         .tools-search-input:focus {
           border-color: rgb(var(--accent-brand));
           box-shadow: 0 0 0 3px rgba(var(--accent-brand), 0.15);
-        }
-        .category-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          padding: 0.4rem 0.95rem;
-          border-radius: 999px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          border: 1px solid rgba(var(--pill-rgb), 0.3);
-          background: rgba(var(--pill-rgb), 0.08);
-          color: rgb(var(--pill-rgb));
-          cursor: pointer;
-          transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, box-shadow 0.2s ease;
-        }
-        .category-pill:hover {
-          transform: translateY(-2px) scale(1.05);
-          box-shadow: 0 6px 18px rgba(var(--pill-rgb), 0.25);
-        }
-        .category-pill[data-active="true"] {
-          background: rgb(var(--pill-rgb));
-          color: white;
-          box-shadow: 0 6px 18px rgba(var(--pill-rgb), 0.35);
         }
         .pagination-btn {
           min-width: 2.25rem;

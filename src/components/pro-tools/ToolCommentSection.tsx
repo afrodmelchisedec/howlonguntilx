@@ -20,6 +20,7 @@ export function ToolCommentSection({ seedComments, onRequireAuth, glow }: Props)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [draft, setDraft] = useState('');
 
+  const [expanded, setExpanded] = useState(false);
   const visible = comments.slice(0, visibleCount);
   const hasMore = visibleCount < comments.length;
 
@@ -49,6 +50,16 @@ export function ToolCommentSection({ seedComments, onRequireAuth, glow }: Props)
 
   return (
     <div id="comments-section" className="mt-8">
+      {!expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="ios-card-nested press w-full py-3 text-footnote font-semibold text-center"
+        >
+          💬 Show comments ({comments.length})
+        </button>
+      )}
+      {expanded && (
+      <>
       <p className="text-headline mb-3">💬 Comments ({comments.length})</p>
 
       <div className="ios-card-nested p-3 mb-5 flex gap-2 items-start">
@@ -98,6 +109,8 @@ export function ToolCommentSection({ seedComments, onRequireAuth, glow }: Props)
         >
           Load more comments ({comments.length - visibleCount} left)
         </button>
+      )}
+      </>
       )}
     </div>
   );

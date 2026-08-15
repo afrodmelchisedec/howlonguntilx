@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { MEETING_OVERLAP_COMMENTS } from '@/lib/seedComments';
 
 interface Participant {
@@ -656,6 +657,7 @@ export function MeetingOverlapRadar() {
       </div>
 
       {/* Comments waterfall */}
+      <EmbedCodeButton slug="meeting-overlap" title="Time Zone Radar" glow="83, 74, 217" />
       <ToolCommentSection seedComments={MEETING_OVERLAP_COMMENTS} onRequireAuth={() => showToast('You need to sign up first', '🔒')} glow="83, 74, 217" />
 
       <ToastHost toast={toast} />

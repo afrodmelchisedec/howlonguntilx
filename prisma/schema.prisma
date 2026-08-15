@@ -11,55 +11,63 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  paypalId      String?   @unique
-  paypalSubscriptionId String?   @unique
+  id                   String             @id @default(cuid())
+  name                 String?
+  email                String?            @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  paypalId             String?            @unique
+  paypalSubscriptionId String?            @unique
   subscriptionStatus   SubscriptionStatus @default(none)
   planRenewsAt         DateTime?
   trialEndsAt          DateTime?
-  plan          Plan      @default(FREE)
-  eventCount    Int       @default(0)
-  articleLikes  ArticleLike[]
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  lastSeen      DateTime?
+  plan                 Plan               @default(FREE)
+  eventCount           Int                @default(0)
+  articleLikes         ArticleLike[]
+  role                 Role               @default(USER)
+  createdAt            DateTime           @default(now())
+  lastSeen             DateTime?
 
-  apiKeys  ApiKey[]
-  accounts                  Account[]
-  sessions                  Session[]
-  timers                    Timer[]
-  likes                     Like[]
-  follows                   Follow[]
-  meetingOverlapConfig      MeetingOverlapConfig?
-  recipeBatchConfig         RecipeBatchConfig?
-  deadlineBufferConfig      DeadlineBufferConfig?
-  savingsGoalConfig         SavingsGoalConfig?
-  jetlagConfig              JetlagConfig?
-  passwordRotationConfig    PasswordRotationConfig?
-  focusBlockConfig          FocusBlockConfig?
-  calendarSavedDays         CalendarSavedDays?
-  moneyMilestonesConfig     MoneyMilestonesConfig?
-  taxDeadlineConfig         TaxDeadlineConfig?
-  payrollConfig             PayrollConfig?
-  foodFestivalConfig        FoodFestivalConfig?
-  restaurantWatchlistConfig RestaurantWatchlistConfig?
-  harvestSeasonsConfig      HarvestSeasonsConfig?
-  sportsGamesConfig         SportsGamesConfig?
-  entertainmentConfig       EntertainmentConfig?
-  energyRhythmConfig        EnergyRhythmConfig?
-  symptomTrackerConfig      SymptomTrackerConfig?
-  fraudResponseConfig       FraudResponseConfig?
-  phishingIdentityConfig    PhishingIdentityConfig?
-  darkSkyConfig             DarkSkyConfig?
-  techEventsConfig          TechEventsConfig?
-  shoppingDealsConfig       ShoppingDealsConfig?
-  payments Payment[]
-  lifeExpectancyProfile  LifeExpectancyProfile?
+  apiKeys                         ApiKey[]
+  accounts                        Account[]
+  sessions                        Session[]
+  timers                          Timer[]
+  likes                           Like[]
+  follows                         Follow[]
+  meetingOverlapConfig            MeetingOverlapConfig?
+  recipeBatchConfig               RecipeBatchConfig?
+  deadlineBufferConfig            DeadlineBufferConfig?
+  savingsGoalConfig               SavingsGoalConfig?
+  jetlagConfig                    JetlagConfig?
+  passwordRotationConfig          PasswordRotationConfig?
+  focusBlockConfig                FocusBlockConfig?
+  calendarSavedDays               CalendarSavedDays?
+  moneyMilestonesConfig           MoneyMilestonesConfig?
+  taxDeadlineConfig               TaxDeadlineConfig?
+  payrollConfig                   PayrollConfig?
+  foodFestivalConfig              FoodFestivalConfig?
+  restaurantWatchlistConfig       RestaurantWatchlistConfig?
+  harvestSeasonsConfig            HarvestSeasonsConfig?
+  sportsGamesConfig               SportsGamesConfig?
+  entertainmentConfig             EntertainmentConfig?
+  energyRhythmConfig              EnergyRhythmConfig?
+  symptomTrackerConfig            SymptomTrackerConfig?
+  fraudResponseConfig             FraudResponseConfig?
+  phishingIdentityConfig          PhishingIdentityConfig?
+  darkSkyConfig                   DarkSkyConfig?
+  techEventsConfig                TechEventsConfig?
+  shoppingDealsConfig             ShoppingDealsConfig?
+  payments                        Payment[]
+  lifeExpectancyProfile           LifeExpectancyProfile?
+  amIPregnantTrackerConfig        AmIPregnantTrackerConfig?
+  petGrowthGestationConfig        PetGrowthGestationConfig?
+  laborOnsetPredictorConfig       LaborOnsetPredictorConfig?
+  birthControlEffectivenessConfig BirthControlEffectivenessConfig?
+  newbornMilestoneTrackerConfig   NewbornMilestoneTrackerConfig?
+  gardenGrowthTrackerConfig       GardenGrowthTrackerConfig?
+  kittenGrowthTrackerConfig       KittenGrowthTrackerConfig?
+  eggHatchTrackerConfig           EggHatchTrackerConfig?
 }
 
 enum Plan {
@@ -71,8 +79,6 @@ enum Role {
   USER
   ADMIN
 }
-
-
 
 model Timer {
   id         String   @id @default(cuid())
@@ -87,36 +93,37 @@ model Timer {
 }
 
 model Event {
-  id            String    @id @default(cuid())
-  slug          String    @unique
-  name          String
-  description   String?
-  targetDate    DateTime
-  type          EventType @default(COUNTDOWN)
-  categoryId    String?
-  category      Category? @relation("EventCategory", fields: [categoryId], references: [id])
-  subcategoryId String?
-  subcategory   Category? @relation("EventSubcategory", fields: [subcategoryId], references: [id])
-  categorySlug  String    @default("leisure")
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  name                String
+  description         String?
+  targetDate          DateTime
+  type                EventType @default(COUNTDOWN)
+  categoryId          String?
+  category            Category? @relation("EventCategory", fields: [categoryId], references: [id])
+  subcategoryId       String?
+  subcategory         Category? @relation("EventSubcategory", fields: [subcategoryId], references: [id])
+  categorySlug        String    @default("leisure")
   heroImageUrl        String?
   heroImageAlt        String?
   authorName          String    @default("Afrod M (Msc Statistics at Makerere University)")
   reviewerName        String?
   reviewerCredentials String?
   reviewerId          String?
-  reviewer            Reviewer?  @relation(fields: [reviewerId], references: [id])
-  reviewEnabled       Boolean    @default(false)
+  reviewer            Reviewer? @relation(fields: [reviewerId], references: [id])
+  reviewEnabled       Boolean   @default(false)
   reviewedAt          DateTime?
-  published     Boolean   @default(true)
-  archived      Boolean   @default(false)
-  userId        String?
-  locale        String    @default("en")
-  views         Int       @default(0)
-  likeCount     Int       @default(0)
-  followCount   Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  content       Json?
+  published           Boolean   @default(true)
+  publishedAt         DateTime?
+  archived            Boolean   @default(false)
+  userId              String?
+  locale              String    @default("en")
+  views               Int       @default(0)
+  likeCount           Int       @default(0)
+  followCount         Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  content             Json?
 
   likes   Like[]
   follows Follow[]
@@ -464,21 +471,21 @@ model TechEventsConfig {
 // Also add inside `model User { ... }`:  articles Article[]  (only if you want an authorId relation — optional, see authorName fallback below)
 
 model Article {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   toolSlug     String // e.g. "tech-events" — links article to its parent tool/category
   slug         String
   title        String
   dek          String // one-line SEO/social summary
   heroImageUrl String? // must be >=1200px wide when set
   heroImageAlt String?
-  authorName   String    @default("Afrod M (Msc Statistics at Makerere University)")
+  authorName   String        @default("Afrod M (Msc Statistics at Makerere University)")
   blocks       Json // typed block array, see ArticleBlocks.tsx
-  status       String    @default("draft") // draft | published | archived
-  contentType  String    @default("evergreen") // evergreen | breaking
+  status       String        @default("draft") // draft | published | archived
+  contentType  String        @default("evergreen") // evergreen | breaking
   publishedAt  DateTime?
-  updatedAt    DateTime  @updatedAt
-  createdAt    DateTime  @default(now())
-  likeCount    Int       @default(0)
+  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime      @default(now())
+  likeCount    Int           @default(0)
   likes        ArticleLike[]
 
   categoryId    String?
@@ -491,8 +498,8 @@ model Article {
   reviewerName        String?
   reviewerCredentials String?
   reviewerId          String?
-  reviewer            Reviewer?  @relation(fields: [reviewerId], references: [id])
-  reviewEnabled       Boolean    @default(false)
+  reviewer            Reviewer? @relation(fields: [reviewerId], references: [id])
+  reviewEnabled       Boolean   @default(false)
   reviewedAt          DateTime?
 
   @@unique([toolSlug, slug])
@@ -501,8 +508,6 @@ model Article {
   @@index([subcategoryId])
 }
 
-
-
 enum QuestionType {
   DURATION
   DATED
@@ -510,13 +515,13 @@ enum QuestionType {
 
 model FeaturedPiece {
   id          String    @id @default(cuid())
-  kind        String    // "history" | "fact" | "quote" | "meme"
+  kind        String // "history" | "fact" | "quote" | "meme"
   title       String
-  body        String    @db.Text   // 300-500 words, plain paragraphs joined by \n\n
-  sourceLabel String?              // e.g. "NIST" or "Guinness World Records" — omit if none
+  body        String    @db.Text // 300-500 words, plain paragraphs joined by \n\n
+  sourceLabel String? // e.g. "NIST" or "Guinness World Records" — omit if none
   sourceUrl   String?
   imageUrl    String?
-  weekOf      DateTime?            // set ONLY to pin this piece to a specific ISO week (override); null = part of the auto-rotating pool
+  weekOf      DateTime? // set ONLY to pin this piece to a specific ISO week (override); null = part of the auto-rotating pool
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
 
@@ -528,14 +533,14 @@ model FeaturedPiece {
 //   shoppingDealsConfig  ShoppingDealsConfig?
 
 model ShoppingDealsConfig {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wishlist      Json
-  streak        Int
-  lastSpinDate  String
-  spinsToday    Int
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wishlist     Json
+  streak       Int
+  lastSpinDate String
+  spinsToday   Int
+  updatedAt    DateTime @updatedAt
 }
 
 enum SubscriptionStatus {
@@ -549,34 +554,34 @@ enum SubscriptionStatus {
 }
 
 model Category {
-  id          String     @id @default(cuid())
-  slug        String     @unique
-  name        String
-  emoji       String
-  description String
-  featureImageUrl String?
-  tools       Json?      // NEW — array of { slug, label, path } tool mappings, only meaningful on subcategories
-  parentId    String?
-  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
-  children    Category[] @relation("SubCategories")
-  events               Event[]   @relation("EventCategory")
-  eventsAsSubcategory  Event[]   @relation("EventSubcategory")
-  articlesAsCategory    Article[] @relation("ArticleCategory")
-  articlesAsSubcategory Article[] @relation("ArticleSubcategory")
-  createdAt   DateTime   @default(now())
+  id                    String     @id @default(cuid())
+  slug                  String     @unique
+  name                  String
+  emoji                 String
+  description           String
+  featureImageUrl       String?
+  tools                 Json? // NEW — array of { slug, label, path } tool mappings, only meaningful on subcategories
+  parentId              String?
+  parent                Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children              Category[] @relation("SubCategories")
+  events                Event[]    @relation("EventCategory")
+  eventsAsSubcategory   Event[]    @relation("EventSubcategory")
+  articlesAsCategory    Article[]  @relation("ArticleCategory")
+  articlesAsSubcategory Article[]  @relation("ArticleSubcategory")
+  createdAt             DateTime   @default(now())
 }
 
 model AffiliateBanner {
-  id          String   @id @default(cuid())
-  categorySlug String  @unique // one banner per top-level category, e.g. "finance"
-  title       String
-  description String
-  ctaLabel    String   @default("Learn more")
-  href        String
-  imageUrl    String?
-  active      Boolean  @default(true)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  categorySlug String   @unique // one banner per top-level category, e.g. "finance"
+  title        String
+  description  String
+  ctaLabel     String   @default("Learn more")
+  href         String
+  imageUrl     String?
+  active       Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
 }
 
 model SymptomTrackerConfig {
@@ -587,18 +592,40 @@ model SymptomTrackerConfig {
   updatedAt DateTime @updatedAt
 }
 
+model AmIPregnantTrackerConfig {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastPeriod      DateTime
+  cycleLength     Int
+  history         Json // CheckIn[] — { date, dpo, symptoms, probability }
+  notifyOnTestDay Boolean  @default(false)
+  shareLink       String?
+  updatedAt       DateTime @updatedAt
+}
+
+model PetGrowthGestationConfig {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pets              Json // Pet[] — { id, name, species, breedSize, birthDate, weighIns? }
+  notifyOnMilestone Boolean  @default(false)
+  shareLink         String?
+  updatedAt         DateTime @updatedAt
+}
+
 // ── ADD to prisma/schema.prisma ──────────────────────────────────────────
 
 model Payment {
   id                   String      @id @default(cuid())
   userId               String?
   user                 User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userEmail            String?     // snapshot, survives user deletion
-  paypalTransactionId  String      @unique  // PayPal sale/refund id — makes webhook inserts idempotent
+  userEmail            String? // snapshot, survives user deletion
+  paypalTransactionId  String      @unique // PayPal sale/refund id — makes webhook inserts idempotent
   paypalSubscriptionId String?
-  eventType            String      // raw PayPal event_type, e.g. "PAYMENT.SALE.COMPLETED"
+  eventType            String // raw PayPal event_type, e.g. "PAYMENT.SALE.COMPLETED"
   type                 PaymentType @default(SALE)
-  amountCents          Int         // always positive; use `type` to determine sign in reports
+  amountCents          Int // always positive; use `type` to determine sign in reports
   currency             String      @default("USD")
   createdAt            DateTime    @default(now())
 
@@ -615,7 +642,6 @@ enum PaymentType {
 // ── ADD this relation field inside the existing `model User { ... }` block ─
 //   payments  Payment[]
 
-
 // ── ADD to prisma/schema.prisma ──────────────────────────────────────────
 
 // Source-of-truth actuarial data, admin-editable/importable, versioned by
@@ -623,14 +649,14 @@ enum PaymentType {
 // (compute always queries the latest sourceYear per region+sex+age).
 model LifeExpectancyTable {
   id             String   @id @default(cuid())
-  region         String   // 'US' | 'EUROPE' | 'AFRICA' | 'MIDDLE_EAST' | 'CHINA' | 'INDIA'
-  countryLabel   String   // display label, e.g. "United States", "European Union (avg)"
+  region         String // 'US' | 'EUROPE' | 'AFRICA' | 'MIDDLE_EAST' | 'CHINA' | 'INDIA'
+  countryLabel   String // display label, e.g. "United States", "European Union (avg)"
   sex            Sex
-  age            Int      // single year of age, 0–110
-  remainingYears Float    // life expectancy AT this age, i.e. average years left
-  source         String   // e.g. "CDC NVSS U.S. Life Tables"
+  age            Int // single year of age, 0–110
+  remainingYears Float // life expectancy AT this age, i.e. average years left
+  source         String // e.g. "CDC NVSS U.S. Life Tables"
   sourceUrl      String?
-  published      Boolean  @default(false)   // <-- add this line
+  published      Boolean  @default(false) // <-- add this line
   sourceYear     Int
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -653,9 +679,9 @@ model LifeExpectancyProfile {
   region        String
   age           Int
   sex           Sex
-  factors       Json     // { smoking: boolean, exercise: boolean, ... }
-  familyMembers Json?    // [{ label, age, sex, region }] — self-entered, not public figures
-  expectedAge   Float    // computed result, cached so the timer target is stable
+  factors       Json // { smoking: boolean, exercise: boolean, ... }
+  familyMembers Json? // [{ label, age, sex, region }] — self-entered, not public figures
+  expectedAge   Float // computed result, cached so the timer target is stable
   targetDate    DateTime // now() + remaining years at time of save
   updatedAt     DateTime @updatedAt
 }
@@ -701,16 +727,15 @@ model LeadMagnetSubscriber {
   @@index([createdAt])
 }
 
-
 enum ApiTier {
   GROWTH
   SCALE
 }
 
 enum ApiKeyStatus {
-  pending    // subscription created client-side, awaiting webhook confirmation
+  pending // subscription created client-side, awaiting webhook confirmation
   active
-  suspended  // payment failed / subscription suspended in PayPal
+  suspended // payment failed / subscription suspended in PayPal
   cancelled
 }
 
@@ -720,7 +745,7 @@ model ApiKey {
   userId               String
   user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   tier                 ApiTier
-  creditLimit          Int          // monthly cap: 20000 for GROWTH, 250000 for SCALE
+  creditLimit          Int // monthly cap: 20000 for GROWTH, 250000 for SCALE
   creditsUsed          Int          @default(0)
   periodStart          DateTime     @default(now())
   periodEnd            DateTime
@@ -738,13 +763,12 @@ model ApiKey {
 model ApiUsageIp {
   id        String   @id @default(cuid())
   ip        String
-  yearMonth String   // "2026-07"
+  yearMonth String // "2026-07"
   count     Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@unique([ip, yearMonth])
 }
-
 
 //
 
@@ -765,4 +789,104 @@ model Reviewer {
   events   Event[]
 }
 
+model LaborOnsetPredictorConfig {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  mucusPlugDate     DateTime?
+  babyDropped       Boolean   @default(false)
+  babyDroppedDate   DateTime?
+  waterBroke        Boolean   @default(false)
+  waterBrokeDate    DateTime?
+  contractionLog    Json? // Array<{ start: string; end: string }>
+  notifyOnThreshold Boolean   @default(false)
+  shareLink         String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
 
+model BirthControlEffectivenessConfig {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  user                   User      @relation(fields: [userId], references: [id])
+  method                 String // 'PILL_COMBINED' | 'PILL_MINI' | 'PATCH' | 'RING' | 'SHOT' | 'IUD_HORMONAL' | 'IUD_COPPER' | 'IMPLANT' | 'PLAN_B' | 'CONDOM'
+  startDate              DateTime?
+  cycleDayAtStart        Int? // 1-28, slider input — day of cycle the method was started
+  intercourseAt          DateTime? // Plan B only
+  refillReminderDays     Int?      @default(3) // Pro: remind X days before refill/expiration
+  refillDate             DateTime? // Pro
+  expirationDate         DateTime? // Pro: IUD/implant multi-year expiry
+  methodHistory          Json? // Pro: Array<{ method, startDate, endDate }>
+  notifyOnFullyEffective Boolean   @default(false)
+  shareLink              String?   @unique
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model NewbornMilestoneTrackerConfig {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id])
+  birthDate         DateTime?
+  weightEntries     Json? // Array<{ date, valueKg }>
+  lengthEntries     Json? // Array<{ date, valueCm }>
+  milestoneNotes    Json? // Array<{ milestoneId, note, loggedAt }>
+  notifyOnMilestone Boolean   @default(false)
+  shareLink         String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model KittenGrowthTrackerConfig {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthDate     DateTime?
+  breedSize     String? // 'SMALL' | 'MEDIUM' | 'LARGE' — affects fully-grown estimate only
+  weightEntries Json? // Array<{ date, valueKg }>
+  milestoneLog  Json? // Array<{ milestoneId, actualDate, note }>
+  litterMates   Json? // Array<{ id, label, birthDate, breedSize }> — Pro, up to 5
+  shareLink     String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model EggHatchTrackerConfig {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  species       String // 'CHICKEN' | 'DUCK' | 'GOOSE' | 'BLUEBIRD' | 'DOVE' | 'EAGLE' | 'HOUSE_FINCH' | 'GENERIC_BIRD'
+  incubatorType String? // 'STILL_AIR' | 'FORCED_AIR' — incubator-mode species only
+  startDate     DateTime?
+  turningLog    Json? // Array<{ day, turnedAt }> — incubator-mode species only
+  eggBatch      Json? // Array<{ id, label, candledViable, notes }> — Pro, up to 12
+  shareLink     String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model GardenGrowthTrackerConfig {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  beds          Json? // Array<{ id, name, plant, plantedDate, season }>
+  notifyOnStage Boolean  @default(false)
+  shareLink     String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PluginRelease {
+  id            String   @id @default(cuid())
+  slug          String // e.g. "until-x-tools"
+  version       String // semver, e.g. "1.0.0"
+  changelogNote String?
+  isLatest      Boolean  @default(false)
+  downloadCount Int      @default(0)
+  filePath      String // relative path under storage/plugin-releases/
+  fileSize      Int
+  createdAt     DateTime @default(now())
+
+  @@unique([slug, version])
+  @@index([slug, isLatest])
+}

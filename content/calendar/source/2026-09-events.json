@@ -1,0 +1,25 @@
+{
+  "year": 2026,
+  "united_states": [
+    {
+      "date": "September 7",
+      "event": "US Open Tennis Men's Final (New York, NY)",
+      "description": "Championship match of the US Open tennis tournament.",
+      "featured": true,
+      "slug": "us-open-final-2026",
+      "emoji": "🎾",
+      "color": "48, 219, 91"
+    },
+    {
+      "date": "September 1",
+      "event": "Afrod Weds Peace",
+      "description": "This will be an exciting coming together of two",
+      "slug": "afrod-weds-peace",
+      "color": "64, 156, 255"
+    }
+  ],
+  "europe": [],
+  "united_kingdom": [],
+  "africa": [],
+  "middle_east": []
+}

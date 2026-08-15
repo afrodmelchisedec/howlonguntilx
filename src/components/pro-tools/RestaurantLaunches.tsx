@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { RESTAURANT_LAUNCHES_COMMENTS } from '@/lib/seedComments';
 import { RESTAURANT_PRESETS, CUISINES, type RestaurantLaunch } from '@/lib/restaurantPresets';
 
@@ -466,6 +467,7 @@ export function RestaurantLaunches() {
         </div>
       </div>
 
+      <EmbedCodeButton slug="restaurant-launches" title="Grand Opening Tracker" glow={GLOW} />
       <ToolCommentSection seedComments={RESTAURANT_LAUNCHES_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
 
       <ToastHost toast={toast} />

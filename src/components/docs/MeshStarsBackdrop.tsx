@@ -71,8 +71,6 @@ export function MeshStarsBackdrop({ accent = 'orange' }: { accent?: 'orange' | '
             linear-gradient(90deg, rgba(${accentColor}, 0.08) 1px, transparent 1px);
           background-size: 48px 48px;
           animation: meshDrift 26s ease-in-out infinite;
-          mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 0%, transparent 75%);
-          -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 0%, transparent 75%);
         }
         .mesh-star {
           position: absolute;

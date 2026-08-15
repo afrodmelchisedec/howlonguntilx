@@ -10,3 +10,4 @@ deno.lock
 .env.backup-*
 *.env.backup*
 live-plan-check.json
+storage/plugin-releases/

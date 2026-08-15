@@ -7,9 +7,11 @@ import { CategoriesManager } from '@/components/admin/CategoriesManager';
 import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersManager';
 import { LeadMagnetManager } from '@/components/admin/LeadMagnetManager';
 import { ReviewersManager } from '@/components/admin/ReviewersManager';
+import { CalendarEventsManager } from '@/components/admin/CalendarEventsManager';
 import SubscribersPanel from './SubscribersPanel';
 import ApiUsersPanel from './ApiUsersPanel';
 import LifeExpectancyPanel from './LifeExpectancyPanel';
+import { hasInternalLink } from '@/components/articles/ArticleBlocks';
 
 interface User {
   id: string; name: string | null; email: string | null;
@@ -29,6 +31,8 @@ interface EventRow {
   reviewerCredentials?: string | null;
   reviewerId?: string | null;
   reviewEnabled?: boolean;
+  published: boolean;
+  publishedAt?: Date | null;
   content?: any;
   updatedAt?: Date;
 }
@@ -51,7 +55,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers';
+type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -61,9 +65,11 @@ const STAT_COLORS: Record<string, string> = {
 
 const TAB_ICONS: Record<Tab, string> = {
   overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
+  calendarEvents: '🗓️',
 };
 const TAB_LABELS: Record<Tab, string> = {
   overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
+  calendarEvents: 'Calendar Events',
 };
 
 function Pagination({
@@ -171,6 +177,7 @@ function eventAccessor(ev: EventRow, key: string) {
     case 'subcategory': return ev.subcategory ? ev.subcategory.name.toLowerCase() : null;
     case 'targetDate': return new Date(ev.targetDate);
     case 'views': return ev.views;
+    case 'published': return ev.published ? 1 : 0;
     case 'seoScore': return computeEventSeoScore(ev).score;
     default: return null;
   }
@@ -275,6 +282,23 @@ function computeSeoScore(a: ArticleRow): SeoResult {
   const sources = sourceItems(a);
   const words = wordCount(a);
   const heroOk = (a.questionType === 'DURATION' && !!a.heroData) || hasHeroCountdownBlock(a);
+  const blocks = blocksArray(a);
+
+  // First 4 blocks after intro — where a heading with a number/range in it
+  // means the direct numeric answer surfaces near the top of the page,
+  // instead of being buried under paragraphs of context. Digit check catches
+  // things like "(18-24 Weeks)" or "6 Months" in a heading's text.
+  const earlyHeadings = blocks.slice(0, 4).filter((b: any) => b?.type === 'heading');
+  const hasSnippetReadyHeading = earlyHeadings.some((b: any) => /\d/.test(b?.text ?? ''));
+
+  const questionWordPattern = /^(how|what|why|when|do|does|can|will|is|are)\b/i;
+  const titleIsQuestion = questionWordPattern.test((a.title ?? '').trim()) && (a.title ?? '').trim().endsWith('?');
+
+  const faqsArePhrased = faqs.length > 0 && faqs.every((f: any) =>
+    questionWordPattern.test((f.q ?? '').trim()) && (f.q ?? '').trim().endsWith('?')
+  );
+
+  const internalLinkPresent = hasInternalLink(blocks);
 
   const checks: (SeoCheck & { weight: number })[] = [
     {
@@ -298,7 +322,7 @@ function computeSeoScore(a: ArticleRow): SeoResult {
       detail: a.heroImageUrl
         ? 'Using a custom per-article image.'
         : 'No heroImageUrl set — falling back to the shared category-pool image, which may not match this article.',
-      weight: 10,
+      weight: 5,
     },
     {
       label: 'Hero image alt text',
@@ -318,7 +342,7 @@ function computeSeoScore(a: ArticleRow): SeoResult {
         : !a.subcategoryId
           ? 'Category set, but no subcategory — add one for full classification.'
           : 'Fully categorized.',
-      weight: 15,
+      weight: 10,
     },
     {
       label: 'FAQ coverage (≥3 questions)',
@@ -326,7 +350,17 @@ function computeSeoScore(a: ArticleRow): SeoResult {
       detail: faqs.length === 0
         ? 'No FAQ block — add at least 3 FAQs to help long-tail search coverage and FAQPage rich results.'
         : 'Only ' + faqs.length + ' FAQ' + (faqs.length === 1 ? '' : 's') + ' — add more to reach at least 3.',
-      weight: 15,
+      weight: 10,
+    },
+    {
+      label: 'FAQ phrased as real questions',
+      passed: faqsArePhrased,
+      detail: faqs.length === 0
+        ? 'Add FAQs first — this checks whether they read as natural search queries (start with How/What/Why/etc, end in "?").'
+        : faqsArePhrased
+          ? 'All FAQs are phrased as natural questions — good match for People-Also-Ask and voice search.'
+          : 'One or more FAQs aren\'t phrased as a direct question (missing a leading question word or trailing "?") — rewrite to mirror how people actually search.',
+      weight: 5,
     },
     {
       label: 'Sources (≥2, deep-linked)',
@@ -338,13 +372,13 @@ function computeSeoScore(a: ArticleRow): SeoResult {
           : !sourcesAreDeepLinked(a)
             ? 'Some sources link to homepages instead of the specific page — deep-link them.'
             : sources.length + ' sources, all deep-linked.',
-      weight: 15,
+      weight: 10,
     },
     {
       label: 'Visual content (chart/graph)',
       passed: hasChart(a),
       detail: hasChart(a) ? 'Chart block present.' : 'No chart block — a supporting chart improves comprehension and dwell time.',
-      weight: 10,
+      weight: 5,
     },
     {
       label: 'Content depth (≥600 words)',
@@ -354,7 +388,7 @@ function computeSeoScore(a: ArticleRow): SeoResult {
         : words < 600
           ? '~' + words + ' words — thin for a competitive query; aim for 600+ across paragraphs/headings.'
           : '~' + words + ' words — solid depth.',
-      weight: 15,
+      weight: 10,
     },
     {
       label: 'Hero/questionType consistency',
@@ -366,12 +400,35 @@ function computeSeoScore(a: ArticleRow): SeoResult {
           : 'No questionType set and no hero_countdown block — this article has no hero at all.',
       weight: 5,
     },
+    {
+      label: 'Question-intent H1',
+      passed: titleIsQuestion,
+      detail: titleIsQuestion
+        ? 'Title reads as a natural question — matches how people actually search.'
+        : 'Title doesn\'t start with a question word (How/What/Why/etc) and end in "?" — search snippets and voice assistants favor direct question-form titles.',
+      weight: 5,
+    },
+    {
+      label: 'Snippet-ready early answer',
+      passed: hasSnippetReadyHeading,
+      detail: hasSnippetReadyHeading
+        ? 'A heading near the top of the article states the numeric answer directly — good for featured snippets.'
+        : 'None of the first few headings contain a number/range — consider adding an early H2 like "How Many Weeks Until X? (18–24 Weeks)" so the direct answer surfaces before readers scroll far.',
+      weight: 10,
+    },
+    {
+      label: 'Internal link present',
+      passed: internalLinkPresent,
+      detail: internalLinkPresent
+        ? 'At least one link points to another page on this site.'
+        : 'No internal links found — link to a related tool or category page to help spread authority across the site and give readers a next step.',
+      weight: 10,
+    },
   ];
 
   const score = checks.reduce((sum, c) => sum + (c.passed ? c.weight : 0), 0);
   return { score, checks: checks.map(({ weight, ...c }) => c) };
 }
-
 function seoScoreColor(score: number): string {
   if (score >= 90) return '#1D9E75'; // green
   if (score >= 70) return '#BA7517'; // amber
@@ -407,6 +464,7 @@ export function AdminClient({
   const [articleSearch, setArticleSearch] = useState('');
   const [articleCategoryFilter, setArticleCategoryFilter] = useState<string | null>(null);
   const [eventSearch, setEventSearch] = useState('');
+  const [eventCategoryFilter, setEventCategoryFilter] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [userPage, setUserPage] = useState(1);
   const [eventPage, setEventPage] = useState(1);
@@ -420,6 +478,7 @@ export function AdminClient({
   const onEventSort = (key: string) => { setEventSort(s => toggleSort(s, key)); setEventPage(1); };
   const onArticleSort = (key: string) => { setArticleSort(s => toggleSort(s, key)); setArticlePage(1); };
   const [expandedSeoId, setExpandedSeoId] = useState<string | null>(null);
+  const [expandedEventSeoId, setExpandedEventSeoId] = useState<string | null>(null);
 
   const topLevelCategories = categories.filter(c => !c.parentId);
   const subcategoriesFor = (parentId: string | null) =>
@@ -467,6 +526,53 @@ export function AdminClient({
     } else {
       showToast('Could not delete event', '⚠️');
     }
+  }
+
+  async function toggleEventPublish(eventId: string, currentPublished: boolean) {
+    const nextPublished = !currentPublished;
+    setSavingEventRow(eventId);
+    try {
+      const res = await fetch('/api/admin/events/' + eventId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: nextPublished }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setEventRows(rows => rows.map(r =>
+          r.id === eventId ? { ...r, published: updated.published, publishedAt: updated.publishedAt } : r
+        ));
+        showToast(nextPublished ? 'Event published!' : 'Event unpublished', nextPublished ? '🚀' : '📝');
+      } else {
+        showToast('Could not update status', '⚠️');
+      }
+    } catch {
+      showToast('Network error', '⚠️');
+    } finally {
+      setSavingEventRow(null);
+    }
+  }
+
+  // Reconstructs the exact shape accepted by "Import from JSON" above.
+  function downloadEventJson(ev: EventRow) {
+    const exportObj: Record<string, any> = {
+      slug: ev.slug,
+      authorName: ev.authorName ?? '',
+      content: ev.content ?? {},
+    };
+    if (ev.heroImageUrl) exportObj.heroImageUrl = ev.heroImageUrl;
+    if (ev.heroImageAlt) exportObj.heroImageAlt = ev.heroImageAlt;
+
+    const json = JSON.stringify([exportObj], null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = ev.slug + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   function updateEventRowCategory(eventId: string, categoryId: string) {
@@ -667,6 +773,39 @@ export function AdminClient({
     }
   }
 
+  // Reconstructs the exact shape accepted by "Import from JSON" above.
+  // faqs/sources live as blocks (type 'faq' / 'sources') internally for
+  // rendering — pull them back into their own top-level arrays here, and
+  // title/dek back into motherQuestion/shortAnswer, so the downloaded file
+  // can be re-pasted straight into the import box unchanged.
+  function downloadArticleJson(a: ArticleRow) {
+    const blocks = blocksArray(a);
+    const exportBlocks = blocks.filter(b => b?.type !== 'faq' && b?.type !== 'sources');
+    const exportObj: Record<string, any> = {
+      slug: a.slug,
+      motherQuestion: a.title,
+      shortAnswer: a.dek ?? '',
+      blocks: exportBlocks,
+      faqs: faqItems(a),
+      sources: sourceItems(a),
+    };
+    if (a.questionType) exportObj.questionType = a.questionType;
+    if (a.heroImageUrl) exportObj.heroImageUrl = a.heroImageUrl;
+    if (a.heroImageAlt) exportObj.heroImageAlt = a.heroImageAlt;
+    if (a.heroData) exportObj.heroData = a.heroData;
+
+    const json = JSON.stringify([exportObj], null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = a.slug + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   function updateRowCategory(articleId: string, categoryId: string) {
     setArticleRows(rows => rows.map(r =>
       r.id === articleId ? { ...r, categoryId: categoryId || null, subcategoryId: null } : r
@@ -691,8 +830,6 @@ export function AdminClient({
     ));
   }
 
-  const maxViews = Math.max(...eventRows.map(e => e.views), 1);
-
   const filteredArticles = articleRows.filter(a => {
     const s = articleSearch.toLowerCase();
     const matchSearch = !s || a.title.toLowerCase().includes(s) || a.slug.toLowerCase().includes(s);
@@ -702,11 +839,13 @@ export function AdminClient({
 
   const filteredEvents = eventRows.filter(ev => {
     const s = eventSearch.toLowerCase();
-    return !s
+    const matchSearch = !s
       || ev.name.toLowerCase().includes(s)
       || ev.slug.toLowerCase().includes(s)
       || (ev.category?.name ?? '').toLowerCase().includes(s)
       || (ev.subcategory?.name ?? '').toLowerCase().includes(s);
+    const matchCategory = !eventCategoryFilter || ev.categoryId === eventCategoryFilter;
+    return matchSearch && matchCategory;
   });
 
   const sortedUsers = applySort(filtered, userSort, userAccessor);
@@ -734,7 +873,7 @@ export function AdminClient({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers'] as Tab[]).map(t => (
+        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers','calendarEvents'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -890,7 +1029,7 @@ export function AdminClient({
         {/* EVENTS */}
         {tab === 'events' && (
           <div>
-            <h1 className="text-xl font-medium mb-5">Top event pages by views ({filteredEvents.length}{eventSearch ? ' of ' + events.length : ''})</h1>
+            <h1 className="text-xl font-medium mb-5">Events ({filteredEvents.length}{(eventSearch || eventCategoryFilter) ? ' of ' + events.length : ''})</h1>
             {/* Import box */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6">
               <h2 className="text-sm font-medium mb-3">Import from JSON (updates existing events only — matched by slug)</h2>
@@ -933,28 +1072,68 @@ export function AdminClient({
                 className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500"
               />
             </div>
+
+            {/* Category tag filter row */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              <button
+                onClick={() => { setEventCategoryFilter(null); setEventPage(1); }}
+                className={'text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ' + (
+                  eventCategoryFilter === null
+                    ? 'bg-brand-500 border-brand-500 text-white'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                )}>
+                All
+              </button>
+              {topLevelCategories.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => { setEventCategoryFilter(prev => prev === c.id ? null : c.id); setEventPage(1); }}
+                  className={'text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ' + (
+                    eventCategoryFilter === c.id
+                      ? 'bg-brand-500 border-brand-500 text-white'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  )}>
+                  {c.emoji} {c.name}
+                </button>
+              ))}
+            </div>
+
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <SortableTh label="#" sortKey={null} sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Event" sortKey="event" sort={eventSort} onSort={onEventSort} />
+                    <SortableTh label="Status" sortKey="published" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Category" sortKey="category" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Subcategory" sortKey="subcategory" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Reviewer" sortKey={null} sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Target date" sortKey="targetDate" sort={eventSort} onSort={onEventSort} />
-                    <SortableTh label="Views" sortKey="views" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="SEO" sortKey="seoScore" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Actions" sortKey={null} sort={eventSort} onSort={onEventSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedEvents.map((ev, i) => (
-                    <tr key={ev.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                  {pagedEvents.map((ev, i) => {
+                  const seo = computeEventSeoScore(ev);
+                  const seoOpen = expandedEventSeoId === ev.id;
+                  return (
+                  <Fragment key={ev.id}>
+                    <tr className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-4 py-3 text-gray-400 text-xs font-medium w-8">{i + 1}</td>
                       <td className="px-4 py-3">
                         <a href={'/how-long-until-' + ev.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{ev.name}</a>
                         <p className="text-xs text-gray-400 mt-0.5">/how-long-until-{ev.slug}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => toggleEventPublish(ev.id, ev.published)}
+                          disabled={savingEventRow === ev.id}
+                          title={ev.published && ev.publishedAt ? 'Published ' + new Date(ev.publishedAt).toLocaleDateString() : 'Click to publish'}
+                          className={'flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium transition-colors disabled:opacity-50 ' + (ev.published ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200')}>
+                          <span className={'w-2 h-2 rounded-full ' + (ev.published ? 'bg-green-500' : 'bg-gray-400')} />
+                          {ev.published ? 'Published' : 'Draft'}
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <select
@@ -1003,20 +1182,14 @@ export function AdminClient({
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-400">{new Date(ev.targetDate).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-500 rounded-full" style={{ width: Math.min(100, (ev.views / maxViews) * 100) + '%' }} />
-                          </div>
-                          <span className="text-xs font-medium text-brand-500">{ev.views.toLocaleString()}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {(() => { const seo = computeEventSeoScore(ev); return (
-                          <span className="text-xs font-bold px-2 py-1 rounded-lg"
-                            style={{ color: seoScoreColor(seo.score), background: seoScoreColor(seo.score) + '1a', border: '1px solid ' + seoScoreColor(seo.score) + '40' }}>
-                            {seo.score}%
-                          </span>
-                        ); })()}
+                        <button
+                          onClick={() => setExpandedEventSeoId(seoOpen ? null : ev.id)}
+                          title="Click for SEO details"
+                          className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full transition-colors"
+                          style={{ color: seoScoreColor(seo.score), background: seoScoreColor(seo.score) + '1a', border: '1px solid ' + seoScoreColor(seo.score) + '40' }}>
+                          {seo.score}%
+                          <span style={{ fontSize: 9 }}>{seoOpen ? '▲' : '▼'}</span>
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -1026,6 +1199,13 @@ export function AdminClient({
                             className="text-xs text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50">
                             {savingEventRow === ev.id ? 'Saving…' : 'Save'}
                           </button>
+                          <button
+                            onClick={() => downloadEventJson(ev)}
+                            title="Download this event's JSON"
+                            className="text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 px-2 py-1 rounded-lg transition-colors flex items-center gap-1">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            JSON
+                          </button>
                           <button onClick={() => deleteEvent(ev.id, ev.name)}
                             className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
                             Delete
@@ -1033,7 +1213,29 @@ export function AdminClient({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {seoOpen && (
+                      <tr className="bg-gray-50 dark:bg-gray-800/40 border-b border-gray-100 dark:border-gray-800">
+                        <td colSpan={9} className="px-4 py-4">
+                          <p className="text-xs font-bold mb-2" style={{ color: seoScoreColor(seo.score) }}>
+                            SEO score: {seo.score}% — {seo.score >= 90 ? 'Excellent' : seo.score >= 70 ? 'Needs work' : 'Poor'}
+                          </p>
+                          <ul className="flex flex-col gap-1.5">
+                            {seo.checks.map(c => (
+                              <li key={c.label} className="flex items-start gap-2 text-xs">
+                                <span className={c.passed ? 'text-green-500' : 'text-red-500'}>{c.passed ? '✓' : '✗'}</span>
+                                <span>
+                                  <span className="font-medium">{c.label}:</span>{' '}
+                                  <span className="text-gray-500">{c.detail}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                  );
+                  })}
                 </tbody>
               </table>
               {filteredEvents.length === 0 && (
@@ -1203,6 +1405,13 @@ export function AdminClient({
                             {savingRow === a.id ? 'Saving…' : 'Save'}
                           </button>
                           <button
+                            onClick={() => downloadArticleJson(a)}
+                            title="Download this article's JSON"
+                            className="text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 px-2 py-1 rounded-lg transition-colors flex items-center gap-1">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            JSON
+                          </button>
+                          <button
                             onClick={() => deleteArticle(a.id, a.title)}
                             className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
                             Delete
@@ -1259,6 +1468,7 @@ export function AdminClient({
         {tab === 'affiliateBanners' && <AffiliateBannersManager />}
         {tab === 'leadMagnet' && <LeadMagnetManager />}
         {tab === 'reviewers' && <ReviewersManager />}
+        {tab === 'calendarEvents' && <CalendarEventsManager />}
 
       </main>
     </div>

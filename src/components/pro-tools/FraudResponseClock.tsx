@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { FRAUD_RESPONSE_COMMENTS } from './fraudResponseComments';
 
 interface Marker { label: string; days: number; }
@@ -614,6 +615,7 @@ export function FraudResponseClock() {
         </div>
       </div>
 
+      <EmbedCodeButton slug="fraud-response-clock" title="Fraud Response Clock" glow={GLOW} />
       <ToolCommentSection seedComments={FRAUD_RESPONSE_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
       <ToastHost toast={toast} />
     </div>

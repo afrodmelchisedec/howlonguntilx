@@ -51,10 +51,11 @@ function ParamRow({ name, type, required, note }: { name: string; type: string; 
 
 export default function ApiDocsPage() {
   return (
-    <div>
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <MeshStarsBackdrop accent="orange" />
+
       {/* Hero */}
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <MeshStarsBackdrop accent="orange" />
+      <div style={{ position: 'relative' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '64px 20px 40px' }}>
           <p className="text-caption font-bold mb-2 tracking-wide" style={{ color: `rgb(${GLOW})` }}>DEVELOPER API</p>
           <h1 className="text-title1 mb-3">Build with How Long Until X</h1>
@@ -78,7 +79,7 @@ export default function ApiDocsPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px 80px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '0 20px 80px' }}>
         {/* Quick facts */}
         <div className="grid sm:grid-cols-4 gap-3 mb-14">
           {[

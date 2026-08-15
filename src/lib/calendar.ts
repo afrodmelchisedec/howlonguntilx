@@ -33,12 +33,24 @@ function loadAllSourceFiles(): CalendarMap {
     const year: number = raw.year ?? new Date().getFullYear();
     for (const region of Object.keys(raw)) {
       if (region === 'year') continue;
-      const entries = raw[region] as { date: string; event: string; description?: string }[];
+      const entries = raw[region] as {
+        date: string; event: string; description?: string;
+        slug?: string; emoji?: string; color?: string; featured?: boolean;
+      }[];
       for (const entry of entries) {
         const isoDate = parseDateString(entry.date, year);
         if (!isoDate) continue;
         if (!map[isoDate]) map[isoDate] = [];
-        map[isoDate].push({ region, event: entry.event, description: entry.description ?? '' });
+        map[isoDate].push({
+          region,
+          event: entry.event,
+          description: entry.description ?? '',
+          date: isoDate,
+          slug: entry.slug,
+          emoji: entry.emoji,
+          color: entry.color,
+          featured: entry.featured,
+        });
       }
     }
   }
@@ -53,4 +65,20 @@ export function getCalendarMonth(year: number, month: number): CalendarMap {
     if (date.startsWith(prefix)) filtered[date] = all[date];
   }
   return filtered;
+}
+
+export function getUpcomingEvents(limit: number = 8): CalendarEvent[] {
+  const all = loadAllSourceFiles();
+  const now = Date.now();
+  const flat: CalendarEvent[] = [];
+  for (const date of Object.keys(all)) {
+    for (const ev of all[date]) {
+      if (!ev.featured) continue;
+      if (!ev.date) continue;
+      if (new Date(ev.date).getTime() <= now) continue;
+      flat.push(ev);
+    }
+  }
+  flat.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
+  return flat.slice(0, limit);
 }

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { PASSWORD_ROTATION_COMMENTS } from '@/lib/seedComments';
 
 interface Account {
@@ -565,6 +566,7 @@ export function PasswordRotationBoard() {
       </div>
 
       {/* Comments waterfall */}
+      <EmbedCodeButton slug="password-rotation-board" title="Password Rotation Priority Board" glow={GLOW} />
       <ToolCommentSection seedComments={PASSWORD_ROTATION_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
 
       <ToastHost toast={toast} />

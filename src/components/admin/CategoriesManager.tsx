@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
+import { TOOLS } from '@/app/tools/toolsData';
 
 interface ToolMapping { slug: string; label: string; path: string }
 interface CategoryCounts {
@@ -54,9 +55,7 @@ export function CategoriesManager() {
   // Tool editor — keyed by subcategory id, holds the working (unsaved) tools array
   const [toolDrafts, setToolDrafts] = useState<Record<string, ToolMapping[]>>({});
   const [toolFormFor, setToolFormFor] = useState<string | null>(null);
-  const [toolSlug, setToolSlug] = useState('');
-  const [toolLabel, setToolLabel] = useState('');
-  const [toolPath, setToolPath] = useState('');
+  const [toolPickerSlug, setToolPickerSlug] = useState('');
 
   // Delete-with-reassignment prompt
   const [deleteTarget, setDeleteTarget] = useState<SubcategoryRow | null>(null);
@@ -152,15 +151,20 @@ export function CategoriesManager() {
   }
 
   function addToolToDraft(subId: string) {
-    if (!toolSlug.trim() || !toolPath.trim()) {
-      showToast('Tool slug and path are required', '⚠️');
+    if (!toolPickerSlug) {
+      showToast('Choose a tool first', '⚠️');
+      return;
+    }
+    const tool = TOOLS.find(t => t.slug === toolPickerSlug);
+    if (!tool) {
+      showToast('That tool could not be found', '⚠️');
       return;
     }
     setToolDrafts(d => ({
       ...d,
-      [subId]: [...(d[subId] ?? []), { slug: toolSlug.trim(), label: toolLabel.trim() || toolSlug.trim(), path: toolPath.trim() }],
+      [subId]: [...(d[subId] ?? []), { slug: tool.slug, label: tool.title, path: `/tools/${tool.slug}` }],
     }));
-    setToolSlug(''); setToolLabel(''); setToolPath(''); setToolFormFor(null);
+    setToolPickerSlug(''); setToolFormFor(null);
   }
 
   function removeToolFromDraft(subId: string, toolSlugToRemove: string) {
@@ -212,6 +216,12 @@ export function CategoriesManager() {
       </div>
     );
   }
+
+  // Tools already mapped anywhere in the tree (across the current working
+  // drafts, not just what's saved) — excluded from the picker so the same
+  // tool can't accidentally end up mapped to two categories at once.
+  const mappedToolSlugs = new Set(Object.values(toolDrafts).flat().map(t => t.slug));
+  const availableTools = TOOLS.filter(t => !mappedToolSlugs.has(t.slug));
 
   // Flat list of all categories at the same "level" as the delete target, for the reassignment dropdown.
   const reassignOptions = deleteTarget
@@ -351,11 +361,27 @@ export function CategoriesManager() {
 
                     {toolFormFor === sub.id ? (
                       <div className="flex flex-wrap gap-2 items-end">
-                        <input value={toolSlug} onChange={e => setToolSlug(e.target.value)} placeholder="slug (e.g. payroll-runway)" className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-900 focus:outline-none w-40" />
-                        <input value={toolLabel} onChange={e => setToolLabel(e.target.value)} placeholder="label" className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-900 focus:outline-none w-32" />
-                        <input value={toolPath} onChange={e => setToolPath(e.target.value)} placeholder="/tools/payroll-runway" className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-900 focus:outline-none w-48" />
-                        <button onClick={() => addToolToDraft(sub.id)} className="text-xs bg-brand-500 text-white rounded-lg px-2 py-1 font-medium hover:bg-brand-600 transition-colors">Add</button>
-                        <button onClick={() => setToolFormFor(null)} className="text-xs text-gray-400 px-2 py-1">Cancel</button>
+                        <div className="flex flex-col">
+                          <select
+                            value={toolPickerSlug}
+                            onChange={e => setToolPickerSlug(e.target.value)}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-900 focus:outline-none w-64">
+                            <option value="">— choose a tool —</option>
+                            {availableTools.map(t => (
+                              <option key={t.slug} value={t.slug}>{t.title}</option>
+                            ))}
+                          </select>
+                          {availableTools.length === 0 && (
+                            <span className="text-[10px] text-gray-400 mt-0.5">Every tool is already mapped somewhere</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => addToolToDraft(sub.id)}
+                          disabled={!toolPickerSlug}
+                          className="text-xs bg-brand-500 text-white rounded-lg px-2 py-1 font-medium hover:bg-brand-600 transition-colors disabled:opacity-50">
+                          Add
+                        </button>
+                        <button onClick={() => { setToolFormFor(null); setToolPickerSlug(''); }} className="text-xs text-gray-400 px-2 py-1">Cancel</button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">

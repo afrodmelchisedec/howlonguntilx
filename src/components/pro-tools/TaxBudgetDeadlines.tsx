@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { TAX_DEADLINE_COMMENTS } from './taxDeadlineComments';
 
 type Category = 'quarterly' | 'federal' | 'state' | 'other';
@@ -771,6 +772,7 @@ export function TaxBudgetDeadlines() {
         </div>
       </div>
 
+      <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="tax-budget-deadlines" title="Safe-Harbor Planner" glow={GLOW} /></div>
       <ToolCommentSection seedComments={TAX_DEADLINE_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
       <ToastHost toast={toast} />
     </div>

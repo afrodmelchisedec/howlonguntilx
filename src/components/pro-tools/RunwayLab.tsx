@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { ToolProGate } from './ToolProGate';
 import { RUNWAY_LAB_COMMENTS } from '@/lib/seedComments';
 
@@ -324,6 +325,7 @@ export function RunwayLab() {
       </div>
 
       {/* Comments waterfall */}
+      <EmbedCodeButton slug="runway-lab" title="Payday Budget Simulator" glow={glowRgb} />
       <ToolCommentSection seedComments={RUNWAY_LAB_COMMENTS} onRequireAuth={requireAuth} glow={glowRgb} />
 
       <ToastHost toast={toast} />

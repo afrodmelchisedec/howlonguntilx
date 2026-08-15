@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { ENTERTAINMENT_COMMENTS } from './entertainmentComments';
 
 interface WatchItem {
@@ -651,6 +652,7 @@ export function EntertainmentWatchlist() {
         </div>
       </div>
 
+      <EmbedCodeButton slug="entertainment-watchlist" title="Release Queue" glow={GLOW} />
       <ToolCommentSection seedComments={ENTERTAINMENT_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
       <ToastHost toast={toast} />
     </div>

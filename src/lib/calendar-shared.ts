@@ -7,6 +7,11 @@ export interface CalendarEvent {
   region: string;
   event: string;
   description: string;
+  date?: string;
+  slug?: string;
+  emoji?: string;
+  color?: string;
+  featured?: boolean;
 }
 
 export const CALENDAR_REGIONS = ['united_states', 'europe', 'united_kingdom', 'africa', 'middle_east'] as const;

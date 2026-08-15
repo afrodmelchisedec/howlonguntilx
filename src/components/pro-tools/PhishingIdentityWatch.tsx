@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { PHISHING_IDENTITY_COMMENTS } from './phishingIdentityComments';
 
 interface Flag { key: string; text: string; weight: number; pro?: boolean }
@@ -518,6 +519,7 @@ export function PhishingIdentityWatch() {
         </div>
       </div>
 
+      <EmbedCodeButton slug="phishing-identity-watch" title="Phishing Radar & Identity Watch" glow={GLOW} />
       <ToolCommentSection seedComments={PHISHING_IDENTITY_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
       <ToastHost toast={toast} />
     </div>

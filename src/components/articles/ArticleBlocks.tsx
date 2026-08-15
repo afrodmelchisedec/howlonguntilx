@@ -1,9 +1,10 @@
 // FILE: src/components/articles/ArticleBlocks.tsx
+import Link from 'next/link';
 import { widgetsForTool, fullToolForTool, toolComponentForSlug } from '@/lib/widgetRegistry';
 import { ArticleChart } from './ArticleChart';
 import { ArticleFaq } from './ArticleFaq';
 import { AffiliateBanner } from './AffiliateBanner';
-import { Fragment } from 'react';
+import { Fragment, createElement } from 'react';
 
 interface ToolMapping { slug: string; label: string; path: string }
 
@@ -64,6 +65,45 @@ export function extractHeadings(blocks: Block[]): { id: string; text: string }[]
     });
 }
 
+// Checks whether a paragraph block links anywhere on this site — either via
+// its trailing sourceUrl, or an inline `[label](/path)` link within the text.
+// Relative (starting with "/") counts as internal; anything else is external.
+function isInternalUrl(url: string) {
+  return url.startsWith('/');
+}
+
+// Parses inline `[label](url)` markdown-style links within paragraph text so
+// authors can drop a natural internal link (e.g. to a sibling tool) mid-sentence,
+// not just as a single trailing "Source" link per paragraph. Internal (relative)
+// links render as Next <Link> for client-side nav + crawlability; external links
+// open in a new tab, same as the existing sourceUrl link.
+function renderParagraphText(text: string) {
+  const parts: (string | JSX.Element)[] = [];
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = linkPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    const [, label, url] = match;
+    parts.push(
+      isInternalUrl(url) ? (
+        <Link key={key++} href={url} className="underline underline-offset-2" style={{ color: 'inherit' }}>
+          {label}
+        </Link>
+      ) : (
+        <a key={key++} href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: 'inherit' }}>
+          {label}
+        </a>
+      )
+    );
+    lastIndex = linkPattern.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
 export function ArticleBlocks({
   toolSlug, blocks, glow, subcategoryTools, affiliateBanner,
 }: {
@@ -95,19 +135,31 @@ export function ArticleBlocks({
         if (b.type === 'paragraph') {
           return (
             <p key={i} className="text-callout anim-fade-up" style={{ ...delay, color: 'var(--text-secondary)' }}>
-              {b.text}
+              {renderParagraphText(b.text)}
               {b.sourceUrl && (
                 <>
                   {' '}
-                  <a
-                    href={b.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-caption1 underline underline-offset-2"
-                    style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}
-                  >
-                    {b.sourceLabel ?? 'Source'}
-                  </a>
+                  {isInternalUrl(b.sourceUrl) ? (
+                    <Link
+                      href={b.sourceUrl}
+                      className="text-caption1 underline underline-offset-2"
+                      style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}
+                    >
+                      {b.sourceLabel ?? 'Source'}
+                    </Link>
+                  ) : (
+                    createElement(
+                      'a',
+                      {
+                        href: b.sourceUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: 'text-caption1 underline underline-offset-2',
+                        style: { color: 'var(--text-tertiary, var(--text-secondary))' },
+                      },
+                      b.sourceLabel ?? 'Source'
+                    )
+                  )}
                 </>
               )}
             </p>
@@ -147,4 +199,14 @@ export function hasToolEmbed(blocks: Block[]) {
 export function extractFaq(blocks: Block[]): { q: string; a: string }[] | null {
   const faqBlock = blocks.find(b => b.type === 'faq') as Extract<Block, { type: 'faq' }> | undefined;
   return faqBlock?.items ?? null;
+}
+
+// Used by the admin SEO scorer's new "Internal link present" check — true if
+// any paragraph links somewhere on this site, via sourceUrl or an inline link.
+export function hasInternalLink(blocks: Block[]): boolean {
+  return bodyBlocks(blocks).some(b => {
+    if (b.type !== 'paragraph') return false;
+    if (b.sourceUrl && isInternalUrl(b.sourceUrl)) return true;
+    return /\]\(\/[^)]*\)/.test(b.text);
+  });
 }

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { JETLAG_COMMENTS } from './jetlagComments';
 
 type Ring = 'home' | 'dest' | null;
@@ -444,6 +445,7 @@ export function JetLagAdjustmentDragger() {
       </div>
 
       {/* Comments waterfall */}
+      <EmbedCodeButton slug="jetlag-adjustment-dragger" title="Jet-Lag Adjustment Dragger" glow={GLOW} />
       <ToolCommentSection seedComments={JETLAG_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
 
       <ToastHost toast={toast} />

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
 import { ToolCommentSection } from './ToolCommentSection';
+import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 import { SPORTS_GAMES_COMMENTS } from './sportsGamesComments';
 
 interface Team { name: string; color: string; }
@@ -655,6 +656,7 @@ export function SportsGamesTracker() {
         </div>
       </div>
 
+      <EmbedCodeButton slug="sports-games-tracker" title="Game Day Tracker" glow={GLOW} />
       <ToolCommentSection seedComments={SPORTS_GAMES_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
