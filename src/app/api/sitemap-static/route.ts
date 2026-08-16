@@ -40,6 +40,7 @@ export async function GET() {
     let xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
     xml += `<url><loc>${BASE}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`;
     xml += `<url><loc>${BASE}/categories</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`;
+    xml += `<url><loc>${BASE}/tools</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`;
 
     for (const cat of categories) {
       if (isCategoryEmpty(cat)) continue;
