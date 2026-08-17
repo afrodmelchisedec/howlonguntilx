@@ -1,6 +1,4 @@
-
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from 'next-auth/middleware';
 
 const LOCALES = ['en', 'hi', 'ar'];
 const DEFAULT_LOCALE = 'en';
@@ -17,16 +15,11 @@ function getLocale(req: NextRequest): string {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Skip auth/api/assets
+  // Skip auth/api/assets/admin/dashboard — /admin and /dashboard each enforce
+  // their own server-side session + role check in page.tsx (getServerSession).
   if (pathname.startsWith('/api') || pathname.startsWith('/_next') ||
       pathname.startsWith('/admin') || pathname.startsWith('/auth') ||
-      pathname.includes('.')) {
-    return NextResponse.next();
-  }
-
-  // Protect dashboard
-  if (pathname.startsWith('/dashboard')) {
-    // Let next-auth handle this via its own middleware logic
+      pathname.startsWith('/dashboard') || pathname.includes('.')) {
     return NextResponse.next();
   }
 
