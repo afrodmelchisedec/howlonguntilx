@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { KITTEN_GROWTH_COMMENTS } from './kittenGrowthComments';
 import { BREED_SIZES, KITTEN_MILESTONES, getMilestonesForBreed, expectedWeightKgAtDay, currentAgeParts, type BreedSize, type KittenMilestone } from '@/lib/kittenMilestones';
 
 const GLOW = '224, 146, 66'; // warm amber — playful, distinct from Life Expectancy's green
@@ -469,7 +468,7 @@ export function KittenGrowthTracker() {
       </div>
 
       <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="kitten-growth-tracker" title="Kitten Growth Tracker" glow={GLOW} /></div>
-      <ToolCommentSection seedComments={KITTEN_GROWTH_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="kitten-growth-tracker" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

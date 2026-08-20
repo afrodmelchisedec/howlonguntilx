@@ -7,7 +7,7 @@ const nextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://www.paypal.com https://www.paypalobjects.com https://accounts.google.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
+      "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://www.google-analytics.com https://api.paypal.com https://pagead2.googlesyndication.com",
       "frame-src 'self' https://www.paypal.com https://accounts.google.com",

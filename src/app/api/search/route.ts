@@ -5,8 +5,6 @@ import { rateLimit } from '@/lib/rateLimit';
 import { checkApiCredits, creditHeaders } from '@/lib/apiAuth';
 
 export async function GET(req: NextRequest) {
-  // Burst protection — search wasn't rate-limited before; now that it's a
-  // documented public endpoint, it gets the same guard as Countdown.
   const limited = await rateLimit(req);
   if (limited) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
 
@@ -16,7 +14,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
   if (q.length < 2) return NextResponse.json([], { headers: creditHeaders(access) });
 
-  const [events, articles] = await Promise.all([
+  const [events, articles, userEvents] = await Promise.all([
     prisma.event.findMany({
       where: {
         published: true,
@@ -42,6 +40,26 @@ export async function GET(req: NextRequest) {
       orderBy: { likeCount: 'desc' },
       take: 5,
     }),
+    // Community UserEvents — same PUBLIC + APPROVED gate as the community
+    // feed and the embed widget, plus author.blockedAt: null so a blocked
+    // author's public posts drop out of search the same way they're
+    // hidden everywhere else.
+    prisma.userEvent.findMany({
+      where: {
+        visibility: 'PUBLIC',
+        moderationStatus: 'APPROVED',
+        author: { blockedAt: null },
+        title: { contains: q, mode: 'insensitive' },
+      },
+      select: {
+        slug: true,
+        title: true,
+        likeCount: true,
+        category: { select: { slug: true } },
+      },
+      orderBy: { likeCount: 'desc' },
+      take: 5,
+    }),
   ]);
 
   const eventResults = events.map(e => ({
@@ -60,6 +78,14 @@ export async function GET(req: NextRequest) {
     href: `/tools/${a.toolSlug}/${a.slug}`,
   }));
 
-  const combined = [...eventResults, ...articleResults].slice(0, 8);
+  const userEventResults = userEvents.map(ue => ({
+    slug: ue.slug,
+    name: ue.title,
+    category: ue.category?.slug ?? 'general',
+    type: 'userEvent' as const,
+    href: `/community/how-long-until-${ue.slug}`,
+  }));
+
+  const combined = [...eventResults, ...articleResults, ...userEventResults].slice(0, 10);
   return NextResponse.json(combined, { headers: creditHeaders(access) });
 }

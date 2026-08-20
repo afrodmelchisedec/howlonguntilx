@@ -4,9 +4,18 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
-export function ShareButton({ glow, title }: { glow: string; title?: string }) {
+interface Props {
+  glow: string;
+  title?: string;
+  id: string;
+  type: 'article';
+  shareCount?: number;
+}
+
+export function ShareButton({ glow, title, id, type, shareCount: initialShareCount }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareCount, setShareCount] = useState(initialShareCount ?? 0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,33 +32,47 @@ export function ShareButton({ glow, title }: { glow: string; title?: string }) {
     return typeof window !== 'undefined' ? window.location.href : '';
   }
 
+  function track(platform: 'twitter' | 'facebook' | 'whatsapp' | 'linkedin' | 'copy') {
+    fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, type, platform }),
+    }).catch(() => {});
+    setShareCount(c => c + 1);
+  }
+
   function handleWhatsApp() {
     const text = title ? `${title} ${getUrl()}` : getUrl();
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    track('whatsapp');
     setOpen(false);
   }
 
   function handleTwitter() {
     const params = new URLSearchParams({ url: getUrl(), ...(title ? { text: title } : {}) });
     window.open(`https://twitter.com/intent/tweet?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    track('twitter');
     setOpen(false);
   }
 
   function handleFacebook() {
     const params = new URLSearchParams({ u: getUrl() });
     window.open(`https://www.facebook.com/sharer/sharer.php?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    track('facebook');
     setOpen(false);
   }
 
   function handleLinkedIn() {
     const params = new URLSearchParams({ url: getUrl() });
     window.open(`https://www.linkedin.com/sharing/share-offsite/?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    track('linkedin');
     setOpen(false);
   }
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(getUrl());
+      track('copy');
       setCopied(true);
       setTimeout(() => {
         setCopied(false);
@@ -101,7 +124,7 @@ export function ShareButton({ glow, title }: { glow: string; title?: string }) {
           <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
-        Share
+        Share{shareCount > 0 ? ` (${shareCount})` : ''}
       </button>
 
       {open && (

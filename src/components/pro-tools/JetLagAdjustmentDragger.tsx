@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { JETLAG_COMMENTS } from './jetlagComments';
 
 type Ring = 'home' | 'dest' | null;
 type Direction = 'advance' | 'delay' | 'none';
@@ -446,7 +445,7 @@ export function JetLagAdjustmentDragger() {
 
       {/* Comments waterfall */}
       <EmbedCodeButton slug="jetlag-adjustment-dragger" title="Jet-Lag Adjustment Dragger" glow={GLOW} />
-      <ToolCommentSection seedComments={JETLAG_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="jetlag-adjustment-dragger" glow={GLOW} />
 
       <ToastHost toast={toast} />
     </div>

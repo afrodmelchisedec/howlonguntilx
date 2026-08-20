@@ -8,7 +8,7 @@
     "event":  { "type": "string", "default": "christmas" },
     "theme":  { "type": "string", "default": "light" },
     "width":  { "type": "number", "default": 300 },
-    "height": { "type": "number", "default": 160 }
+    "height": { "type": "number", "default": 230 }
   },
   "editorScript": "file:./index.js",
   "render": "file:./render.php"

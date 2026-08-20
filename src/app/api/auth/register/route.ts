@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { autoFollowDefaultForNewUser } from '@/lib/userFollow';
+import { assignUsernameForNewUser } from '@/lib/username';
 
 export async function POST(req: NextRequest) {
   const { name, email, password } = await req.json();
@@ -15,6 +17,12 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.create({
     data: { name: name || null, email, passwordHash, emailVerified: new Date() },
   });
+
+  // Credentials signup doesn't go through PrismaAdapter's createUser, so
+  // it needs its own direct auto-follow call — the OAuth/Email paths get
+  // this via the events.createUser hook in auth.ts instead.
+  await assignUsernameForNewUser(user.id, user.name, user.email);
+  await autoFollowDefaultForNewUser(user.id);
 
   return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });
 }

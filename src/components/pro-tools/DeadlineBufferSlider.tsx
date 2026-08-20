@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { DEADLINE_BUFFER_COMMENTS } from '@/lib/seedComments';
 
 interface Phase {
   id: string;
@@ -671,7 +670,7 @@ export function DeadlineBufferSlider() {
 
       {/* Comments waterfall */}
       <EmbedCodeButton slug="deadline-buffer-slider" title="Launch Countdown Planner" glow={GLOW} />
-      <ToolCommentSection seedComments={DEADLINE_BUFFER_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="deadline-buffer-slider" glow={GLOW} />
 
       <ToastHost toast={toast} />
     </div>

@@ -21,15 +21,14 @@ export function CountdownDisplay({ event, glow }: Props) {
     return (
       <div className="text-center py-10">
         <p className="text-caption mb-2">This event has passed</p>
-        <p className="text-title2">{event.name}</p>
+        <p className="text-title2">How long until {event.name}?</p>
       </div>
     );
   }
 
   return (
     <div className="text-center">
-      <p className="text-caption mb-2">Time remaining until</p>
-      <h1 className="text-largetitle mb-8">{event.name}</h1>
+      <h1 className="text-largetitle mb-8">How long until {event.name}?</h1>
 
       <div className="flex justify-center gap-0 mb-6">
         {[

@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { PAYROLL_COMMENTS } from './payrollComments';
 
 type Frequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 
@@ -796,7 +795,7 @@ export function PayrollRunway() {
       </div>
 
       <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="payroll-runway" title="Payday Runway" glow={GLOW} /></div>
-      <ToolCommentSection seedComments={PAYROLL_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="payroll-runway" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

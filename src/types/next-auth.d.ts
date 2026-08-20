@@ -10,6 +10,7 @@ declare module 'next-auth' {
       plan: 'FREE' | 'PRO';
       subscriptionStatus: string;
       trialEndsAt: string | null;
+      blockedAt: string | null;
     };
   }
 }

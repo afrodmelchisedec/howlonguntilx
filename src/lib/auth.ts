@@ -6,6 +6,8 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './db';
 import { createTransport } from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import { autoFollowDefaultForNewUser } from './userFollow';
+import { assignUsernameForNewUser } from './username';
 
 function getEmailProvider() {
   const host = process.env.EMAIL_SERVER_HOST;
@@ -55,6 +57,19 @@ export const authOptions: NextAuthOptions = {
       : []),
     ...(emailProvider ? [emailProvider] : []),
   ],
+  events: {
+    // Fires only for adapter-driven signups (Google OAuth, Email
+    // magic-link) — i.e. exactly the two paths that do NOT go through
+    // our own prisma.user.create() in register/route.ts, so this is the
+    // other half of "every signup path" for auto-follow, not a duplicate
+    // of the Credentials call.
+    createUser: async ({ user }) => {
+      if (user.id) {
+        await assignUsernameForNewUser(user.id, user.name ?? null, user.email ?? null);
+        await autoFollowDefaultForNewUser(user.id);
+      }
+    },
+  },
   callbacks: {
     jwt: async ({ token, user }) => {
       if (user) {
@@ -68,6 +83,19 @@ export const authOptions: NextAuthOptions = {
         token.subscriptionStatus = dbUser?.subscriptionStatus ?? 'none';
         token.trialEndsAt = dbUser?.trialEndsAt ? dbUser.trialEndsAt.toISOString() : null;
       }
+      // Runs on EVERY jwt callback invocation (i.e. every getServerSession()
+      // call server-side, not just sign-in). This is the real hard-lockout
+      // mechanism: a user blocked mid-session must not keep a working
+      // session until the JWT naturally refreshes. One extra indexed query
+      // per session-check — same tradeoff already accepted for the Phase 3
+      // live-DB plan-cap re-fetch.
+      if (token.id) {
+        const blockCheck = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { blockedAt: true },
+        });
+        token.blockedAt = blockCheck?.blockedAt ? blockCheck.blockedAt.toISOString() : null;
+      }
       return token;
     },
     session: async ({ session, token }) => {
@@ -80,6 +108,7 @@ export const authOptions: NextAuthOptions = {
           plan: token.plan as string,
           subscriptionStatus: token.subscriptionStatus as string,
           trialEndsAt: token.trialEndsAt as string | null,
+          blockedAt: token.blockedAt as string | null,
         },
       };
     },

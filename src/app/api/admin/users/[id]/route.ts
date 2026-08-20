@@ -9,10 +9,6 @@ async function isAdmin() {
   return s?.user?.role === 'ADMIN' ? s : null;
 }
 
-// Explicit allow-list — never spread the raw request body into a Prisma
-// update. Fields intentionally excluded: id, passwordHash, paypalId,
-// paypalSubscriptionId, createdAt, eventCount, emailVerified, image.
-// Add any of those back here deliberately if the admin UI needs them.
 const EDITABLE_FIELDS = [
   'name',
   'email',
@@ -32,13 +28,37 @@ function pickEditableFields(body: Record<string, unknown>): Prisma.UserUpdateInp
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const session = await isAdmin();
+  if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  if (body.action === 'block' || body.action === 'unblock') {
+    if (body.action === 'block' && params.id === session.user.id) {
+      return NextResponse.json({ error: "Can't block your own account" }, { status: 400 });
+    }
+    const data: Prisma.UserUpdateInput =
+      body.action === 'block'
+        ? {
+            blockedAt: new Date(),
+            blockedBy: { connect: { id: session.user.id } },
+            blockReason: typeof body.reason === 'string' ? body.reason : null,
+          }
+        : { blockedAt: null, blockedBy: { disconnect: true }, blockReason: null };
+    try {
+      const user = await prisma.user.update({ where: { id: params.id }, data });
+      return NextResponse.json(user);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : 'Block/unblock failed' },
+        { status: 400 }
+      );
+    }
   }
 
   const data = pickEditableFields(body);

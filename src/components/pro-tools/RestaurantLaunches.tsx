@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { RESTAURANT_LAUNCHES_COMMENTS } from '@/lib/seedComments';
 import { RESTAURANT_PRESETS, CUISINES, type RestaurantLaunch } from '@/lib/restaurantPresets';
 
 const GLOW = '255, 107, 53';
@@ -468,7 +467,7 @@ export function RestaurantLaunches() {
       </div>
 
       <EmbedCodeButton slug="restaurant-launches" title="Grand Opening Tracker" glow={GLOW} />
-      <ToolCommentSection seedComments={RESTAURANT_LAUNCHES_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="restaurant-launches" glow={GLOW} />
 
       <ToastHost toast={toast} />
 

@@ -8,6 +8,9 @@ import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersMana
 import { LeadMagnetManager } from '@/components/admin/LeadMagnetManager';
 import { ReviewersManager } from '@/components/admin/ReviewersManager';
 import { CalendarEventsManager } from '@/components/admin/CalendarEventsManager';
+import { UserEventsModerationManager } from '@/components/admin/UserEventsModerationManager';
+import { DefaultFollowConfigManager } from '@/components/admin/DefaultFollowConfigManager';
+import { CommentsModerationManager } from '@/components/admin/CommentsModerationManager';
 import SubscribersPanel from './SubscribersPanel';
 import ApiUsersPanel from './ApiUsersPanel';
 import LifeExpectancyPanel from './LifeExpectancyPanel';
@@ -16,7 +19,7 @@ import { hasInternalLink } from '@/components/articles/ArticleBlocks';
 interface User {
   id: string; name: string | null; email: string | null;
   emailVerified: Date | null; plan: string; role: string;
-  createdAt: Date; lastSeen: Date | null;
+  createdAt: Date; lastSeen: Date | null; blockedAt: Date | null;
   _count: { timers: number; sessions: number };
 }
 interface ReviewerRow { id: string; slug: string; name: string; credentials: string | null; active: boolean }
@@ -55,7 +58,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents';
+type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -64,12 +67,16 @@ const STAT_COLORS: Record<string, string> = {
 };
 
 const TAB_ICONS: Record<Tab, string> = {
+  defaultFollow: '⭐',
+  userEvents: '🌍', comments: '💬',
   overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
   calendarEvents: '🗓️',
 };
 const TAB_LABELS: Record<Tab, string> = {
+  defaultFollow: 'Default Follow',
   overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
   calendarEvents: 'Calendar Events',
+  userEvents: 'Community events', comments: 'Comments',
 };
 
 function Pagination({
@@ -511,6 +518,24 @@ export function AdminClient({
     window.location.reload();
   }
 
+  async function blockUser(userId: string, email: string) {
+    const reason = window.prompt('Reason for blocking ' + email + '? (optional)');
+    if (reason === null) return;
+    await fetch('/api/admin/users/' + userId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'block', reason }),
+    });
+    window.location.reload();
+  }
+
+  async function unblockUser(userId: string, email: string) {
+    await fetch('/api/admin/users/' + userId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'unblock' }),
+    });
+    window.location.reload();
+  }
+
   async function deleteUser(userId: string, email: string) {
     if (!confirm('Delete user ' + email + '? Cannot be undone.')) return;
     await fetch('/api/admin/users/' + userId, { method: 'DELETE' });
@@ -873,7 +898,7 @@ export function AdminClient({
           <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
           <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
         </div>
-        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers','calendarEvents'] as Tab[]).map(t => (
+        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers','calendarEvents','userEvents','comments','defaultFollow'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -1009,10 +1034,23 @@ export function AdminClient({
                         <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{u.lastSeen ? new Date(u.lastSeen).toLocaleDateString() : '—'}</td>
                         <td className="px-4 py-3">
                           {u.role !== 'ADMIN' && (
-                            <button onClick={() => deleteUser(u.id, u.email ?? '')}
-                              className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
-                              Delete
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {u.blockedAt ? (
+                                <button onClick={() => unblockUser(u.id, u.email ?? '')}
+                                  className="text-xs text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 px-2 py-1 rounded-lg transition-colors">
+                                  Unblock
+                                </button>
+                              ) : (
+                                <button onClick={() => blockUser(u.id, u.email ?? '')}
+                                  className="text-xs text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-2 py-1 rounded-lg transition-colors">
+                                  Block
+                                </button>
+                              )}
+                              <button onClick={() => deleteUser(u.id, u.email ?? '')}
+                                className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1469,6 +1507,9 @@ export function AdminClient({
         {tab === 'leadMagnet' && <LeadMagnetManager />}
         {tab === 'reviewers' && <ReviewersManager />}
         {tab === 'calendarEvents' && <CalendarEventsManager />}
+        {tab === 'userEvents' && <UserEventsModerationManager />}
+        {tab === 'comments' && <CommentsModerationManager />}
+        {tab === 'defaultFollow' && <DefaultFollowConfigManager />}
 
       </main>
     </div>

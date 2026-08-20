@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { LIFE_EXPECTANCY_COMMENTS } from './lifeExpectancyComments';
 import { REGIONS, type Region } from '@/lib/lifeExpectancySeed';
 import { FACTOR_INFO, DEFAULT_FACTORS, FREE_FACTOR_LIMIT, chanceOfReaching, type Factors, type Sex } from '@/lib/lifeExpectancy';
 
@@ -567,7 +566,7 @@ export function LifeExpectancyCalculator() {
       </div>
 
       <EmbedCodeButton slug="life-expectancy-calculator" title="Life Expectancy Calculator" glow={GLOW} />
-      <ToolCommentSection seedComments={LIFE_EXPECTANCY_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="life-expectancy-calculator" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

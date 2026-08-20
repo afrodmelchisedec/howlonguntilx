@@ -3,8 +3,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
-import { MONEY_MILESTONES_COMMENTS } from './moneyMilestonesComments';
+import { CommentThread } from '@/components/community/CommentThread';
 
 interface Milestone {
   id: string;
@@ -844,7 +843,7 @@ export function MoneyMilestones() {
         </div>
       </div>
 
-      <ToolCommentSection seedComments={MONEY_MILESTONES_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="money-milestones" glow={GLOW} />
 
       <ToastHost toast={toast} />
     </div>

@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { AM_I_PREGNANT_COMMENTS } from './amIPregnantComments';
 
 const GLOW = '255, 138, 179'; // warm pink-coral
 const DIAL_MIN = 21, DIAL_MAX = 35;
@@ -504,7 +503,7 @@ export function AmIPregnantTracker() {
         <EmbedCodeButton slug="am-i-pregnant-probability-tracker" title="Am I Pregnant? Probability Tracker" glow={GLOW} />
       </div>
 
-      <ToolCommentSection seedComments={AM_I_PREGNANT_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="am-i-pregnant-probability-tracker" glow={GLOW} />
       <ToastHost toast={toast} />
 
       <style dangerouslySetInnerHTML={{ __html: `

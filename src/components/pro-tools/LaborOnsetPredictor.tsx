@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { LABOR_ONSET_COMMENTS } from './laborOnsetComments';
 
 const GLOW = '255, 122, 89';
 
@@ -335,7 +334,7 @@ export function LaborOnsetPredictor() {
         <EmbedCodeButton slug="labor-onset-predictor" title="Labor Onset Predictor" glow={GLOW} />
       </div>
 
-      <ToolCommentSection seedComments={LABOR_ONSET_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="labor-onset-predictor" glow={GLOW} />
     </div>
   );
 }

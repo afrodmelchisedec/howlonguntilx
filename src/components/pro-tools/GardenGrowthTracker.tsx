@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { GARDEN_GROWTH_COMMENTS } from './gardenGrowthComments';
 
 const GLOW = '138, 201, 87';
 const PRO_MAX_BEDS = 8;
@@ -438,7 +437,7 @@ export function GardenGrowthTracker() {
       </div>
 
       <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="garden-growth-bloom-tracker" title="Garden Growth & Bloom Tracker" glow={GLOW} /></div>
-      <ToolCommentSection seedComments={GARDEN_GROWTH_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="garden-growth-bloom-tracker" glow={GLOW} />
       <ToastHost toast={toast} />
 
       <style dangerouslySetInnerHTML={{ __html: `

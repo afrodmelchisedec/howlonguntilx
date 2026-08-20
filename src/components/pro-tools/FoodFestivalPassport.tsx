@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { FOOD_FESTIVAL_COMMENTS } from './foodFestivalComments';
 
 interface Festival {
   id: string;
@@ -589,7 +588,7 @@ export function FoodFestivalPassport() {
       </div>
 
       <EmbedCodeButton slug="food-festival-passport" title="Festival Passport" glow={GLOW} />
-      <ToolCommentSection seedComments={FOOD_FESTIVAL_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="food-festival-passport" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

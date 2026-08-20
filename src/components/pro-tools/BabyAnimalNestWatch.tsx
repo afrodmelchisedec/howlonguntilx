@@ -4,9 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { BABY_ANIMAL_NEST_WATCH_COMMENTS } from './babyAnimalNestWatchComments';
 
 const GLOW = '255, 179, 71';
 const STORAGE_KEY = 'nest-watch:selection';
@@ -351,7 +350,7 @@ export function BabyAnimalNestWatch() {
         <EmbedCodeButton slug="baby-animal-nest-watch" title="Baby Animal Nest-Watch" glow={GLOW} />
       </div>
 
-      <ToolCommentSection seedComments={BABY_ANIMAL_NEST_WATCH_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="baby-animal-nest-watch" glow={GLOW} />
     </div>
   );
 }

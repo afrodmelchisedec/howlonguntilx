@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { RECIPE_BATCH_DIAL_COMMENTS } from '@/lib/seedComments';
 import { RECIPE_PRESETS, COUNTRIES, type RecipePreset } from '@/lib/recipePresets';
 
 const MIN_SERVINGS = 1;
@@ -485,7 +484,7 @@ export function RecipeBatchDial() {
 
       {/* Comments waterfall */}
       <EmbedCodeButton slug="recipe-batch-dial" title="Recipe Batch-Scale Dial" glow="255, 122, 60" />
-      <ToolCommentSection seedComments={RECIPE_BATCH_DIAL_COMMENTS} onRequireAuth={requireAuth} glow="255, 122, 60" />
+      <CommentThread subjectType="tool" subjectId="recipe-batch-dial" glow={"255, 122, 60"} />
 
       <ToastHost toast={toast} />
     </div>

@@ -4,7 +4,6 @@ import { PremiumSidebar } from './PremiumSidebar';
 import { OverviewPanel } from './panels/OverviewPanel';
 import { TimelinePanel } from './panels/TimelinePanel';
 import { CategoriesPanel } from './panels/CategoriesPanel';
-import { CryptoPanel } from './panels/CryptoPanel';
 import { LifePanel } from './panels/LifePanel';
 import { WorldPanel } from './panels/WorldPanel';
 import { AddTimerModal } from '@/components/countdown/AddTimerModal';
@@ -27,7 +26,6 @@ export function PremiumLayout({ session, timers: initial, popular }: Props) {
     overview:   <OverviewPanel timers={timers} popular={popular} onAdd={() => setShowAdd(true)} onDelete={onDelete} session={session} />,
     timeline:   <TimelinePanel timers={timers} />,
     categories: <CategoriesPanel timers={timers} />,
-    crypto:     <CryptoPanel isPremium={isPremium} />,
     life:       <LifePanel isPremium={isPremium} />,
     world:      <WorldPanel isPremium={isPremium} />,
   };

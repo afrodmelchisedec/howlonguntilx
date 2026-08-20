@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { NEWBORN_MILESTONE_COMMENTS } from './newbornMilestoneComments';
 
 const GLOW = '45, 200, 170';
 
@@ -341,7 +340,7 @@ export function NewbornMilestoneTracker() {
         <EmbedCodeButton slug="newborn-milestone-tracker" title="Newborn Milestone Tracker" glow={GLOW} />
       </div>
 
-      <ToolCommentSection seedComments={NEWBORN_MILESTONE_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="newborn-milestone-tracker" glow={GLOW} />
     </div>
   );
 }

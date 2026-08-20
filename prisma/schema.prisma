@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -28,6 +29,13 @@ model User {
   role                 Role               @default(USER)
   createdAt            DateTime           @default(now())
   lastSeen             DateTime?
+  username             String?            @unique
+  blockedAt            DateTime?
+  blockedById          String?
+  blockReason          String?
+  blockedBy            User?              @relation("UserBlocks", fields: [blockedById], references: [id], onDelete: SetNull)
+  blockedUsers         User[]             @relation("UserBlocks")
+  flaggedComments      Comment[]          @relation("CommentFlags")
 
   apiKeys                         ApiKey[]
   accounts                        Account[]
@@ -68,6 +76,14 @@ model User {
   gardenGrowthTrackerConfig       GardenGrowthTrackerConfig?
   kittenGrowthTrackerConfig       KittenGrowthTrackerConfig?
   eggHatchTrackerConfig           EggHatchTrackerConfig?
+  userEvents                      UserEvent[]
+  userEventLikes                  UserEventLike[]
+  comments                        Comment[]
+  commentLikes                    CommentLike[]
+  following                       UserFollow[]                     @relation("UserFollowFollower")
+  followers                       UserFollow[]                     @relation("UserFollowFollowing")
+  defaultFollowTargetOf           DefaultFollowConfig?             @relation("DefaultFollowTarget")
+  defaultFollowSetBy              DefaultFollowConfig[]            @relation("DefaultFollowSetBy")
 }
 
 enum Plan {
@@ -121,6 +137,8 @@ model Event {
   views               Int       @default(0)
   likeCount           Int       @default(0)
   followCount         Int       @default(0)
+  shareCount          Int       @default(0)
+  shareBreakdown      Json?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   content             Json?
@@ -471,22 +489,24 @@ model TechEventsConfig {
 // Also add inside `model User { ... }`:  articles Article[]  (only if you want an authorId relation — optional, see authorName fallback below)
 
 model Article {
-  id           String        @id @default(cuid())
-  toolSlug     String // e.g. "tech-events" — links article to its parent tool/category
-  slug         String
-  title        String
-  dek          String // one-line SEO/social summary
-  heroImageUrl String? // must be >=1200px wide when set
-  heroImageAlt String?
-  authorName   String        @default("Afrod M (Msc Statistics at Makerere University)")
-  blocks       Json // typed block array, see ArticleBlocks.tsx
-  status       String        @default("draft") // draft | published | archived
-  contentType  String        @default("evergreen") // evergreen | breaking
-  publishedAt  DateTime?
-  updatedAt    DateTime      @updatedAt
-  createdAt    DateTime      @default(now())
-  likeCount    Int           @default(0)
-  likes        ArticleLike[]
+  id             String        @id @default(cuid())
+  toolSlug       String // e.g. "tech-events" — links article to its parent tool/category
+  slug           String
+  title          String
+  dek            String // one-line SEO/social summary
+  heroImageUrl   String? // must be >=1200px wide when set
+  heroImageAlt   String?
+  authorName     String        @default("Afrod M (Msc Statistics at Makerere University)")
+  blocks         Json // typed block array, see ArticleBlocks.tsx
+  status         String        @default("draft") // draft | published | archived
+  contentType    String        @default("evergreen") // evergreen | breaking
+  publishedAt    DateTime?
+  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime      @default(now())
+  likeCount      Int           @default(0)
+  shareCount     Int           @default(0)
+  shareBreakdown Json?
+  likes          ArticleLike[]
 
   categoryId    String?
   category      Category?     @relation("ArticleCategory", fields: [categoryId], references: [id])
@@ -554,21 +574,22 @@ enum SubscriptionStatus {
 }
 
 model Category {
-  id                    String     @id @default(cuid())
-  slug                  String     @unique
+  id                    String      @id @default(cuid())
+  slug                  String      @unique
   name                  String
   emoji                 String
   description           String
   featureImageUrl       String?
   tools                 Json? // NEW — array of { slug, label, path } tool mappings, only meaningful on subcategories
   parentId              String?
-  parent                Category?  @relation("SubCategories", fields: [parentId], references: [id])
-  children              Category[] @relation("SubCategories")
-  events                Event[]    @relation("EventCategory")
-  eventsAsSubcategory   Event[]    @relation("EventSubcategory")
-  articlesAsCategory    Article[]  @relation("ArticleCategory")
-  articlesAsSubcategory Article[]  @relation("ArticleSubcategory")
-  createdAt             DateTime   @default(now())
+  parent                Category?   @relation("SubCategories", fields: [parentId], references: [id])
+  children              Category[]  @relation("SubCategories")
+  events                Event[]     @relation("EventCategory")
+  eventsAsSubcategory   Event[]     @relation("EventSubcategory")
+  articlesAsCategory    Article[]   @relation("ArticleCategory")
+  articlesAsSubcategory Article[]   @relation("ArticleSubcategory")
+  userEvents            UserEvent[]
+  createdAt             DateTime    @default(now())
 }
 
 model AffiliateBanner {
@@ -889,4 +910,120 @@ model PluginRelease {
 
   @@unique([slug, version])
   @@index([slug, isLatest])
+}
+
+// ── UserEvent (Community) — added Phase 1 ──────────────────────────
+model UserEvent {
+  id               String                    @id @default(cuid())
+  slug             String                    @unique
+  title            String
+  description      String
+  targetDate       DateTime
+  images           Json?
+  visibility       UserEventVisibility       @default(PUBLIC)
+  moderationStatus UserEventModerationStatus @default(APPROVED)
+  moderatedById    String?
+  moderatedAt      DateTime?
+  moderationNote   String?
+  authorId         String
+  author           User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categoryId       String?
+  category         Category?                 @relation(fields: [categoryId], references: [id])
+  likeCount        Int                       @default(0)
+  shareCount       Int                       @default(0)
+  shareBreakdown   Json?
+  commentCount     Int                       @default(0)
+  viewCount        Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  likes            UserEventLike[]
+
+  @@index([visibility, moderationStatus, createdAt])
+  @@index([visibility, moderationStatus, likeCount])
+  @@index([categoryId])
+  @@index([authorId])
+}
+
+enum UserEventVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum UserEventModerationStatus {
+  APPROVED
+  REJECTED
+  REMOVED
+}
+
+model UserEventLike {
+  id          String    @id @default(cuid())
+  userId      String
+  userEventId String
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userEvent   UserEvent @relation(fields: [userEventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, userEventId])
+}
+
+model Comment {
+  id          String        @id @default(cuid())
+  subjectType String // 'article' | 'event' | 'userEvent' | 'tool'
+  subjectId   String // Article.id / Event.id / UserEvent.id / tool route slug (no FK for 'tool')
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  body        String
+  likeCount   Int           @default(0)
+  deletedAt   DateTime?
+  flaggedAt   DateTime?
+  flagReason  String?
+  flaggedById String?
+  flaggedBy   User?         @relation("CommentFlags", fields: [flaggedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  likes       CommentLike[]
+
+  @@index([subjectType, subjectId, parentId])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+// New model — deliberately NOT reusing the existing `Follow { userId, eventId }`
+// model (that means "follow a countdown/Event", unrelated to following a person —
+// flagged as a naming collision back in Phase 8.5 planning).
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@index([followerId])
+}
+
+// Singleton, set-once-only by design (per the resolved decision — no admin
+// UI to change it once set, and the API layer refuses a second write).
+// Mirrors LeadMagnetConfig's "singleton row" pattern already in the schema.
+model DefaultFollowConfig {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation("DefaultFollowTarget", fields: [userId], references: [id], onDelete: Restrict)
+  setById   String?
+  setBy     User?    @relation("DefaultFollowSetBy", fields: [setById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
 }

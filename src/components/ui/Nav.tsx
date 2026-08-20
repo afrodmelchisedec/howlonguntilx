@@ -18,7 +18,7 @@ export function Nav() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/" className="press font-black text-lg tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c98fe0" /><stop offset="100%" stopColor="#e07ab0" /></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#navGrad)" /><path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>How Long<span className="gradient-text"> Until x</span>
+            <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c98fe0" /><stop offset="100%" stopColor="#e07ab0" /></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#navGrad)" /><path d="M9 7h14M9 25h14M11 7c0 6 4 7 5 9-1 2-5 3-5 9h10c0-6-4-7-5-9 1-2 5-3 5-9" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg><span className="sm:hidden">HL<span className="gradient-text">UX</span></span><span className="hidden sm:inline">How Long<span className="gradient-text"> Until x</span></span>
           </Link>
 
           {/* Desktop: single organized "Explore" dropdown instead of a flat row of pills */}
@@ -127,6 +127,7 @@ export function Nav() {
                     </div>
                     {[
                       { href:'/dashboard', label:'📊 My dashboard', cls:'gc-brand' },
+                      { href:'/dashboard/events', label:'📅 My events', cls:'gc-brand' },
                       ...(isAdmin?[{ href:'/admin', label:'⚙️ Admin panel', cls:'gc-family' }]:[]),
                       { href:'/dashboard/settings', label:'⚙ Settings', cls:'gc-brand' },
                     ].map(item=>(

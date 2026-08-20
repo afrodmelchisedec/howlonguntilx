@@ -3,9 +3,8 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { PHISHING_IDENTITY_COMMENTS } from './phishingIdentityComments';
 
 interface Flag { key: string; text: string; weight: number; pro?: boolean }
 interface QuizCard { id: string; sender: string; snippet: string; isPhish: boolean; explanation: string }
@@ -520,7 +519,7 @@ export function PhishingIdentityWatch() {
       </div>
 
       <EmbedCodeButton slug="phishing-identity-watch" title="Phishing Radar & Identity Watch" glow={GLOW} />
-      <ToolCommentSection seedComments={PHISHING_IDENTITY_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="phishing-identity-watch" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

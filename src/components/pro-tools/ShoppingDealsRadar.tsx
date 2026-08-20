@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { SHOPPING_DEALS_COMMENTS } from '@/lib/seedComments';
 import { DEALS_PRESETS, type Deal } from '@/lib/dealsPresets';
 
 const GLOW = '255, 90, 150';
@@ -580,7 +579,7 @@ export function ShoppingDealsRadar() {
       </div>
 
       <EmbedCodeButton slug="shopping-deals-radar" title="Deal Radar" glow={GLOW} />
-      <ToolCommentSection seedComments={SHOPPING_DEALS_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="shopping-deals-radar" glow={GLOW} />
 
       <ToastHost toast={toast} />
     </div>

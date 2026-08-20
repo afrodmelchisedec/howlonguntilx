@@ -1,7 +1,7 @@
 // FILE: src/components/articles/ArticleLayout.tsx
 import Link from 'next/link';
 import { ArticleBlocks, extractHeroCountdown, extractHeadings, extractFaq, extractSources } from './ArticleBlocks';
-import { ArticleCommentSection } from './ArticleCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { RelatedArticles } from './RelatedArticles';
 import { ArticleStyles } from './ArticleStyles';
 import { HeroCountdown } from './HeroCountdown';
@@ -14,6 +14,7 @@ import { ArticleAboutNote } from './ArticleAboutNote';
 import { AdSlot } from './AdSlot';
 import { LikeButton } from './LikeButton';
 import { ShareButton } from './ShareButton';
+import { EmbedDurationButton } from './EmbedDurationButton';
 import { SourcesFooter } from '../countdown/SourcesFooter';
 import { pickDefaultImage } from '@/lib/defaultImages';
 import { getAffiliateBanner } from '@/lib/affiliateBanners';
@@ -87,7 +88,12 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
       <p className="text-callout mb-3" style={{ color: 'var(--text-secondary)' }}>{article.dek}</p>
 
       {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
-      {heroDuration && <HeroDuration heroData={heroDuration} glow={glow} />}
+      {heroDuration && (
+        <>
+          <HeroDuration heroData={heroDuration} glow={glow} />
+          <div className="mb-5"><EmbedDurationButton toolSlug={toolSlug} articleSlug={article.slug} title={article.title} id={article.id} /></div>
+        </>
+      )}
 
       <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
 
@@ -101,7 +107,7 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
           </span>
         )}
         <LikeButton articleId={article.id} glow={glow} />
-        <ShareButton glow={glow} title={article.title} />
+        <ShareButton glow={glow} title={article.title} id={article.id} type="article" shareCount={article.shareCount} />
       </div>
 
       {structuredReviewer && (
@@ -146,7 +152,7 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
       <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} />
 
       <div className="mt-10">
-        <ArticleCommentSection glow={glow} />
+        <CommentThread subjectType="article" subjectId={article.id} glow={glow} />
       </div>
     </article>
   );

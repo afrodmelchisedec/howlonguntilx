@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { BIRTH_CONTROL_COMMENTS } from './birthControlComments';
 
 const GLOW = '150, 111, 255';
 
@@ -362,7 +361,7 @@ export function BirthControlEffectivenessCountdown() {
         <EmbedCodeButton slug="birth-control-effectiveness-countdown" title="Birth Control Effectiveness Countdown" glow={GLOW} />
       </div>
 
-      <ToolCommentSection seedComments={BIRTH_CONTROL_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="birth-control-effectiveness-countdown" glow={GLOW} />
     </div>
   );
 }

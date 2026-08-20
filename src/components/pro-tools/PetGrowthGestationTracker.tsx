@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { PET_GROWTH_GESTATION_COMMENTS } from './petGrowthGestationComments';
 
 const GLOW = '255, 173, 74';
 const PRO_MAX_PETS = 5;
@@ -508,7 +507,7 @@ export function PetGrowthGestationTracker() {
       </div>
 
       <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="pet-growth-gestation-calculator" title="Pet Fully Grown & Gestation Calculator" glow={GLOW} /></div>
-      <ToolCommentSection seedComments={PET_GROWTH_GESTATION_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="pet-growth-gestation-calculator" glow={GLOW} />
       <ToastHost toast={toast} />
 
       <style dangerouslySetInnerHTML={{ __html: `

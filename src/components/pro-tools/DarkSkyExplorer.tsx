@@ -4,9 +4,8 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import * as SunCalc from 'suncalc';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { DARK_SKY_COMMENTS } from './darkSkyComments';
 
 interface SkySpot { id: string; name: string; emoji: string; bortle: number; lat: number; lng: number }
 interface NightInfo {
@@ -609,7 +608,7 @@ export function DarkSkyExplorer() {
       </div>
 
       <EmbedCodeButton slug="dark-sky-explorer" title="Dark Sky Explorer" glow={GLOW} />
-      <ToolCommentSection seedComments={DARK_SKY_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="dark-sky-explorer" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

@@ -10,8 +10,8 @@ import { usePathname } from 'next/navigation';
 // full size and get crushed into a 300×160 box.
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isEmbedWidget = pathname?.startsWith('/embed/widget');
+  const isEmbed = pathname?.startsWith('/embed/');
 
-  if (isEmbedWidget) return null;
+  if (isEmbed) return null;
   return <>{children}</>;
 }

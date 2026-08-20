@@ -3,9 +3,8 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { TECH_EVENTS_COMMENTS } from './techEventsComments';
 
 type EventType = 'launch' | 'keynote' | 'conference';
 interface TechEvent { name: string; month: number; day: number; type: EventType; emoji: string; blurb: string; city: string }
@@ -421,7 +420,7 @@ export function TechEventsCalendar() {
 
       <div ref={commentRef}>
       <EmbedCodeButton slug="tech-events" title="Tech Events Calendar" glow={GLOW} />
-        <ToolCommentSection seedComments={TECH_EVENTS_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+        <CommentThread subjectType="tool" subjectId="tech-events" glow={GLOW} />
       </div>
       <ToastHost toast={toast} />
 

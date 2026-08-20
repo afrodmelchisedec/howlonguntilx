@@ -12,6 +12,7 @@ import { SourcesFooter } from '@/components/countdown/SourcesFooter';
 import { CategoryBadge } from '@/components/countdown/CategoryBadge';
 import { CategoryTool } from '@/components/pro-tools/CategoryTool';
 import { ShareBar } from '@/components/ui/ShareBar';
+import { EventLikeButton } from '@/components/countdown/EventLikeButton';
 import { EmbedCta } from '@/components/embed/EmbedCta';
 import { RecentLogger } from '@/components/countdown/RecentLogger';
 import { SignupTeaser } from '@/components/ui/SignupTeaser';
@@ -26,7 +27,7 @@ import type { EventContent } from '@/lib/seo';
 import { ArticleDisclaimer } from '@/components/articles/ArticleDisclaimer';
 import { ArticleAboutNote } from '@/components/articles/ArticleAboutNote';
 import { AdSlot } from '@/components/articles/AdSlot';
-import { ArticleCommentSection } from '@/components/articles/ArticleCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { ArticleTableOfContents } from '@/components/articles/ArticleTableOfContents';
 import { ArticleSchema } from '@/components/articles/ArticleSchema';
 import { extractHeadings, extractFaq } from '@/components/articles/ArticleBlocks';
@@ -151,7 +152,8 @@ export default async function EventPage({ params }: Props) {
           </p>
 
           <CountdownDisplay event={event} glow={glow} />
-          <ShareBar name={event.name} slug={rawSlug} />
+          <ShareBar name={event.name} slug={rawSlug} id={event.id} type="event" shareCount={event.shareCount} />
+          <div className="mt-4"><EventLikeButton eventId={event.id} glow={glow} /></div>
           <EmbedCta slug={rawSlug} />
 
           {/* Disclaimer and About note */}
@@ -261,7 +263,7 @@ export default async function EventPage({ params }: Props) {
 
         {/* Comments section */}
         <div className="max-w-2xl mx-auto px-4 pb-8" id="comments-section">
-          <ArticleCommentSection glow={glow} />
+          <CommentThread subjectType="event" subjectId={event.id} glow={glow} />
         </div>
 
         <div className="max-w-2xl mx-auto px-4 pb-12">

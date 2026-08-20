@@ -14,6 +14,7 @@ export const NAV_LINKS: NavLink[] = [
   { label: 'Embed',      href: '/embed',      cls: 'gc-sports',  icon: '🔗', description: 'Add a live countdown to your site' },
   { label: 'Plugins',    href: '/plugins',    cls: 'gc-sports',  icon: '🧩', description: 'WordPress shortcode & embed plugin' },
   { label: 'API',        href: '/api',        cls: 'gc-finance', icon: '⚡', description: 'Build on our countdown data' },
+  { label: 'Community', href: '/community', cls: 'gc-personal', icon: '🌍', description: 'Browse countdowns shared by the community' },
 ];
 
 export const INFO_LINKS = [

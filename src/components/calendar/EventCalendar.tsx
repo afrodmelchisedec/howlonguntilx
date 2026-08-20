@@ -3,8 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from '@/components/pro-tools/ToolCommentSection';
-import { CALENDAR_COMMENTS } from '@/lib/seedComments';
+import { CommentThread } from '@/components/community/CommentThread';
 import { CALENDAR_REGIONS, prettifyRegion, getRegionGlow, type CalendarEvent } from '@/lib/calendar-shared';
 
 type CalendarMap = Record<string, CalendarEvent[]>;
@@ -371,7 +370,7 @@ export function EventCalendar({ initialYear, initialMonth, initialEvents, isPro 
         </div>
       </div>
 
-      <ToolCommentSection seedComments={CALENDAR_COMMENTS} onRequireAuth={requireAuth} glow="var(--accent-brand)" />
+      <CommentThread subjectType="tool" subjectId="event-calendar" glow={"var(--accent-brand)"} />
 
       {/* Day modal */}
       {modalIso && (

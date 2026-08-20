@@ -44,7 +44,7 @@ export function EmbedGenerator() {
   }
 
   const base = process.env.NEXT_PUBLIC_URL ?? 'https://howlonguntilx.com';
-  const code = `<iframe src="${base}/embed/widget?event=${event}&theme=${theme}" width="300" height="160" frameborder="0" loading="lazy"></iframe>`;
+  const code = `<iframe src="${base}/embed/widget?event=${event}&theme=${theme}" width="300" height="230" frameborder="0" loading="lazy"></iframe>`;
 
   return (
     <div className="space-y-4">
@@ -100,7 +100,7 @@ export function EmbedGenerator() {
       </div>
       <div className="ios-card p-4">
         <p className="text-caption mb-3">Preview</p>
-        <iframe src={`/embed/widget?event=${event}&theme=${theme}`} width={300} height={160}
+        <iframe src={`/embed/widget?event=${event}&theme=${theme}`} width={300} height={230}
           style={{ border: '1px solid var(--border-hairline)', borderRadius: 14 }} />
       </div>
       <div>

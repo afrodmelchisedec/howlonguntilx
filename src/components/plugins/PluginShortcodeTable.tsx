@@ -6,10 +6,12 @@ import { EMBED_REGISTRY } from '@/lib/embedRegistry';
 import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 
 const VIOLET = '125, 118, 255';
+const PAGE_SIZE = 10;
 
 export function PluginShortcodeTable() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<keyof typeof CATEGORY_META | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const embeddableTools = useMemo(() => TOOLS.filter(t => t.slug in EMBED_REGISTRY), []);
 
@@ -27,6 +29,14 @@ export function PluginShortcodeTable() {
     return embeddableTools.filter(t => t.category === activeCategory);
   }, [embeddableTools, activeCategory]);
 
+  const visibleTools = filteredTools.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredTools.length;
+
+  function selectCategory(next: keyof typeof CATEGORY_META | null) {
+    setActiveCategory(next);
+    setVisibleCount(PAGE_SIZE); // reset paging so a new filter always starts clean
+  }
+
   function copy(slug: string) {
     navigator.clipboard.writeText(`[hlux_tool slug="${slug}"]`);
     setCopiedSlug(slug);
@@ -42,7 +52,7 @@ export function PluginShortcodeTable() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button
           type="button"
-          onClick={() => setActiveCategory(null)}
+          onClick={() => selectCategory(null)}
           className="category-pill"
           data-active={activeCategory === null}
           style={{ ['--pill-rgb' as any]: '148, 148, 158' }}
@@ -53,7 +63,7 @@ export function PluginShortcodeTable() {
           <button
             key={cat.slug}
             type="button"
-            onClick={() => setActiveCategory(prev => (prev === cat.slug ? null : cat.slug))}
+            onClick={() => selectCategory(activeCategory === cat.slug ? null : cat.slug)}
             className="category-pill"
             data-active={activeCategory === cat.slug}
             style={{ ['--pill-rgb' as any]: cat.rgb }}
@@ -68,35 +78,53 @@ export function PluginShortcodeTable() {
           No embeddable tools in this category yet.
         </p>
       ) : (
-        <div className="ios-card-nested overflow-hidden">
-          <table className="w-full text-footnote">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--fill-secondary)' }}>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: 'var(--text-secondary)' }}>Tool</th>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: 'var(--text-secondary)' }}>Shortcode</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTools.map(t => {
-                const rgb = getCategoryGlowRGB(t.category);
-                return (
-                  <tr key={t.slug} style={{ borderBottom: '1px solid var(--fill-secondary)' }}>
-                    <td className="px-4 py-3">{t.title}</td>
-                    <td className="px-4 py-3">
-                      <code style={{ color: `rgb(${rgb})` }}>[hlux_tool slug="{t.slug}"]</code>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => copy(t.slug)} className="ios-card-nested press px-3 py-1.5 text-caption font-semibold">
-                        {copiedSlug === t.slug ? 'Copied!' : 'Copy'}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="ios-card-nested overflow-hidden">
+            <table className="w-full text-footnote">
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--fill-secondary)' }}>
+                  <th className="text-left px-4 py-3 font-semibold" style={{ color: 'var(--text-secondary)' }}>Tool</th>
+                  <th className="text-left px-4 py-3 font-semibold" style={{ color: 'var(--text-secondary)' }}>Shortcode</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleTools.map(t => {
+                  const rgb = getCategoryGlowRGB(t.category);
+                  return (
+                    <tr key={t.slug} style={{ borderBottom: '1px solid var(--fill-secondary)' }}>
+                      <td className="px-4 py-3">{t.title}</td>
+                      <td className="px-4 py-3">
+                        <code style={{ color: `rgb(${rgb})` }}>[hlux_tool slug="{t.slug}"]</code>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => copy(t.slug)} className="ios-card-nested press px-3 py-1.5 text-caption font-semibold">
+                          {copiedSlug === t.slug ? 'Copied!' : 'Copy'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
+              Showing {visibleTools.length} of {filteredTools.length}
+            </p>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                className="ios-card-nested press px-4 py-2 text-caption font-semibold"
+                style={{ color: `rgb(${VIOLET})` }}
+              >
+                Load more
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

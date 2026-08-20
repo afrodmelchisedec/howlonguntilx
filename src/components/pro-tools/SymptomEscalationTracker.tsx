@@ -3,8 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
-import { SYMPTOM_TRACKER_COMMENTS } from './symptomTrackerComments';
+import { CommentThread } from '@/components/community/CommentThread';
 
 interface SymptomDef { id: string; label: string; weight: 1 | 2 | 3; emoji: string }
 interface LogEntry { date: string; checked: string[]; score: number }
@@ -310,7 +309,7 @@ export function SymptomEscalationTracker() {
         </div>
       </div>
 
-      <ToolCommentSection seedComments={SYMPTOM_TRACKER_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="symptom-escalation-tracker" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

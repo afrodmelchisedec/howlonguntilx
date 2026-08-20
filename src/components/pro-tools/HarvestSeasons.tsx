@@ -3,9 +3,8 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { HARVEST_SEASONS_COMMENTS } from './harvestSeasonsComments';
 
 interface ProduceItem {
   id: string;
@@ -553,7 +552,7 @@ export function HarvestSeasons() {
       </div>
 
       <EmbedCodeButton slug="harvest-seasons" title="Season Basket" glow={GLOW} />
-      <ToolCommentSection seedComments={HARVEST_SEASONS_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="harvest-seasons" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

@@ -12,7 +12,7 @@ define('HLU_EMBED', 'https://howlonguntilx.com/embed/widget');
 
 // ── Shortcode: [howlonguntilx event="christmas"] ───────────────
 function hlu_shortcode(array $atts): string {
-    $atts = shortcode_atts(['event' => 'christmas', 'theme' => 'light', 'width' => '300', 'height' => '160'], $atts);
+    $atts = shortcode_atts(['event' => 'christmas', 'theme' => 'light', 'width' => '300', 'height' => '230'], $atts);
     $url  = add_query_arg(['event' => esc_attr($atts['event']), 'theme' => esc_attr($atts['theme'])], HLU_EMBED);
     return sprintf(
         '<iframe src="%s" width="%s" height="%s" frameborder="0" loading="lazy" style="border:none;border-radius:8px;"></iframe>',

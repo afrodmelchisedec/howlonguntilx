@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { ENERGY_RHYTHM_COMMENTS } from './energyRhythmComments';
 
 interface EnergyPoint { hour: number; value: number }
 interface RhythmEntry { date: string; points: EnergyPoint[] }
@@ -563,7 +562,7 @@ export function EnergyRhythmMapper() {
       </div>
 
       <EmbedCodeButton slug="energy-rhythm-mapper" title="Energy Rhythm Mapper" glow={GLOW} />
-      <ToolCommentSection seedComments={ENERGY_RHYTHM_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="energy-rhythm-mapper" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

@@ -7,9 +7,9 @@ const FREE = [
   { id:'overview',   label:'Overview',    cls:'gc-brand',  icon:'📊' },
   { id:'timeline',   label:'Timeline',    cls:'gc-sports', icon:'📅' },
   { id:'categories', label:'Categories',  cls:'gc-finance',icon:'🏷️' },
+  { id:'my-events',  label:'My Events',   cls:'gc-brand',  icon:'📅', href:'/dashboard/events' },
 ];
 const PRO = [
-  { id:'crypto', label:'Crypto targets',  cls:'gc-tech',     icon:'₿' },
   { id:'life',   label:'Life expectancy', cls:'gc-personal', icon:'❤️' },
   { id:'world',  label:'World events',    cls:'gc-nature',   icon:'🌍' },
 ];
@@ -41,6 +41,15 @@ export function PremiumSidebar({ tab, setTab, session, isPremium, isAdmin }:Prop
         <p className="text-caption px-3 py-2 mt-1">My dashboard</p>
         {FREE.map(t => {
           const active = tab === t.id;
+          if (t.href) {
+            return (
+              <Link key={t.id} href={t.href}
+                className={`sidebar-item ${t.cls} w-full flex items-center gap-2.5 px-3 py-2.5 text-sm mb-0.5 font-medium`}>
+                <span className="text-base leading-none">{t.icon}</span>
+                <span>{t.label}</span>
+              </Link>
+            );
+          }
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`sidebar-item ${t.cls} w-full flex items-center gap-2.5 px-3 py-2.5 text-sm mb-0.5 font-medium ${active ? 'active' : ''}`}>

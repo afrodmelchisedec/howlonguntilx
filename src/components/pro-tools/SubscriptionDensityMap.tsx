@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { SUBSCRIPTION_DENSITY_COMMENTS } from '@/lib/seedComments';
 import { SUBSCRIPTION_PRESETS } from '@/lib/subscriptionPresets';
 
 interface Subscription {
@@ -546,7 +545,7 @@ export function SubscriptionDensityMap() {
 
       {/* Comments waterfall */}
       <EmbedCodeButton slug="subscription-density" title="Subscription Renewal Density Map" glow="255, 159, 10" />
-      <ToolCommentSection seedComments={SUBSCRIPTION_DENSITY_COMMENTS} onRequireAuth={requireAuth} glow="255, 159, 10" />
+      <CommentThread subjectType="tool" subjectId="subscription-density" glow={"255, 159, 10"} />
 
       <ToastHost toast={toast} />
 

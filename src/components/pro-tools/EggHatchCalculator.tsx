@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { EGG_HATCH_COMMENTS } from './eggHatchComments';
 import { EGG_SPECIES, turningPlan, type EggSpecies, type IncubatorType } from '@/lib/eggHatchSpecies';
 
 const GLOW = '91, 192, 222'; // eggshell / robin's-egg blue
@@ -423,7 +422,7 @@ export function EggHatchCalculator() {
       </div>
 
       <div className="flex justify-center mt-4 mb-4"><EmbedCodeButton slug="egg-hatch-calculator" title="Egg Hatch Countdown Calculator" glow={GLOW} /></div>
-      <ToolCommentSection seedComments={EGG_HATCH_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="egg-hatch-calculator" glow={GLOW} />
       <ToastHost toast={toast} />
     </div>
   );

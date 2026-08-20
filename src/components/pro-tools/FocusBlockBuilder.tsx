@@ -3,9 +3,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
-import { ToolCommentSection } from './ToolCommentSection';
+import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
-import { FOCUS_BLOCK_COMMENTS } from './focusBlockComments';
 
 interface Category {
   key: string;
@@ -718,7 +717,7 @@ export function FocusBlockBuilder() {
 
       {/* Comments waterfall */}
       <EmbedCodeButton slug="focus-block-builder" title="Day Timeline Builder" glow={GLOW} />
-      <ToolCommentSection seedComments={FOCUS_BLOCK_COMMENTS} onRequireAuth={requireAuth} glow={GLOW} />
+      <CommentThread subjectType="tool" subjectId="focus-block-builder" glow={GLOW} />
 
       <ToastHost toast={toast} />
     </div>
