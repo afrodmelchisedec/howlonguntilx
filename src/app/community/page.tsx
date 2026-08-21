@@ -109,7 +109,20 @@ export default function CommunityFeedPage() {
       />
 
       {initialLoading ? (
-        <div className="text-center py-16 text-footnote" style={{ color: 'var(--text-tertiary)' }}>Loading…</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="ios-card overflow-hidden">
+              <div className="shimmer w-full" style={{ aspectRatio: '16/9' }} />
+              <div className="p-4">
+                <div className="shimmer" style={{ height: 10, width: '40%', borderRadius: 4, marginBottom: 8 }} />
+                <div className="shimmer" style={{ height: 14, width: '85%', borderRadius: 4, marginBottom: 6 }} />
+                <div className="shimmer" style={{ height: 12, width: '95%', borderRadius: 4, marginBottom: 12 }} />
+                <div className="shimmer" style={{ height: 24, width: '30%', borderRadius: 4, marginBottom: 8 }} />
+                <div className="shimmer" style={{ height: 4, width: '100%', borderRadius: 4 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <div className="ios-card p-10 text-center" style={{ color: 'var(--text-tertiary)' }}>
           <div className="text-4xl mb-3">⏳</div>
@@ -118,7 +131,7 @@ export default function CommunityFeedPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item, i) => <CommunityFeedCard key={item.id} item={item} index={i % 12} />)}
+          {items.map((item, i) => <CommunityFeedCard key={item.id} item={item} index={i % 12} priority={i < 3} />)}
         </div>
       )}
 

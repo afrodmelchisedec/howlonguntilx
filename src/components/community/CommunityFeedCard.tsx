@@ -1,5 +1,6 @@
 // FILE: src/components/community/CommunityFeedCard.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 import { buildCountdownResponse } from '@/lib/countdown';
 import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 import { pickDefaultImage } from '@/lib/defaultImages';
@@ -19,7 +20,7 @@ export interface FeedItem {
   category: { slug: string; name: string; emoji: string } | null;
 }
 
-export function CommunityFeedCard({ item, index = 0 }: { item: FeedItem; index?: number }) {
+export function CommunityFeedCard({ item, index = 0, priority = false }: { item: FeedItem; index?: number; priority?: boolean }) {
   const { days_left, progress_percent } = buildCountdownResponse(item.title, new Date(item.targetDate));
   const glow = getCategoryGlowRGB(item.category?.slug);
   const images = Array.isArray(item.images) ? item.images : [];
@@ -32,7 +33,16 @@ export function CommunityFeedCard({ item, index = 0 }: { item: FeedItem; index?:
     >
       <Link href={`/community/how-long-until-${item.slug}`} className="block">
         <div className="absolute top-0 left-0 right-0 h-1 z-10" style={{ background: `rgb(${glow})` }} />
-        <img src={imageUrl} alt={item.title} className="w-full" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
+        <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+          <Image
+            src={imageUrl}
+            alt={item.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            style={{ objectFit: 'cover' }}
+            priority={priority}
+          />
+        </div>
         <div className="p-4">
           {item.category && (
             <div className="text-caption mb-1" style={{ color: `rgb(${glow})` }}>
