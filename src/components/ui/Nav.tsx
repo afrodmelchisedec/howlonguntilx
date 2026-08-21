@@ -62,7 +62,7 @@ export function Nav() {
             </div>
 
             {isAdmin && (
-              <Link href="/admin" className="nav-link glow gc-family press text-sm font-bold" style={{ color: 'rgb(var(--accent-orange))' }}>
+              <Link href="/users" className="nav-link glow gc-family press text-sm font-bold" style={{ color: 'rgb(var(--accent-orange))' }}>
                 ⚙ Admin
               </Link>
             )}
@@ -128,8 +128,8 @@ export function Nav() {
                     {[
                       { href:'/dashboard', label:'📊 My dashboard', cls:'gc-brand' },
                       { href:'/dashboard/events', label:'📅 My events', cls:'gc-brand' },
-                      ...(isAdmin?[{ href:'/admin', label:'⚙️ Admin panel', cls:'gc-family' }]:[]),
-                      { href:'/dashboard/settings', label:'⚙ Settings', cls:'gc-brand' },
+                      ...(isAdmin?[{ href:'/users', label:'⚙️ Admin panel', cls:'gc-family' }]:[]),
+                      { href:'/users/settings', label:'⚙ Settings', cls:'gc-brand' },
                     ].map(item=>(
                       <Link key={item.href} href={item.href} onClick={()=>setOpen(false)}
                         className={`sidebar-item ${item.cls} flex items-center px-4 py-2.5 text-sm font-medium`}
@@ -174,7 +174,7 @@ export function Nav() {
             </Link>
           ))}
           {isAdmin && (
-            <Link href="/admin" onClick={() => setMobileOpen(false)}
+            <Link href="/users" onClick={() => setMobileOpen(false)}
               className="press text-sm font-bold px-2 py-2.5 rounded-lg flex items-center gap-2.5" style={{ color: 'rgb(var(--accent-orange))' }}>
               ⚙ Admin
             </Link>

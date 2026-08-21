@@ -4,10 +4,11 @@ import { buildCountdownResponse } from '@/lib/countdown';
 import { AnimatedMetricCard } from '@/components/ui/AnimatedMetricCard';
 import { AnimatedProgressBar } from '@/components/ui/AnimatedProgressBar';
 import { AnimatedMilestoneCard } from '@/components/ui/AnimatedMilestoneCard';
-import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { AddTimerModal } from '@/components/countdown/AddTimerModal';
+import { useEffect, useRef, useState } from 'react';
 
 interface Timer { id: string; name: string; targetDate: Date | string; category: string }
+interface Props { userName?: string | null; timers: Timer[]; popular: any[] }
 
 const CC: Record<string, { hex: string; rgb: string }> = {
   holidays:{hex:'#534AB7',rgb:'83,74,183'}, sports:{hex:'#1D9E75',rgb:'29,158,117'},
@@ -27,11 +28,21 @@ function themeColor(varName: string, fallback: string) {
   return v || fallback;
 }
 
-export function OverviewPanel({timers,popular,onAdd,onDelete,session}:any){
+// Personal (non-admin) Overview tab content for the merged /users shell.
+// Ported from the old PremiumLayout's OverviewPanel — same stats-card
+// layout, same charts — adapted to manage its own timers/add-modal state
+// locally instead of receiving them lifted from a parent shell, and with
+// the admin-mode banner removed (this panel only ever renders for
+// non-admins; admins see the platform Overview instead).
+export function PersonalOverviewPanel({ userName, timers: initial, popular }: Props) {
+  const [timers, setTimers] = useState<Timer[]>(initial);
+  const [showAdd, setShowAdd] = useState(false);
   const chartRef=useRef<HTMLCanvasElement>(null);
   const donutRef=useRef<HTMLCanvasElement>(null);
-  const name=session.user.name?.split(' ')[0]??'there';
-  const isAdmin=session.user.role==='ADMIN';
+  const name = userName?.split(' ')[0] ?? 'there';
+
+  function onAdded(t: Timer) { setTimers(p => [t, ...p]); setShowAdd(false); }
+  function onDelete(id: string) { setTimers(p => p.filter(x => x.id !== id)); }
 
   const urgent=timers.filter((t:Timer)=>{const{days_left}=buildCountdownResponse(t.name,new Date(t.targetDate));return days_left<=7&&days_left>=0;});
   const avgProg=timers.length?Math.round(timers.reduce((s:number,t:Timer)=>s+buildCountdownResponse(t.name,new Date(t.targetDate)).progress_percent,0)/timers.length):0;
@@ -76,20 +87,12 @@ export function OverviewPanel({timers,popular,onAdd,onDelete,session}:any){
 
   return (
     <div className="anim-fade-in">
-      {isAdmin&&(
-        <div className="ios-card mb-4 flex items-center gap-2 text-xs font-semibold px-4 py-2.5"
-          style={{ color: 'rgb(var(--accent-orange))', background: 'rgba(var(--accent-orange),0.08)', border: '1px solid rgba(var(--accent-orange),0.25)' }}>
-          Admin mode — all features unlocked
-          <Link href="/admin" className="ml-auto underline font-bold">Admin panel</Link>
-        </div>
-      )}
-
       <div className="flex items-center justify-between mb-6 anim-fade-up">
         <div>
           <h1 className="text-title1">Hey, {name} <span className="inline-block">👋</span></h1>
           <p className="text-footnote mt-0.5">{timers.length===0?'Add your first countdown':'Tracking '+timers.length+' countdown'+(timers.length>1?'s':'')}</p>
         </div>
-        <button onClick={onAdd} className="btn-filled press">+ Add countdown</button>
+        <button onClick={() => setShowAdd(true)} className="btn-filled press">+ Add countdown</button>
       </div>
 
       {/* metric cards */}
@@ -211,7 +214,7 @@ export function OverviewPanel({timers,popular,onAdd,onDelete,session}:any){
           <div className="text-5xl mb-4">⏳</div>
           <p className="text-headline mb-1">No countdowns yet</p>
           <p className="text-footnote mb-5">Add a deadline, birthday, or any event</p>
-          <button onClick={onAdd} className="btn-filled">+ Add my first countdown</button>
+          <button onClick={() => setShowAdd(true)} className="btn-filled">+ Add my first countdown</button>
         </div>
       )}
 
@@ -230,6 +233,8 @@ export function OverviewPanel({timers,popular,onAdd,onDelete,session}:any){
           })}
         </div>
       </div>
+
+      {showAdd && <AddTimerModal onClose={() => setShowAdd(false)} onAdded={onAdded} />}
     </div>
   );
 }

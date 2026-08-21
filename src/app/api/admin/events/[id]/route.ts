@@ -90,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     include: { category: true, subcategory: true, reviewer: true },
   });
 
-  revalidatePath('/admin');
+  revalidatePath('/users');
   revalidatePath('/categories');
   revalidatePath('/how-long-until-' + updated.slug);
 
@@ -106,7 +106,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   await prisma.event.delete({ where: { id: params.id } });
 
-  revalidatePath('/admin');
+  revalidatePath('/users');
   revalidatePath('/categories');
 
   return NextResponse.json({ ok: true });

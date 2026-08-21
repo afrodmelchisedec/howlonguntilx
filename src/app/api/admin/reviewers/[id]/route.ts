@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   // Their profile page, plus every article/event page showing their badge.
   revalidatePath(`/reviewers/${updated.slug}`);
-  revalidatePath('/admin');
+  revalidatePath('/users');
 
   return NextResponse.json(updated);
 }

@@ -1,16 +1,8 @@
-import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
-import { getUserTimers } from '@/lib/timers';
-import { getPopularEvents } from '@/lib/events';
-import { PremiumLayout } from '@/components/premium/PremiumLayout';
 
-export const metadata = { title: 'Dashboard — HowLongUntil' };
-
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect('/auth/signin');
-  const timers = await getUserTimers(session.user.id);
-  const popular = await getPopularEvents(4);
-  return <PremiumLayout session={session} timers={timers} popular={popular} />;
+// /dashboard is retired — /users is now the single merged dashboard route.
+// Kept as a thin redirect stub (not deleted outright) to protect anyone
+// with an old bookmark or a stale link somewhere in the codebase.
+export default function DashboardRedirect() {
+  redirect('/users');
 }

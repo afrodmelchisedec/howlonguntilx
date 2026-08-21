@@ -48,7 +48,7 @@ function UpgradeContent() {
               ? `${trialDaysLeft ?? 7} day${trialDaysLeft === 1 ? '' : 's'} left before your card is charged $9.99/mo.`
               : 'All Premium features are unlocked. Thanks for supporting HowLongUntil.'}
           </p>
-          <Link href="/dashboard" className="bg-brand-500 text-white px-8 py-3 rounded-2xl font-bold hover:bg-brand-600 transition-colors inline-block">
+          <Link href="/users" className="bg-brand-500 text-white px-8 py-3 rounded-2xl font-bold hover:bg-brand-600 transition-colors inline-block">
             Go to dashboard →
           </Link>
         </div>

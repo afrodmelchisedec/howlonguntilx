@@ -73,6 +73,6 @@ export async function POST(req: NextRequest) {
   });
 
   revalidatePath('/categories');
-  revalidatePath('/admin');
+  revalidatePath('/users');
   return NextResponse.json(created, { status: 201 });
 }

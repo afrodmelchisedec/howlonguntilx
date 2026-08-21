@@ -15,6 +15,9 @@ import SubscribersPanel from './SubscribersPanel';
 import ApiUsersPanel from './ApiUsersPanel';
 import LifeExpectancyPanel from './LifeExpectancyPanel';
 import { hasInternalLink } from '@/components/articles/ArticleBlocks';
+import { PersonalOverviewPanel } from '@/components/admin/PersonalOverviewPanel';
+import { MyEventsPanel } from '@/components/admin/MyEventsPanel';
+import { WorldPanel } from '@/components/premium/panels/WorldPanel';
 
 interface User {
   id: string; name: string | null; email: string | null;
@@ -58,7 +61,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow';
+type Tab = 'overview' | 'myEvents' | 'worldEvents' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -69,14 +72,40 @@ const STAT_COLORS: Record<string, string> = {
 const TAB_ICONS: Record<Tab, string> = {
   defaultFollow: '⭐',
   userEvents: '🌍', comments: '💬',
-  overview: '📊', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
+  overview: '📊', myEvents: '📅', worldEvents: '🌍', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
   calendarEvents: '🗓️',
 };
 const TAB_LABELS: Record<Tab, string> = {
   defaultFollow: 'Default Follow',
-  overview: 'overview', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
+  overview: 'overview', myEvents: 'my events', worldEvents: 'world events', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
   calendarEvents: 'Calendar Events',
   userEvents: 'Community events', comments: 'Comments',
+};
+
+// Single source of truth for who can see each tab. Explicit listing (not a
+// blocklist/allowlist inferred from naming) so nothing admin-only is ever
+// exposed by omission. requiresPremium is a visual PRO-badge marker only —
+// mirrors the old PremiumSidebar PRO array behavior where the tab stays
+// clickable and the gating happens inside the panel content itself
+// (WorldPanel's own isPremium ? content : <ProGate>).
+const TAB_ACCESS: Record<Tab, { roles: ('ADMIN'|'USER')[]; requiresPremium?: boolean }> = {
+  overview:         { roles: ['ADMIN','USER'] }, // content branches inside the panel, not here
+  myEvents:         { roles: ['ADMIN','USER'] },
+  worldEvents:      { roles: ['ADMIN','USER'], requiresPremium: true },
+  users:            { roles: ['ADMIN'] },
+  subscribers:      { roles: ['ADMIN'] },
+  apiUsers:         { roles: ['ADMIN'] },
+  longevity:        { roles: ['ADMIN'] },
+  events:           { roles: ['ADMIN'] },
+  articles:         { roles: ['ADMIN'] },
+  categories:       { roles: ['ADMIN'] },
+  affiliateBanners: { roles: ['ADMIN'] },
+  leadMagnet:       { roles: ['ADMIN'] },
+  reviewers:        { roles: ['ADMIN'] },
+  calendarEvents:   { roles: ['ADMIN'] },
+  userEvents:       { roles: ['ADMIN'] },
+  comments:         { roles: ['ADMIN'] },
+  defaultFollow:    { roles: ['ADMIN'] },
 };
 
 function Pagination({
@@ -443,9 +472,13 @@ function seoScoreColor(score: number): string {
 }
 
 export function AdminClient({
-  users, events, articles, categories, stats, reviewers = [],
+  isAdmin, isPremium = false,
+  users = [], events = [], articles = [], categories = [], stats, reviewers = [],
+  timers = [], popular = [], myEvents = [], userName,
 }: {
-  users: User[]; events: EventRow[]; articles: ArticleRow[]; categories: CategoryRow[]; stats: Stats; reviewers?: ReviewerRow[];
+  isAdmin: boolean; isPremium?: boolean;
+  users?: User[]; events?: EventRow[]; articles?: ArticleRow[]; categories?: CategoryRow[]; stats?: Stats; reviewers?: ReviewerRow[];
+  timers?: any[]; popular?: any[]; myEvents?: any[]; userName?: string | null;
 }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
@@ -895,19 +928,23 @@ export function AdminClient({
       {/* Sidebar */}
       <aside className="w-48 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
         <div className="mb-4 px-2 pt-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Admin Panel</p>
-          <p className="text-xs text-gray-400 mt-0.5">{stats.totalUsers} users</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">{isAdmin ? 'Admin Panel' : 'Dashboard'}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{stats ? `${stats.totalUsers} users` : ''}</p>
         </div>
-        {(['overview','users','subscribers','apiUsers','longevity','events','articles','categories','affiliateBanners','leadMagnet','reviewers','calendarEvents','userEvents','comments','defaultFollow'] as Tab[]).map(t => (
+        {(Object.keys(TAB_ACCESS) as Tab[])
+          .filter(t => TAB_ACCESS[t].roles.includes(isAdmin ? 'ADMIN' : 'USER'))
+          .map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-0.5 capitalize transition-colors ' + (
               tab === t ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}>
             {TAB_ICONS[t]} {TAB_LABELS[t]}
+            {TAB_ACCESS[t].requiresPremium && !isPremium && (
+              <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(186,117,23,0.15)', color: '#BA7517' }}>PRO</span>
+            )}
           </button>
         ))}
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <a href="/dashboard" className="block text-xs text-gray-400 hover:text-brand-500 px-2 py-1">← Dashboard</a>
           <a href="/" className="block text-xs text-gray-400 hover:text-brand-500 px-2 py-1">← Home</a>
         </div>
       </aside>
@@ -916,11 +953,11 @@ export function AdminClient({
       <main className="flex-1 p-6 bg-gray-50 dark:bg-gray-950 overflow-auto">
 
         {/* OVERVIEW */}
-        {tab === 'overview' && (
+        {tab === 'overview' && (isAdmin ? (
           <div>
             <h1 className="text-xl font-medium mb-6">Platform overview</h1>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-              {(Object.entries(stats) as [string, number][]).map(([key, val]) => (
+              {(Object.entries(stats ?? {}) as [string, number][]).map(([key, val]) => (
                 <div key={key} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
                   <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1">
                     {key.replace(/([A-Z])/g,' $1').toLowerCase()}
@@ -958,7 +995,9 @@ export function AdminClient({
               </div>
             </div>
           </div>
-        )}
+        ) : (
+          <PersonalOverviewPanel userName={userName} timers={timers} popular={popular} />
+        ))}
 
         {/* USERS */}
         {tab === 'users' && (
@@ -1510,6 +1549,12 @@ export function AdminClient({
         {tab === 'userEvents' && <UserEventsModerationManager />}
         {tab === 'comments' && <CommentsModerationManager />}
         {tab === 'defaultFollow' && <DefaultFollowConfigManager />}
+
+        {/* MY EVENTS */}
+        {tab === 'myEvents' && <MyEventsPanel events={myEvents} />}
+
+        {/* WORLD EVENTS */}
+        {tab === 'worldEvents' && <WorldPanel isPremium={isPremium} />}
 
       </main>
     </div>

@@ -15,11 +15,13 @@ function getLocale(req: NextRequest): string {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Skip auth/api/assets/admin/dashboard — /admin and /dashboard each enforce
-  // their own server-side session + role check in page.tsx (getServerSession).
+  // Skip auth/api/assets/admin/dashboard/users — /admin, /dashboard, and
+  // /users each enforce their own server-side session + role check in
+  // page.tsx (getServerSession). /admin and /dashboard are now thin
+  // redirect stubs to /users.
   if (pathname.startsWith('/api') || pathname.startsWith('/_next') ||
       pathname.startsWith('/admin') || pathname.startsWith('/auth') ||
-      pathname.startsWith('/dashboard') || pathname.includes('.')) {
+      pathname.startsWith('/dashboard') || pathname.startsWith('/users') || pathname.includes('.')) {
     return NextResponse.next();
   }
 

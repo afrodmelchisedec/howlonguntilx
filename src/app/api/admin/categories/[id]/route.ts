@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     ]);
 
     revalidatePath('/categories');
-    revalidatePath('/admin');
+    revalidatePath('/users');
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: 'Category not found' }, { status: 404 });
@@ -134,6 +134,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   revalidatePath('/categories');
-  revalidatePath('/admin');
+  revalidatePath('/users');
   return NextResponse.json({ deleted: true });
 }

@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { categorySl
 
   revalidatePath('/categories');
   revalidatePath('/tools');
-  revalidatePath('/admin');
+  revalidatePath('/users');
   return NextResponse.json(banner);
 }
 
@@ -78,6 +78,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { categoryS
 
   revalidatePath('/categories');
   revalidatePath('/tools');
-  revalidatePath('/admin');
+  revalidatePath('/users');
   return NextResponse.json({ deleted: true });
 }

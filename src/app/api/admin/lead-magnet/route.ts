@@ -59,6 +59,6 @@ export async function PATCH(req: NextRequest) {
 
   // Sitewide banner — every page needs the fresh copy, not just one section.
   revalidatePath('/', 'layout');
-  revalidatePath('/admin');
+  revalidatePath('/users');
   return NextResponse.json(config);
 }

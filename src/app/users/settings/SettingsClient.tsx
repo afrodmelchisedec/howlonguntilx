@@ -1,4 +1,4 @@
-// FILE: src/app/dashboard/settings/SettingsClient.tsx
+// FILE: src/app/users/settings/SettingsClient.tsx
 'use client';
 import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
@@ -152,7 +152,7 @@ export function SettingsClient({ session }: Props) {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
-      <Link href="/dashboard" className="text-sm text-gray-400 hover:text-brand-500 mb-6 block">← Dashboard</Link>
+      <Link href="/users" className="text-sm text-gray-400 hover:text-brand-500 mb-6 block">← Dashboard</Link>
       <h1 className="text-2xl font-medium mb-8">Account settings</h1>
 
       <div className="space-y-4">

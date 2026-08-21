@@ -8,9 +8,14 @@ export function WorldPanel({ isPremium }: { isPremium: boolean }) {
 
   useEffect(() => {
     if (!climateRef.current) return;
+    let chart: any;
+    let cancelled = false;
     import('chart.js').then(({ Chart, registerables }) => {
+      if (cancelled || !climateRef.current) return;
       Chart.register(...registerables);
-      new Chart(climateRef.current!, {
+      const existing = Chart.getChart(climateRef.current);
+      if (existing) existing.destroy();
+      chart = new Chart(climateRef.current, {
         type: 'line',
         data: {
           labels: ['2025', '2027', '2029', '2031', '2033', '2035', '2040', '2045', '2050'],
@@ -78,6 +83,10 @@ export function WorldPanel({ isPremium }: { isPremium: boolean }) {
         }
       });
     });
+    return () => {
+      cancelled = true;
+      if (chart) chart.destroy();
+    };
   }, []);
 
   const techMilestones = [
