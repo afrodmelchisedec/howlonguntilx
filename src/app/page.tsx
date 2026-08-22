@@ -3,12 +3,21 @@ import { PopularGrid } from '@/components/countdown/PopularGrid';
 import { WhyUs } from '@/components/ui/WhyUs';
 import { RecentlyViewed } from '@/components/countdown/RecentlyViewed';
 import { HeroTicker } from '@/components/countdown/HeroTicker';
-import { StarField } from '@/components/ui/StarField';
-import { SpinTheClock } from '@/components/countdown/SpinTheClock';
-import { LiveTickerFeed } from '@/components/countdown/LiveTickerFeed';
-import { InteractiveGlobe } from '@/components/countdown/InteractiveGlobe';
-import { CommunityBarRace } from '@/components/countdown/CommunityBarRace';
-import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
+import dynamic from 'next/dynamic';
+
+// Below-the-fold interactive widgets — deferred so their JS doesn't
+// compete with above-the-fold hydration/paint on the initial load.
+// ssr: false is safe for all four: none render content Google needs to
+// index (StarField is purely decorative canvas; the other three are
+// interactive toys with no unique text/links not already present
+// elsewhere on the page), and each shows nothing visually different
+// pre-hydration since they had no meaningful static fallback anyway.
+const StarField = dynamic(() => import('@/components/ui/StarField').then(m => m.StarField), { ssr: false });
+const SpinTheClock = dynamic(() => import('@/components/countdown/SpinTheClock').then(m => m.SpinTheClock), { ssr: false });
+const LiveTickerFeed = dynamic(() => import('@/components/countdown/LiveTickerFeed').then(m => m.LiveTickerFeed), { ssr: false });
+const InteractiveGlobe = dynamic(() => import('@/components/countdown/InteractiveGlobe').then(m => m.InteractiveGlobe), { ssr: false });
+const CommunityBarRace = dynamic(() => import('@/components/countdown/CommunityBarRace').then(m => m.CommunityBarRace), { ssr: false });
+const CountdownBuilder = dynamic(() => import('@/components/countdown/CountdownBuilder').then(m => m.CountdownBuilder), { ssr: false });
 import { getPopularEvents } from '@/lib/events';
 import { getUpcomingEvents } from '@/lib/calendar';
 import { prisma } from '@/lib/db';

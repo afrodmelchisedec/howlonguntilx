@@ -144,7 +144,7 @@ export function HeroTicker({ events }: Props) {
               }}>
                 {i === 0 ? val : pad(val)}
               </div>
-              <div className="text-caption mt-1.5" style={{ color: `rgba(${glow}, ${i === 0 ? 0.9 : 0.45})`, letterSpacing: '0.08em' }}>{label}</div>
+              <div className="text-caption mt-1.5" style={{ color: `rgba(${glow}, ${i === 0 ? 0.9 : 0.75})`, letterSpacing: '0.08em' }}>{label}</div>
             </div>
           ))}
         </div>
