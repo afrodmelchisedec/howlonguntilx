@@ -66,11 +66,11 @@ export function ConsentBanner() {
         position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000,
         background: 'var(--bg-elevated-2, #16161c)',
         borderTop: '1px solid var(--border-hairline, rgba(255,255,255,0.1))',
-        padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '12px',
+        padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px',
         alignItems: 'center', justifyContent: 'space-between',
       }}
     >
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', maxWidth: 560 }}>
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', maxWidth: 560 }}>
         We use cookies for analytics and, where available, ads. Choose what you're comfortable with — you can change this anytime.
       </p>
 

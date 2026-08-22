@@ -118,7 +118,7 @@ export default async function HomePage() {
               </p>
 
               {/* Headline */}
-              <h1 className="anim-fade-up" style={{
+              <h1 style={{
                 fontSize: 'clamp(52px, 9vw, 88px)',
                 fontWeight: 900,
                 lineHeight: 1.02,
