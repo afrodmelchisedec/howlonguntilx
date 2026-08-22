@@ -39,11 +39,24 @@ export function SpinTheClock() {
   const [spinDisplay, setSpinDisplay] = useState(EVENTS[0]);
   const [revealed, setRevealed] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
     const t = setInterval(() => setTime(getDiff(current.date)), 1000);
     return () => clearInterval(t);
-  }, [current]);
+  }, [current, isVisible]);
 
   function spin() {
     if (spinning) return;
@@ -71,7 +84,7 @@ export function SpinTheClock() {
   const glow = displayEv.color;
 
   return (
-    <div className="ios-card p-6 relative overflow-hidden" style={{
+    <div ref={containerRef} className="ios-card p-6 relative overflow-hidden" style={{
       border: `1px solid rgba(${glow}, 0.25)`,
       boxShadow: `0 0 40px rgba(${glow}, 0.08)`,
       transition: 'border-color 0.4s, box-shadow 0.4s',

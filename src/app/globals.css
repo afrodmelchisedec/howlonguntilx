@@ -160,7 +160,7 @@ body {
 .text-callout    { font-size: 15px; font-weight: 400; }
 .text-subhead    { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
 .text-footnote   { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
-.text-caption    { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
+.text-caption    { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
 
 /* ─── glass nav / sheet ──────────────────────────────────── */
 .glass {
@@ -389,12 +389,24 @@ body {
 
 /* ─── pulse dot (urgency indicator) ──────────────────────── */
 @keyframes pulseRing {
-  0%   { box-shadow: 0 0 0 0   rgba(var(--glow, var(--accent-brand)), 0.55); }
-  70%  { box-shadow: 0 0 0 9px rgba(var(--glow, var(--accent-brand)), 0); }
-  100% { box-shadow: 0 0 0 0   rgba(var(--glow, var(--accent-brand)), 0); }
+  0%   { transform: scale(1);    opacity: 0.55; }
+  70%  { transform: scale(2.8);  opacity: 0; }
+  100% { transform: scale(2.8);  opacity: 0; }
 }
-.pulse-dot { animation: pulseRing 2s ease-out infinite; border-radius: 50%; }
-.urgent-glow { animation: pulseRing 1.6s ease-out infinite; }
+.pulse-dot, .urgent-glow {
+  position: relative;
+  border-radius: 50%;
+}
+.pulse-dot::after, .urgent-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(var(--glow, var(--accent-brand)), 1);
+  animation: pulseRing 2s ease-out infinite;
+  will-change: transform, opacity;
+}
+.urgent-glow::after { animation-duration: 1.6s; }
 
 /* ─── float (water bob — kept, dialed down) ──────────────── */
 @keyframes bob {
