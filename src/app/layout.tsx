@@ -72,12 +72,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <>
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="lazyOnload"
+              strategy="worker"
             />
             {/* 3. Initialize GA Configuration */}
             <Script
               id="gtag-init"
-              strategy="lazyOnload"
+              strategy="worker"
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];

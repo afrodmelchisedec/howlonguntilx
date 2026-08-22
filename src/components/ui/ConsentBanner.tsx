@@ -93,14 +93,14 @@ export function ConsentBanner() {
           <button
             onClick={() => saveConsent({ analytics: false, ads: false })}
             className="press text-xs px-4 py-2 rounded-full"
-            style={{ border: '1px solid var(--border-hairline, rgba(255,255,255,0.15))', background: 'transparent', color: 'var(--text-secondary)' }}
+            style={{ border: '1px solid var(--border-hairline, rgba(255,255,255,0.15))', background: 'transparent', color: 'var(--text-primary)' }}
           >
             Reject non-essential
           </button>
           <button
             onClick={() => setManageOpen(true)}
             className="press text-xs px-4 py-2 rounded-full"
-            style={{ border: '1px solid var(--border-hairline, rgba(255,255,255,0.15))', background: 'transparent', color: 'var(--text-secondary)' }}
+            style={{ border: '1px solid var(--border-hairline, rgba(255,255,255,0.15))', background: 'transparent', color: 'var(--text-primary)' }}
           >
             Manage
           </button>

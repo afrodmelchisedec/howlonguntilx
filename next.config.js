@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: { optimizeCss: true, nextScriptWorkers: true },
   images: { domains: ['lh3.googleusercontent.com'], formats: ['image/avif', 'image/webp'] },
   async headers() {
     const csp = [
