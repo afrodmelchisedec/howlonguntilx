@@ -1,10 +1,15 @@
-import LeadMagnetBanner from '@/components/LeadMagnetBanner';
+import dynamic from 'next/dynamic';
+
+// Both are pure overlays — zero content Google needs to index, and
+// LeadMagnetBanner renders nothing until its own fetch resolves anyway.
+// Deferring their JS so it doesn't compete with above-the-fold paint.
+const LeadMagnetBanner = dynamic(() => import('@/components/LeadMagnetBanner'), { ssr: false });
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/ui/Providers';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
-import { ConsentBanner } from '@/components/ui/ConsentBanner';
+const ConsentBanner = dynamic(() => import('@/components/ui/ConsentBanner').then(m => m.ConsentBanner), { ssr: false });
 import { ChromeGate } from '@/components/ui/ChromeGate';
 import Script from 'next/script';
 
