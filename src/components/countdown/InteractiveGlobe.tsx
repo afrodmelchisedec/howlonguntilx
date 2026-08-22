@@ -27,9 +27,26 @@ export function InteractiveGlobe() {
   const [selected, setSelected] = useState<number | null>(null);
   const animRef = useRef<number>(0);
   const rotRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Auto-rotate when not dragging
+  // Only start observing once mounted — the globe sits well below the fold,
+  // so without this the auto-rotate loop below burns a full React
+  // re-render (and a full pin-position recalculation) 60x/second for the
+  // entire page-load window, even though nothing is visible yet.
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-rotate when not dragging AND actually visible on screen
+  useEffect(() => {
+    if (!isVisible) return;
     let last = performance.now();
     function loop(now: number) {
       if (!dragging) {
@@ -42,7 +59,7 @@ export function InteractiveGlobe() {
     }
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, [dragging]);
+  }, [dragging, isVisible]);
 
   function onMouseDown(e: React.MouseEvent) {
     setDragging(true);
@@ -75,7 +92,7 @@ export function InteractiveGlobe() {
   const selPin = selected !== null ? PINS[selected] : null;
 
   return (
-    <div className="ios-card overflow-hidden" style={{ border: '1px solid var(--border-hairline)' }}>
+    <div ref={containerRef} className="ios-card overflow-hidden" style={{ border: '1px solid var(--border-hairline)' }}>
       <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-hairline)' }}>
         <div>
           <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>INTERACTIVE GLOBE</p>

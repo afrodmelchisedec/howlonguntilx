@@ -70,7 +70,7 @@ export function Nav() {
               {INFO_LINKS.map(l => (
                 <Link key={l.label} href={l.href}
                   className="press text-xs font-medium px-2.5 py-1.5 rounded-full transition-opacity hover:opacity-100"
-                  style={{ color: 'var(--text-tertiary)', opacity: 0.85 }}>
+                  style={{ color: 'var(--text-tertiary)' }}>
                   {l.label}
                 </Link>
               ))}

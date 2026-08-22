@@ -90,12 +90,14 @@ export function CountdownBuilder() {
           <input
             className="input-glow flex-1 px-3 py-2 text-sm rounded-xl"
             placeholder="My event name..."
+            aria-label="Custom event name"
             value={customName}
             onChange={e => setCustomName(e.target.value)}
           />
           <input
             className="input-glow px-3 py-2 text-sm rounded-xl"
             type="date"
+            aria-label="Custom event date"
             value={customDate}
             onChange={e => setCustomDate(e.target.value)}
             style={{ width: 140 }}

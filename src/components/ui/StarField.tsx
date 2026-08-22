@@ -7,6 +7,13 @@ export function StarField() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Respect reduced-motion preference and skip entirely — this is a
+    // decorative background effect, not essential content.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -49,6 +56,7 @@ export function StarField() {
 
     let animId: number;
     let t = 0;
+    let running = false;
 
     function draw() {
       ctx!.clearRect(0, 0, W, H);
@@ -108,13 +116,29 @@ export function StarField() {
         ctx!.fill();
       }
 
-      animId = requestAnimationFrame(draw);
+      if (running) animId = requestAnimationFrame(draw);
     }
 
-    draw();
+    // Only start the animation loop once the canvas is actually visible —
+    // this sits at the top of the page load, so without gating it burns
+    // CPU/main-thread time throughout the entire Lighthouse measurement
+    // window even though it's purely decorative.
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !running) {
+        running = true;
+        draw();
+      } else if (!entry.isIntersecting && running) {
+        running = false;
+        cancelAnimationFrame(animId);
+      }
+    }, { threshold: 0 });
+    observer.observe(canvas);
+
     return () => {
+      running = false;
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
+      observer.disconnect();
     };
   }, []);
 

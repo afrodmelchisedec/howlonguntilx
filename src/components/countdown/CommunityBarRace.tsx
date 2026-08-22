@@ -24,9 +24,23 @@ export function CommunityBarRace() {
   const [racing, setRacing] = useState(true);
   const [userVoted, setUserVoted] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Below-the-fold widget — don't burn the setInterval tick (and the
+  // array re-sort it triggers) before it's actually on screen.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
-    if (!racing) return;
+    if (!racing || !isVisible) return;
     intervalRef.current = setInterval(() => {
       setCounts(prev => {
         const next = prev.map((c, i) => {
@@ -40,7 +54,7 @@ export function CommunityBarRace() {
       });
     }, 800);
     return () => clearInterval(intervalRef.current!);
-  }, [racing]);
+  }, [racing, isVisible]);
 
   function vote(idx: number) {
     setUserVoted(idx);
@@ -54,7 +68,7 @@ export function CommunityBarRace() {
   const max = Math.max(...sorted.map(e => e.count));
 
   return (
-    <div className="ios-card overflow-hidden" style={{ border: '1px solid var(--border-hairline)' }}>
+    <div ref={containerRef} className="ios-card overflow-hidden" style={{ border: '1px solid var(--border-hairline)' }}>
       {/* Header */}
       <div className="px-5 pt-4 pb-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-hairline)' }}>
         <div>
