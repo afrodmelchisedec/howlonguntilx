@@ -160,7 +160,7 @@ body {
 .text-callout    { font-size: 15px; font-weight: 400; }
 .text-subhead    { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
 .text-footnote   { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
-.text-caption    { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.text-caption    { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
 
 /* ─── glass nav / sheet ──────────────────────────────────── */
 .glass {
