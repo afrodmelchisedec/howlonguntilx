@@ -8,6 +8,22 @@
    Dark:  true black base, desaturated-but-vivid accents, glass layers
 ════════════════════════════════════════════════════════════ */
 :root {
+  /* category text-safe colors — WCAG AA (4.5:1) verified against dark card
+     bg #1C1C1E. Same hue/family as the decorative category glow colors in
+     lib/categoryGlow.ts; only lightened where the raw glow color itself
+     failed contrast as text (culture, default). Use for TEXT only — the
+     glow colors stay untouched for decorative uses (strips, progress bars,
+     borders) where contrast rules don't apply. */
+  --cat-text-biology: 48, 219, 91;
+  --cat-text-family:  255, 105, 180;
+  --cat-text-finance: 255, 159, 10;
+  --cat-text-food:    88, 214, 113;
+  --cat-text-culture: 181, 95, 224;
+  --cat-text-health:  255, 69, 58;
+  --cat-text-science: 100, 240, 235;
+  --cat-text-time:    64, 156, 255;
+  --cat-text-default: 127, 120, 227;
+
   /* motion */
   --spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
@@ -33,6 +49,9 @@
 
   /* dark accents — slightly brighter to read well on black */
   --accent-brand:      125, 118, 255;
+  /* --accent-brand fails WCAG AA (3.55:1) as white-on-brand button fill —
+     dedicated darker same-hue variant for .btn-filled specifically. */
+  --btn-filled-bg:      101, 93, 255;
   --accent-blue:        64, 156, 255;
   --accent-green:       48, 219, 91;
   --accent-orange:      255, 159, 10;
@@ -63,6 +82,20 @@
 }
 
 .light {
+  /* category text-safe colors, light-theme override — WCAG AA (4.5:1)
+     verified against white card bg. Same hue as dark-theme values above,
+     darkened as needed since the raw glow colors are far too light/washed
+     out as text on a white card. */
+  --cat-text-biology: 23, 132, 50;
+  --cat-text-family:  227, 0, 114;
+  --cat-text-finance: 163, 99, 0;
+  --cat-text-food:    32, 132, 52;
+  --cat-text-culture: 167, 65, 219;
+  --cat-text-health:  231, 13, 0;
+  --cat-text-science: 12, 129, 125;
+  --cat-text-time:    0, 112, 232;
+  --cat-text-default: 83, 74, 217;
+
   --bg-base:        #F2F1F6;   /* iOS systemGroupedBackground */
   --bg-elevated:     #FFFFFF;   /* card / sheet */
   --bg-elevated-2:   #FAFAFE;   /* nested card on top of elevated */
@@ -70,11 +103,12 @@
   --border-hairline:  rgba(60,60,67,0.12);
   --text-primary:    #1C1C1E;
   --text-secondary:  rgba(60,60,67,0.6);
-  --text-tertiary:   rgba(60,60,67,0.55);
+  --text-tertiary:   rgba(60,60,67,0.72);
   --shadow-card:     0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
   --shadow-elevated: 0 4px 12px rgba(0,0,0,0.06), 0 16px 40px rgba(0,0,0,0.10);
 
   --accent-brand:      83, 74, 217;     /* indigo */
+  --btn-filled-bg:      83, 74, 217;    /* already passes WCAG AA as button fill in light theme */
   --accent-blue:        10, 132, 255;
   --accent-green:       48, 209, 88;
   --accent-orange:      255, 149, 0;
@@ -245,7 +279,7 @@ body {
    BUTTONS — iOS filled / tinted / plain
 ════════════════════════════════════════════════════════════ */
 .btn-filled {
-  background: rgb(var(--accent-brand));
+  background: rgb(var(--btn-filled-bg));
   color: #fff;
   border-radius: var(--r-md);
   padding: 11px 20px;

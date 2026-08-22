@@ -25,3 +25,28 @@ export function getCategoryGlowRGB(categorySlug: string | null | undefined): str
   if (!categorySlug) return DEFAULT_GLOW;
   return CATEGORY_GLOW_MAP[categorySlug] ?? DEFAULT_GLOW;
 }
+
+// WCAG-AA-safe variant of the same category color, for use as TEXT color
+// specifically (captions, stat numbers). The raw glow color above is tuned
+// for decorative use (strips, progress bars, borders/shadows) and several
+// categories fail 4.5:1 contrast as text against a card background — see
+// the --cat-text-* custom properties in globals.css for the verified
+// values (dark-theme in :root, light-theme override in .light). Returns a
+// CSS var() reference, not a raw triplet, so the correct shade resolves
+// automatically per theme via the cascade — no JS theme detection needed.
+const CATEGORY_TEXT_VAR: Record<string, string> = {
+  biology: 'var(--cat-text-biology)',
+  family:  'var(--cat-text-family)',
+  finance: 'var(--cat-text-finance)',
+  food:    'var(--cat-text-food)',
+  culture: 'var(--cat-text-culture)',
+  health:  'var(--cat-text-health)',
+  science: 'var(--cat-text-science)',
+  time:    'var(--cat-text-time)',
+};
+const DEFAULT_TEXT_VAR = 'var(--cat-text-default)';
+
+export function getCategoryTextRGB(categorySlug: string | null | undefined): string {
+  if (!categorySlug) return DEFAULT_TEXT_VAR;
+  return CATEGORY_TEXT_VAR[categorySlug] ?? DEFAULT_TEXT_VAR;
+}

@@ -145,3 +145,22 @@ export async function getCommunityFeed(params: FeedParams) {
   if (params.sort === 'engagement') return getEngagementFeed(params);
   return getNativeSortedFeed(params.sort, params);
 }
+
+export interface CategoryPill {
+  slug: string;
+  name: string;
+  emoji: string;
+}
+
+// Non-empty category pills for the community feed filter — only
+// categories that have at least one live PUBLIC/APPROVED UserEvent.
+// Extracted here (rather than left inline in the API route) so the
+// server-rendered community/page.tsx can call it directly too.
+export async function getCommunityCategories(): Promise<CategoryPill[]> {
+  const categories = await prisma.category.findMany({
+    where: { userEvents: { some: { visibility: 'PUBLIC', moderationStatus: 'APPROVED' } } },
+    select: { slug: true, name: true, emoji: true },
+    orderBy: { name: 'asc' },
+  });
+  return categories;
+}
