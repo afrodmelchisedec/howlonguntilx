@@ -380,7 +380,7 @@ export function CalendarEventsManager() {
                 <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}
                   placeholder="fifa-world-cup-2026-final"
                   className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 text-sm" />
-                <p className="text-[11px] text-gray-400 mt-1">Links to /how-long-until-{form.slug || '...'}</p>
+                <p className="text-[11px] text-gray-400 mt-1">Links to /questions/how-long-until-{form.slug || '...'}</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Emoji</label>
@@ -474,7 +474,7 @@ export function CalendarEventsManager() {
                       <td className="px-4 py-3 max-w-md">
                         <p className="font-medium">{ev.emoji ? `${ev.emoji} ` : ''}{ev.event}</p>
                         {ev.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{ev.description}</p>}
-                        {ev.slug && <p className="text-xs text-gray-400 mt-0.5">/how-long-until-{ev.slug}</p>}
+                        {ev.slug && <p className="text-xs text-gray-400 mt-0.5">/questions/how-long-until-{ev.slug}</p>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">{prettifyRegion(ev.region)}</td>
                       <td className="px-4 py-3">

@@ -20,6 +20,7 @@ export interface FeedItemRow {
   targetDate: Date;
   images: unknown;
   likeCount: number;
+  shareCount: number;
   commentCount: number;
   viewCount: number;
   createdAt: Date;
@@ -57,7 +58,7 @@ async function getNativeSortedFeed(sort: 'anticipated' | 'recent', params: FeedP
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
       id: true, slug: true, title: true, description: true, targetDate: true,
-      images: true, likeCount: true, commentCount: true, viewCount: true, createdAt: true,
+      images: true, likeCount: true, shareCount: true, commentCount: true, viewCount: true, createdAt: true,
       author: { select: { id: true, name: true, username: true, image: true } },
       category: { select: { slug: true, name: true, emoji: true } },
     },
@@ -112,12 +113,12 @@ async function getEngagementFeed(params: FeedParams) {
 
   const rows = await prisma.$queryRaw<Array<{
     id: string; slug: string; title: string; description: string; targetDate: Date;
-    images: unknown; likeCount: number; commentCount: number; viewCount: number; createdAt: Date;
+    images: unknown; likeCount: number; shareCount: number; commentCount: number; viewCount: number; createdAt: Date;
     authorId: string | null; authorName: string | null; authorUsername: string | null; authorImage: string | null;
     categorySlug: string | null; categoryName: string | null; categoryEmoji: string | null;
   }>>(Prisma.sql`
     SELECT ue."id", ue."slug", ue."title", ue."description", ue."targetDate", ue."images",
-      ue."likeCount", ue."commentCount", ue."viewCount", ue."createdAt",
+      ue."likeCount", ue."shareCount", ue."commentCount", ue."viewCount", ue."createdAt",
       u."id" AS "authorId", u."name" AS "authorName", u."username" AS "authorUsername", u."image" AS "authorImage",
       c."slug" AS "categorySlug", c."name" AS "categoryName", c."emoji" AS "categoryEmoji"
     FROM "UserEvent" ue
@@ -132,7 +133,7 @@ async function getEngagementFeed(params: FeedParams) {
   const sliced = hasMore ? rows.slice(0, take) : rows;
   const items: FeedItemRow[] = sliced.map(r => ({
     id: r.id, slug: r.slug, title: r.title, description: r.description, targetDate: r.targetDate,
-    images: r.images, likeCount: r.likeCount, commentCount: r.commentCount, viewCount: r.viewCount,
+    images: r.images, likeCount: r.likeCount, shareCount: r.shareCount, commentCount: r.commentCount, viewCount: r.viewCount,
     createdAt: r.createdAt,
     author: r.authorId ? { id: r.authorId, name: r.authorName, username: r.authorUsername, image: r.authorImage } : null,
     category: r.categorySlug ? { slug: r.categorySlug, name: r.categoryName ?? '', emoji: r.categoryEmoji ?? '' } : null,

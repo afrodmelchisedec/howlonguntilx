@@ -94,7 +94,7 @@ export function LiveTickerFeed({ events }: Props) {
                     }} />
                   </div>
                   {ev.slug && (
-                    <Link href={`/how-long-until-${ev.slug}`}
+                    <Link href={`/questions/how-long-until-${ev.slug}`}
                       className="btn-tinted press text-sm w-full text-center block rounded-xl py-2"
                       style={{ background: `rgba(${ev.color ?? '125, 118, 255'}, 0.12)`, color: `rgb(${ev.color ?? '125, 118, 255'})` }}>
                       View live countdown →

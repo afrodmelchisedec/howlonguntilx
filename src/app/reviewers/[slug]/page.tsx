@@ -122,7 +122,7 @@ export default async function ReviewerProfilePage({ params }: Props) {
             {events.map(ev => (
               <Link
                 key={ev.id}
-                href={`/how-long-until-${ev.slug}`}
+                href={`/questions/how-long-until-${ev.slug}`}
                 className="ios-card-nested press p-4 flex flex-col anim-fade-up"
               >
                 <p className="text-headline mb-1">{ev.name}</p>

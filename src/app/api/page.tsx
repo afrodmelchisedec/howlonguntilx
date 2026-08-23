@@ -347,7 +347,7 @@ results.forEach(r => console.log(r.type, r.name, r.href));`}
     "name": "Christmas",
     "category": "holidays",
     "type": "event",
-    "href": "/how-long-until-christmas"
+    "href": "/questions/how-long-until-christmas"
   },
   {
     "slug": "ces-2027-dates",

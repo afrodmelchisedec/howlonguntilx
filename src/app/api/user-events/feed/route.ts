@@ -11,7 +11,9 @@ export async function GET(req: NextRequest) {
   const categorySlug = searchParams.get('category') ?? undefined;
   const q = searchParams.get('q') ?? undefined;
   const cursor = searchParams.get('cursor') ?? undefined;
+  const takeParam = searchParams.get('take');
+  const take = takeParam ? Math.min(Math.max(parseInt(takeParam, 10) || 9, 1), 24) : undefined;
 
-  const { items, nextCursor } = await getCommunityFeed({ sort, categorySlug, q, cursor });
+  const { items, nextCursor } = await getCommunityFeed({ sort, categorySlug, q, cursor, take });
   return NextResponse.json({ items, nextCursor });
 }

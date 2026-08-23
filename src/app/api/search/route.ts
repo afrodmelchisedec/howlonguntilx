@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     name: e.name,
     category: e.categorySlug,
     type: 'event' as const,
-    href: `/how-long-until-${e.slug}`,
+    href: `/questions/how-long-until-${e.slug}`,
   }));
 
   const articleResults = articles.map(a => ({

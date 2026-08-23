@@ -123,7 +123,7 @@ function FaqRow({ item, index }: { item: FaqItem; index: number }) {
 
   return (
     <Link
-      href={`/how-long-until-${item.slug}`}
+      href={`/questions/how-long-until-${item.slug}`}
       className={`faq-row ios-card glow interactive press anim-fade-up ${glowClass}`}
       style={{ animationDelay: `${(index % PAGE_SIZE) * 50}ms` }}
     >

@@ -113,7 +113,7 @@ async function resolveSubjectInfo(comments: { subjectType: string; subjectId: st
       where: { id: { in: [...idsByType.event] } },
       select: { id: true, slug: true, name: true },
     });
-    for (const r of rows) result.set(key('event', r.id), { title: r.name, href: `/how-long-until-${r.slug}` });
+    for (const r of rows) result.set(key('event', r.id), { title: r.name, href: `/questions/how-long-until-${r.slug}` });
   }
 
   if (idsByType.userEvent.size > 0) {

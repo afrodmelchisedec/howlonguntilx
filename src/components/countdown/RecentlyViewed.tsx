@@ -20,7 +20,7 @@ export function RecentlyViewed() {
       <p className="text-caption mb-3">Recently viewed</p>
       <div className="flex flex-wrap gap-2">
         {items.map(item => (
-          <Link key={item.slug} href={"/how-long-until-" + item.slug}
+          <Link key={item.slug} href={"/questions/how-long-until-" + item.slug}
             className="press px-3 py-1.5 rounded-full text-sm transition-colors"
             style={{ border: '1px solid var(--border-hairline)', color: 'var(--text-secondary)' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(var(--accent-brand),0.5)'; e.currentTarget.style.color = 'rgb(var(--accent-brand))'; }}

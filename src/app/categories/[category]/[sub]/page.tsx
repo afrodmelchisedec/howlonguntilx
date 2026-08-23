@@ -100,7 +100,7 @@ export default async function SubCategoryPage({ params }: Props) {
               {sub.eventsAsSubcategory.map(ev => {
                 const { days_left, hours_left, progress_percent } = buildCountdownResponse(ev.name, new Date(ev.targetDate));
                 return (
-                  <Link key={ev.slug} href={`/how-long-until-${ev.slug}`}
+                  <Link key={ev.slug} href={`/questions/how-long-until-${ev.slug}`}
                     className="ios-card interactive glow flex items-center justify-between p-5">
                     <div className="flex-1 min-w-0">
                       <div className="text-headline truncate">{ev.name}</div>

@@ -92,7 +92,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   revalidatePath('/users');
   revalidatePath('/categories');
-  revalidatePath('/how-long-until-' + updated.slug);
+  revalidatePath('/questions/how-long-until-' + updated.slug);
 
   return NextResponse.json(updated);
 }

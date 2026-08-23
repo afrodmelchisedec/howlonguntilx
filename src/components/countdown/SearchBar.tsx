@@ -44,7 +44,7 @@ export function SearchBar() {
     if (!value.trim()) return;
     if (sugs.length > 0) { pick(sugs[0]); return; }
     setOpen(false);
-    router.push('/how-long-until-' + value.trim().toLowerCase().replace(/\s+/g, '-'));
+    router.push('/questions/how-long-until-' + value.trim().toLowerCase().replace(/\s+/g, '-'));
   }
   function pick(s: Suggestion) { setOpen(false); router.push(s.href); }
 

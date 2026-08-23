@@ -225,7 +225,7 @@ export function PersonalOverviewPanel({ userName, timers: initial, popular }: Pr
             const{days_left}=buildCountdownResponse(ev.name,new Date(ev.targetDate));
             const col=C(ev.category);
             return(
-              <a key={ev.slug} href={'/how-long-until-'+ev.slug} className="ios-card interactive press anim-fade-up flex items-center justify-between p-3">
+              <a key={ev.slug} href={'/questions/how-long-until-'+ev.slug} className="ios-card interactive press anim-fade-up flex items-center justify-between p-3">
                 <span className="font-semibold truncate text-xs" style={{ color: 'var(--text-secondary)' }}>{ev.name}</span>
                 <span className="font-black text-sm ml-2 flex-shrink-0 tabular" style={{color:col.hex}}>{days_left}d</span>
               </a>

@@ -1,41 +1,42 @@
-// FILE: src/components/community/CommunityFeedClient.tsx
+// FILE: src/components/questions/QuestionsFeedClient.tsx
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CommunityFeedCard, type FeedItem } from '@/components/community/CommunityFeedCard';
+import { QuestionCard } from '@/components/questions/QuestionCard';
+import type { QuestionFeedItem, QuestionsSort } from '@/lib/questionsFeed';
 
-type SortOption = 'anticipated' | 'engagement' | 'recent';
 interface CategoryPill { slug: string; name: string; emoji: string }
 
-const SORT_TABS: { value: SortOption; label: string }[] = [
-  { value: 'anticipated', label: 'Most anticipated' },
-  { value: 'engagement', label: 'Most engagement' },
+interface Props {
+  initialItems: QuestionFeedItem[];
+  initialCursor: string | null;
+  initialCategories: CategoryPill[];
+}
+
+const SORT_TABS: { value: QuestionsSort; label: string }[] = [
   { value: 'recent', label: 'Most recent' },
+  { value: 'engagement', label: 'Most engaged' },
 ];
 
 const INITIAL_TAKE = 9;  // first page: 3 rows of 3
 const MORE_TAKE = 6;     // each "Load more": 2 additional rows of 3
 
-interface Props {
-  initialItems: FeedItem[];
-  initialCursor: string | null;
-  initialCategories: CategoryPill[];
-}
-
-export function CommunityFeedClient({ initialItems, initialCursor, initialCategories }: Props) {
-  const [sort, setSort] = useState<SortOption>('recent');
+// Client wrapper for the /questions listing. Mirrors CommunityFeedClient's
+// tabs + search + IntersectionObserver load-more pattern. Category tabs
+// were already Questions-specific (roadmap Phase F scope); sort and search
+// now mirror Community more closely per user request, using 'engagement'
+// = likeCount (the one engagement column both Article and Event actually
+// share — see questionsFeed.ts for why this differs from Community's
+// summed-likes+comments engagement sort).
+export function QuestionsFeedClient({ initialItems, initialCursor, initialCategories }: Props) {
+  const [sort, setSort] = useState<QuestionsSort>('recent');
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [categories] = useState<CategoryPill[]>(initialCategories);
-  const [items, setItems] = useState<FeedItem[]>(initialItems);
+  const [items, setItems] = useState<QuestionFeedItem[]>(initialItems);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [loading, setLoading] = useState(false);
-  // The server already rendered the default (sort=recent, no filters) page,
-  // so there's real content on first paint — no skeleton needed yet.
   const [initialLoading, setInitialLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  // Skips the reset-and-refetch effect on the very first render, since that
-  // render's data is already the server-provided default-state page — only
-  // an actual sort/category/query change after mount should trigger a fetch.
   const isFirstRender = useRef(true);
 
   const loadPage = useCallback(async (reset: boolean, cursorOverride?: string | null) => {
@@ -47,7 +48,7 @@ export function CommunityFeedClient({ initialItems, initialCursor, initialCatego
       const useCursor = reset ? null : (cursorOverride ?? cursor);
       if (useCursor) params.set('cursor', useCursor);
 
-      const res = await fetch(`/api/user-events/feed?${params}`);
+      const res = await fetch(`/api/questions/feed?${params}`);
       const data = await res.json();
       setItems(prev => (reset ? data.items : [...prev, ...data.items]));
       setCursor(data.nextCursor);
@@ -56,7 +57,7 @@ export function CommunityFeedClient({ initialItems, initialCursor, initialCatego
       setInitialLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, category, query]);
+  }, [sort, category, query, cursor]);
 
   // Reset + reload whenever sort/category/query changes — but not on mount,
   // since the server already provided the matching default-state data.
@@ -85,9 +86,9 @@ export function CommunityFeedClient({ initialItems, initialCursor, initialCatego
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-largetitle mb-2">Community countdowns</h1>
+      <h1 className="text-largetitle mb-2">Questions</h1>
       <p className="text-callout mb-6" style={{ color: 'var(--text-secondary)' }}>
-        Browse "How long until…?" countdowns shared by the community.
+        Every "How long until…?" answer on the site, articles and live countdowns together.
       </p>
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -119,7 +120,7 @@ export function CommunityFeedClient({ initialItems, initialCursor, initialCatego
       <input
         value={query}
         onChange={e => setQuery(e.target.value)}
-        placeholder="Search community countdowns…"
+        placeholder="Search questions…"
         className="ios-card-nested w-full px-4 py-2.5 mb-8 text-footnote bg-transparent outline-none"
         style={{ color: 'var(--text-primary)' }}
       />
@@ -141,13 +142,13 @@ export function CommunityFeedClient({ initialItems, initialCursor, initialCatego
         </div>
       ) : items.length === 0 ? (
         <div className="ios-card p-10 text-center" style={{ color: 'var(--text-tertiary)' }}>
-          <div className="text-4xl mb-3">⏳</div>
-          <div className="text-headline mb-1">No events found</div>
+          <div className="text-4xl mb-3">❓</div>
+          <div className="text-headline mb-1">No questions found</div>
           <div className="text-footnote">Try a different search or category.</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item, i) => <CommunityFeedCard key={item.id} item={item} index={i % 12} priority={i < 3} />)}
+          {items.map((item, i) => <QuestionCard key={`${item.kind}-${item.id}`} item={item} index={i % 12} priority={i < 3} />)}
         </div>
       )}
 

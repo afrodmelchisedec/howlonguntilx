@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
     for (const ev of events) {
-      xml += `<url><loc>${BASE}/how-long-until-${ev.slug}</loc><lastmod>${ev.updatedAt.toISOString()}</lastmod><changefreq>hourly</changefreq><priority>0.8</priority></url>`;
+      xml += `<url><loc>${BASE}/questions/how-long-until-${ev.slug}</loc><lastmod>${ev.updatedAt.toISOString()}</lastmod><changefreq>hourly</changefreq><priority>0.8</priority></url>`;
     }
     xml += `</urlset>`;
 

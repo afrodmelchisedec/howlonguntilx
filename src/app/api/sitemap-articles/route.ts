@@ -17,7 +17,13 @@ export async function GET() {
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
     for (const a of articles) {
-      xml += `<url><loc>${BASE}/tools/${a.toolSlug}/${a.slug}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
+      // 'questions'-tool articles now live under the merged /questions/[slug]
+      // route (see questions-merge roadmap); every other tool keeps its
+      // existing /tools/<toolSlug>/<slug> path untouched.
+      const loc = a.toolSlug === 'questions'
+        ? `${BASE}/questions/${a.slug}`
+        : `${BASE}/tools/${a.toolSlug}/${a.slug}`;
+      xml += `<url><loc>${loc}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
     }
     xml += `</urlset>`;
 

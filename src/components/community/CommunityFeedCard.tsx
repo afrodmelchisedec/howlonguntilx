@@ -14,6 +14,7 @@ export interface FeedItem {
   targetDate: string;
   images: string[] | null;
   likeCount: number;
+  shareCount: number;
   commentCount: number;
   viewCount: number;
   author: { id: string; name: string | null; username: string | null; image: string | null } | null;
@@ -72,7 +73,7 @@ export function CommunityFeedCard({ item, index = 0, priority = false }: { item:
         ) : (
           <span className="truncate">By a HowLongUntilX user</span>
         )}
-        <span className="flex-shrink-0">❤️ {item.likeCount} · 💬 {item.commentCount}</span>
+        <span className="flex-shrink-0">❤️ {item.likeCount} · 👁 {item.viewCount} · 💬 {item.commentCount} · 🔗 {item.shareCount}</span>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getEventBySlug, incrementViews, getAllEventSlugs } from '@/lib/events';
+import { getEventBySlug, incrementViews } from '@/lib/events';
 import { CountdownDisplay } from '@/components/countdown/CountdownDisplay';
 import { PageJsonLd } from '@/components/countdown/PageJsonLd';
 import { FaqSchema } from '@/components/countdown/FaqSchema';
@@ -32,43 +32,40 @@ import { ArticleTableOfContents } from '@/components/articles/ArticleTableOfCont
 import { ArticleSchema } from '@/components/articles/ArticleSchema';
 import { extractHeadings, extractFaq } from '@/components/articles/ArticleBlocks';
 
-interface Props { params: { slug: string } }
+// Shared render logic for the Event ("Timer") content type. Extracted from
+// src/app/[slug]/page.tsx during the /questions merge so both the legacy
+// /how-long-until-<slug> route AND the new /questions/[slug] route call the
+// exact same rendering + metadata logic. Do not fork this file per-route —
+// if the two routes need different behavior, that's a signal something in
+// the merge plan needs rethinking, not a reason to duplicate this code.
 
-export async function generateStaticParams() {
-  const slugs = await getAllEventSlugs();
-  return slugs.map(slug => ({ slug: 'how-long-until-' + slug }));
-}
+const SITE_URL = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
 
-export const revalidate = 3600;
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const rawSlug = params.slug.replace('how-long-until-', '');
+export async function generateEventMetadata(rawSlug: string, canonicalPath: string): Promise<Metadata> {
   const event = await getEventBySlug(rawSlug);
   if (!event) return {};
   const { days_left } = buildCountdownResponse(event.name, new Date(event.targetDate));
-  const base = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
   const description = event.description
     ?? `Exactly ${days_left} days until ${event.name}. Live countdown updated every second.`;
 
   return {
     title: `How Long Until ${event.name} — ${days_left} Days Left`,
     description,
-    alternates: { canonical: `${base}/how-long-until-${rawSlug}` },
+    alternates: { canonical: `${SITE_URL}${canonicalPath}` },
     openGraph: {
       title: `${days_left} days until ${event.name}`,
       description,
-      images: [{ url: `${base}/api/og?event=${encodeURIComponent(event.name)}&days=${days_left}`, width: 1200, height: 630 }],
+      images: [{ url: `${SITE_URL}/api/og?event=${encodeURIComponent(event.name)}&days=${days_left}`, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${days_left} days until ${event.name}`,
-      images: [`${base}/api/og?event=${encodeURIComponent(event.name)}&days=${days_left}`],
+      images: [`${SITE_URL}/api/og?event=${encodeURIComponent(event.name)}&days=${days_left}`],
     },
   };
 }
 
-export default async function EventPage({ params }: Props) {
-  const rawSlug = params.slug.replace('how-long-until-', '');
+export async function EventPageContent({ rawSlug }: { rawSlug: string }) {
   const event = await getEventBySlug(rawSlug);
   if (!event) notFound();
   await incrementViews(rawSlug);
@@ -84,9 +81,6 @@ export default async function EventPage({ params }: Props) {
   const affiliateBanner = await getAffiliateBanner(event.categorySlug);
 
   const glow = getCategoryGlowRGB(event.categorySlug);
-  // Reviewer fallback chain — mirrors ArticleLayout.tsx: structured Reviewer
-  // record (only when explicitly enabled by the admin) -> legacy free-text
-  // reviewerName -> no reviewer badge at all.
   const structuredReviewer = (event as any).reviewEnabled && (event as any).reviewer ? (event as any).reviewer : null;
   const legacyReviewerName = !structuredReviewer ? event.reviewerName : null;
   const blocks = Array.isArray(content.body) ? content.body : [];
@@ -156,7 +150,6 @@ export default async function EventPage({ params }: Props) {
           <div className="mt-4"><EventLikeButton eventId={event.id} glow={glow} /></div>
           <EmbedCta slug={rawSlug} />
 
-          {/* Disclaimer and About note */}
           <div className="max-w-2xl mx-auto px-4 pb-4 text-left">
             <ArticleDisclaimer categorySlug={event.categorySlug} glow={glow} />
             {!structuredReviewer && !legacyReviewerName && (
@@ -169,19 +162,16 @@ export default async function EventPage({ params }: Props) {
             )}
           </div>
 
-          {/* Table of Contents */}
           {tocHeadings.length > 1 && (
             <div className="max-w-2xl mx-auto px-4 pb-4">
               <ArticleTableOfContents headings={tocHeadings} glow={glow} />
             </div>
           )}
 
-          {/* Ad Slot after hero */}
           <div className="max-w-2xl mx-auto px-4 pb-4">
             <AdSlot slotId="event-hero" minHeight={280} />
           </div>
 
-          {/* Event Body (rich blocks) */}
           <EventBody blocks={blocks} glow={glow} />
 
           {affiliateBanner && (
@@ -189,7 +179,6 @@ export default async function EventPage({ params }: Props) {
               <AffiliateBanner banner={affiliateBanner} glow={glow} />
             </div>
           )}
-          {/* FAQ section rendered from content.faqs */}
           {faqItems && faqItems.length > 0 && (
             <div id="faq" className="max-w-2xl mx-auto px-4 pb-8 scroll-mt-24">
               <h2 className="text-title3 mb-3">Frequently asked questions</h2>
@@ -215,7 +204,6 @@ export default async function EventPage({ params }: Props) {
             </div>
           )}
 
-          {/* Ad Slot before related */}
           <div className="max-w-2xl mx-auto px-4 pb-4">
             <AdSlot slotId="event-lower" minHeight={280} />
           </div>
@@ -261,7 +249,6 @@ export default async function EventPage({ params }: Props) {
 
         <SignupTeaser eventName={event.name} />
 
-        {/* Comments section */}
         <div className="max-w-2xl mx-auto px-4 pb-8" id="comments-section">
           <CommentThread subjectType="event" subjectId={event.id} glow={glow} />
         </div>

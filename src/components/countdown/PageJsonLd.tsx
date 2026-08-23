@@ -19,7 +19,7 @@ interface Props {
 
 export function PageJsonLd({ event, countdown }: Props) {
   const base = process.env.NEXTAUTH_URL ?? 'https://howlonguntilx.com';
-  const url = `${base}/how-long-until-${event.slug}`;
+  const url = `${base}/questions/how-long-until-${event.slug}`;
   const content = (event.content ?? {}) as EventContent;
   const categoryLabel = prettifySlug(event.categorySlug);
   const description = event.description ?? `Live countdown to ${event.name}. Updated every second.`;

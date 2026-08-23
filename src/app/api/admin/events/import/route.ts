@@ -120,8 +120,8 @@ export async function POST(req: NextRequest) {
         });
 
         results.push({ slug: item.slug, status: 'created' });
-        revalidatePath(`/how-long-until-${item.slug}`);
-        publishedUrls.push(`${BASE}/how-long-until-${item.slug}`);
+        revalidatePath(`/questions/how-long-until-${item.slug}`);
+        publishedUrls.push(`${BASE}/questions/how-long-until-${item.slug}`);
         continue;
       }
 
@@ -142,8 +142,8 @@ export async function POST(req: NextRequest) {
 
       results.push({ slug: item.slug, status: 'updated' });
 
-      revalidatePath(`/how-long-until-${item.slug}`);
-      publishedUrls.push(`${BASE}/how-long-until-${item.slug}`);
+      revalidatePath(`/questions/how-long-until-${item.slug}`);
+      publishedUrls.push(`${BASE}/questions/how-long-until-${item.slug}`);
     } catch (err) {
       results.push({
         slug: item.slug,

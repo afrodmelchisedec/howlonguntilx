@@ -1199,8 +1199,8 @@ export function AdminClient({
                     <tr className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-4 py-3 text-gray-400 text-xs font-medium w-8">{i + 1}</td>
                       <td className="px-4 py-3">
-                        <a href={'/how-long-until-' + ev.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{ev.name}</a>
-                        <p className="text-xs text-gray-400 mt-0.5">/how-long-until-{ev.slug}</p>
+                        <a href={'/questions/how-long-until-' + ev.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{ev.name}</a>
+                        <p className="text-xs text-gray-400 mt-0.5">/questions/how-long-until-{ev.slug}</p>
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -1405,7 +1405,7 @@ export function AdminClient({
                   <Fragment key={a.id}>
                     <tr key={a.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-4 py-3">
-                        <a href={'/tools/questions/' + a.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{a.title}</a>
+                        <a href={'/questions/' + a.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{a.title}</a>
                         <p className="text-xs text-gray-400 mt-0.5">/{a.slug}</p>
                       </td>
                       <td className="px-4 py-3">

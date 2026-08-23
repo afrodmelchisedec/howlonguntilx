@@ -43,7 +43,7 @@ export default async function ProfilePage({ params }: Props) {
     take: 24,
     select: {
       id: true, slug: true, title: true, description: true, targetDate: true, images: true,
-      likeCount: true, commentCount: true, viewCount: true,
+      likeCount: true, shareCount: true, commentCount: true, viewCount: true,
       author: { select: { id: true, name: true, username: true, image: true } },
       category: { select: { slug: true, name: true, emoji: true } },
     },

@@ -13,7 +13,7 @@ export function PopularGrid({ events }: { events: Event[] }) {
           const { days_left, progress_percent } = buildCountdownResponse(ev.name, new Date(ev.targetDate));
           const glow = getCategoryGlow(ev.categorySlug);
           return (
-            <Link key={ev.slug} href={'/how-long-until-' + ev.slug}
+            <Link key={ev.slug} href={'/questions/how-long-until-' + ev.slug}
               className={`ios-card interactive glow gc-${glow} anim-fade-up block relative overflow-hidden p-4`}
               style={{ animationDelay: (i * 55) + 'ms' }}>
               <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'rgb(var(--glow))' }} />

@@ -102,7 +102,7 @@ export function DashboardClient({ session, timers, popular }: Props) {
           {popular.map(ev => {
             const { days_left } = buildCountdownResponse(ev.name, new Date(ev.targetDate));
             return (
-              <Link key={ev.slug} href={`/how-long-until-${ev.slug}`}
+              <Link key={ev.slug} href={`/questions/how-long-until-${ev.slug}`}
                 className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-brand-500 transition-colors group">
                 <span className="text-sm font-medium group-hover:text-brand-500">{ev.name}</span>
                 <span className="text-brand-500 font-medium text-sm">{days_left}d</span>

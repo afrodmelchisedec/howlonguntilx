@@ -89,7 +89,7 @@ function validateInput(input: EventInput): string | null {
   if (!input.isoDate || isNaN(new Date(input.isoDate).getTime())) return `Invalid date: "${input.isoDate}"`;
   if (!input.region || !(CALENDAR_REGIONS as readonly string[]).includes(input.region)) return `Invalid region: "${input.region}"`;
   if (!input.event || !input.event.trim()) return 'Event name is required';
-  if (input.featured && !input.slug) return 'Featured events require a slug (used for the /how-long-until-<slug> countdown page link)';
+  if (input.featured && !input.slug) return 'Featured events require a slug (used for the /questions/how-long-until-<slug> countdown page link)';
   return null;
 }
 

@@ -14,7 +14,7 @@ export const metadata = {
 // full JS-download-hydrate-then-fetch waterfall before any content exists.
 export default async function CommunityFeedPage() {
   const [{ items, nextCursor }, categories] = await Promise.all([
-    getCommunityFeed({ sort: 'recent' }),
+    getCommunityFeed({ sort: 'recent', take: 9 }),
     getCommunityCategories(),
   ]);
 
