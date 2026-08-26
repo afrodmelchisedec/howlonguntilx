@@ -287,6 +287,18 @@ function articleAccessor(a: ArticleRow, key: string) {
     default: return null;
   }
 }
+
+function reviewAccessor(r: ReviewRow, key: string) {
+  switch (key) {
+    case 'id': return r.id;
+    case 'rating': return r.rating;
+    case 'title': return r.title ?? '';
+    case 'comment': return r.comment ?? '';
+    case 'user': return (r.userId ?? '(anonymous)').toLowerCase();
+    case 'created': return new Date(r.createdAt);
+    default: return null;
+  }
+}
 // --- SEO scorer -------------------------------------------------------
 // Pure client-side scoring against fields already present on ArticleRow —
 // no extra API calls. Each check is weighted; weights sum to 100.
@@ -525,9 +537,14 @@ export function AdminClient({
 const [userSort, setUserSort] = useState<SortState | null>(null);
   const [eventSort, setEventSort] = useState<SortState | null>(null);
   const [articleSort, setArticleSort] = useState<SortState | null>(null);
+  const [reviewSort, setReviewSort] = useState<SortState | null>(null);
+  const [reviewSearch, setReviewSearch] = useState('');
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewPageSize, setReviewPageSize] = useState(12);
   const onUserSort = (key: string) => { setUserSort(s => toggleSort(s, key)); setUserPage(1); };
   const onEventSort = (key: string) => { setEventSort(s => toggleSort(s, key)); setEventPage(1); };
   const onArticleSort = (key: string) => { setArticleSort(s => toggleSort(s, key)); setArticlePage(1); };
+  const onReviewSort = (key: string) => { setReviewSort(s => toggleSort(s, key)); setReviewPage(1); };
   const [expandedSeoId, setExpandedSeoId] = useState<string | null>(null);
   const [expandedEventSeoId, setExpandedEventSeoId] = useState<string | null>(null);
 
@@ -916,6 +933,23 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
     const matchCategory = !eventCategoryFilter || ev.categoryId === eventCategoryFilter;
     return matchSearch && matchCategory;
   });
+
+  // Reviews filtering, sorting, and pagination
+  const filteredReviews = reviewsState.filter(r => {
+    const s = reviewSearch.toLowerCase();
+    const matchSearch = !s
+      || r.id.toLowerCase().includes(s)
+      || r.rating.toString().includes(s)
+      || (r.title ?? '').toLowerCase().includes(s)
+      || (r.comment ?? '').toLowerCase().includes(s)
+      || (r.userId ?? '(anonymous)').toLowerCase().includes(s);
+    return matchSearch;
+  });
+
+  const sortedReviews = applySort(filteredReviews, reviewSort, reviewAccessor);
+  const reviewTotalPages = Math.max(1, Math.ceil(sortedReviews.length / reviewPageSize));
+  const safeReviewPage = Math.min(reviewPage, reviewTotalPages);
+  const pagedReviews = sortedReviews.slice((safeReviewPage - 1) * reviewPageSize, safeReviewPage * reviewPageSize);
 
   const sortedUsers = applySort(filtered, userSort, userAccessor);
   const userTotalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
@@ -1557,62 +1591,104 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
         {tab === 'leadMagnet' && <LeadMagnetManager />}
 {tab === 'reviews' && (
   <div>
-    <h1 className="text-xl font-medium mb-5">Reviews ({reviewsState.length})</h1>
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Rating</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Title</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Comment</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">User</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Created</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reviewsState.map(r => (
-            <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-              <td className="px-4 py-3 text-xs text-gray-400">{r.id.slice(0,8)}…</td>
-              <td className="px-4 py-3 text-xs text-gray-400">{r.rating}</td>
-              <td className="px-4 py-3 text-xs text-gray-400">{r.title ?? '-'}</td>
-              <td className="px-4 py-3 text-xs text-gray-400">{r.comment?.length ?? 0 > 0 ? (r.comment.length > 50 ? r.comment.substring(0,50)+'…' : r.comment) : '-'}</td>
-              <td className="px-4 py-3 text-xs text-gray-400">{r.userId ?? '(anonymous)'}</td>
-              <td className="px-4 py-3 text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</td>
-              <td className="px-4 py-3 flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (confirm('Delete this review?')) {
-                      fetch(`/api/admin/reviews/${r.id}`, { method: 'DELETE' })
-                        .then(res => {
-                          if (res.ok) {
-                            setReviewsState(prev => prev.filter(rev => rev.id !== r.id));
-                            showToast('Review deleted', '🗑️');
-                          } else {
-                            showToast('Failed to delete', '⚠️');
-                          }
-                        })
-                        .catch(() => showToast('Network error', '⚠️'));
-                    }
-                  }}
-                  className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-          {reviewsState.length === 0 && (
-            <tr>
-              <td colSpan="7" className="px-4 py-3 text-center text-gray-400">
-                No reviews yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+    <div className="flex items-center justify-between mb-5">
+      <h1 className="text-xl font-medium">Reviews ({filteredReviews.length} shown)</h1>
+      <div className="flex gap-3">
+        <input
+          placeholder="Search reviews..."
+          value={reviewSearch}
+          onChange={e => { setReviewSearch(e.target.value); setReviewPage(1); }}
+          className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500"
+        />
+        <select
+          value={reviewPageSize}
+          onChange={e => {
+            setReviewPageSize(Number(e.target.value));
+            setReviewPage(1);
+          }}
+          className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none"
+        >
+          <option value={12}>12</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+      </div>
     </div>
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <SortableTh label="ID" sortKey="id" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="Rating" sortKey="rating" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="Title" sortKey="title" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="Comment" sortKey="comment" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="User" sortKey="user" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="Created" sortKey="created" sort={reviewSort} onSort={onReviewSort} />
+              <SortableTh label="Actions" sortKey={null} sort={reviewSort} onSort={onReviewSort} />
+            </tr>
+          </thead>
+          <tbody>
+            {pagedReviews.map(r => (
+              <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                <td className="px-4 py-3 text-xs text-gray-400">{r.id.slice(0,8)}…</td>
+                <td className="px-4 py-3 text-xs text-gray-400">{r.rating}</td>
+                <td className="px-4 py-3 text-xs text-gray-400">{r.title ?? '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-400">
+                  {r.comment
+                    ? r.comment.length > 50
+                      ? r.comment.substring(0, 50) + '…'
+                      : r.comment
+                    : '-'}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-400">{r.userId ?? '(anonymous)'}</td>
+                <td className="px-4 py-3 text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</td>
+                <td className="px-4 py-3 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this review?')) {
+                        fetch(`/api/admin/reviews/${r.id}`, { method: 'DELETE' })
+                          .then(res => {
+                            if (res.ok) {
+                              setReviewsState(prev => prev.filter(rev => rev.id !== r.id));
+                              showToast('Review deleted', '🗑️');
+                            } else {
+                              showToast('Failed to delete', '⚠️');
+                            }
+                          })
+                          .catch(() => showToast('Network error', '⚠️'));
+                      }
+                    }}
+                    className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {pagedReviews.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-3 text-center text-gray-400">
+                  No reviews match your filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <Pagination
+      page={safeReviewPage}
+      totalPages={reviewTotalPages}
+      onPageChange={setReviewPage}
+      pageSize={reviewPageSize}
+      onPageSizeChange={n => {
+        setReviewPageSize(n);
+        setReviewPage(1);
+      }}
+      totalItems={filteredReviews.length}
+    />
   </div>
 )}
         {tab === 'reviewers' && <ReviewersManager />}
