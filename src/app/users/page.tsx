@@ -100,6 +100,7 @@ export default async function AdminPage() {
       articles={articles as any}
       categories={categories as any}
       reviewers={reviewers as any}
+      reviews={reviews as any}
       myEvents={myEvents as any}
       stats={stats}
     />
