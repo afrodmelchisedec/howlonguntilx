@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { NAV_LINKS, INFO_LINKS } from '@/lib/nav-links';
 import { ReviewFormModal } from '@/components/ReviewFormModal';
@@ -16,11 +16,10 @@ const MORE_TOOLS = [
   { label: 'Is X Safe', icon: '⏳', href: 'https://isxsafe.com', color: '100, 240, 235' },
 ];
 
-export function Footer() {
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [showThankYouModal, setShowThankYouModal] = useState(false);
-  const [thankYouMessage, setThankYouMessage] = useState('');
-  const [isCopied, setIsCopied] = useState(false);
+// Watches the URL for ?openReview=true and opens the review modal.
+// Isolated into its own component (and wrapped in Suspense below) because
+// useSearchParams() requires a Suspense boundary to allow static generation.
+function OpenReviewWatcher({ onOpenReview }: { onOpenReview: () => void }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -28,14 +27,23 @@ export function Footer() {
   useEffect(() => {
     const openReview = searchParams.get('openReview');
     if (openReview === 'true') {
-      setIsReviewModalOpen(true);
+      onOpenReview();
       // Remove the parameter from the URL to prevent re-opening on refresh
       const params = new URLSearchParams(searchParams);
       params.delete('openReview');
       const href = params.toString() ? `${pathname}?${params}` : pathname;
       router.replace(href, { scroll: false });
     }
-  }, [searchParams, pathname, router]);
+  }, [searchParams, pathname, router, onOpenReview]);
+
+  return null;
+}
+
+export function Footer() {
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
+  const [thankYouMessage, setThankYouMessage] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleLeaveReviewClick = () => {
     setIsReviewModalOpen(true);
@@ -73,6 +81,9 @@ export function Footer() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <OpenReviewWatcher onOpenReview={() => setIsReviewModalOpen(true)} />
+      </Suspense>
       <footer className="mt-16 py-10 text-sm" style={{ borderTop: '1px solid var(--border-hairline)', color: 'var(--text-tertiary)' }}>
         <div className="max-w-3xl mx-auto px-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
