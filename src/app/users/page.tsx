@@ -45,7 +45,7 @@ export default async function AdminPage() {
     );
   }
 
-  const [users, events, timerCount, articles, categories, reviewers, myEvents] = await Promise.all([
+  const [users, events, timerCount, articles, categories, reviewers, myEvents, reviews] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: 'desc' }, include: { _count: { select: { timers: true, sessions: true } } } }),
     prisma.event.findMany({ orderBy: { views: 'desc' }, take: 20, include: { category: true, subcategory: true, reviewer: true } }),
     prisma.timer.count(),
@@ -64,6 +64,18 @@ export default async function AdminPage() {
       select: {
         id: true, slug: true, title: true, targetDate: true,
         visibility: true, moderationStatus: true, moderationNote: true,
+      },
+    }),
+    prisma.review.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        rating: true,
+        title: true,
+        comment: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
       },
     }),
   ]);

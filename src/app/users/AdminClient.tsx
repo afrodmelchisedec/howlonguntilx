@@ -26,6 +26,15 @@ interface User {
   _count: { timers: number; sessions: number };
 }
 interface ReviewerRow { id: string; slug: string; name: string; credentials: string | null; active: boolean }
+interface ReviewRow {
+  id: string;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  userId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 interface EventRow {
   id: string; slug: string; name: string; views: number; targetDate: Date;
   categoryId: string | null; subcategoryId: string | null;
@@ -61,7 +70,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'myEvents' | 'worldEvents' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow';
+type Tab = 'overview' | 'myEvents' | 'worldEvents' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow' | 'reviews';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -70,15 +79,15 @@ const STAT_COLORS: Record<string, string> = {
 };
 
 const TAB_ICONS: Record<Tab, string> = {
-  defaultFollow: '⭐',
+  defaultFollow: '📌',
   userEvents: '🌍', comments: '💬',
   overview: '📊', myEvents: '📅', worldEvents: '🌍', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
-  calendarEvents: '🗓️',
+  calendarEvents: '🗓️', reviews: '⭐',
 };
 const TAB_LABELS: Record<Tab, string> = {
   defaultFollow: 'Default Follow',
   overview: 'overview', myEvents: 'my events', worldEvents: 'world events', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
-  calendarEvents: 'Calendar Events',
+  calendarEvents: 'Calendar Events', reviews: 'Reviews',
   userEvents: 'Community events', comments: 'Comments',
 };
 
@@ -106,6 +115,7 @@ const TAB_ACCESS: Record<Tab, { roles: ('ADMIN'|'USER')[]; requiresPremium?: boo
   userEvents:       { roles: ['ADMIN'] },
   comments:         { roles: ['ADMIN'] },
   defaultFollow:    { roles: ['ADMIN'] },
+  reviews:          { roles: ['ADMIN'] },
 };
 
 function Pagination({
@@ -473,11 +483,11 @@ function seoScoreColor(score: number): string {
 
 export function AdminClient({
   isAdmin, isPremium = false,
-  users = [], events = [], articles = [], categories = [], stats, reviewers = [],
+  users = [], events = [], articles = [], categories = [], stats, reviewers = [], reviews = [],
   timers = [], popular = [], myEvents = [], userName,
 }: {
   isAdmin: boolean; isPremium?: boolean;
-  users?: User[]; events?: EventRow[]; articles?: ArticleRow[]; categories?: CategoryRow[]; stats?: Stats; reviewers?: ReviewerRow[];
+  users?: User[]; events?: EventRow[]; articles?: ArticleRow[]; categories?: CategoryRow[]; stats?: Stats; reviewers?: ReviewerRow[]; reviews?: ReviewRow[];
   timers?: any[]; popular?: any[]; myEvents?: any[]; userName?: string | null;
 }) {
   const [tab, setTab] = useState<Tab>('overview');
@@ -511,7 +521,8 @@ export function AdminClient({
   const [articlePage, setArticlePage] = useState(1);
   const resetPages = () => { setUserPage(1); setEventPage(1); setArticlePage(1); };
 
-  const [userSort, setUserSort] = useState<SortState | null>(null);
+  const [reviewsState, setReviewsState] = useState(reviews);
+const [userSort, setUserSort] = useState<SortState | null>(null);
   const [eventSort, setEventSort] = useState<SortState | null>(null);
   const [articleSort, setArticleSort] = useState<SortState | null>(null);
   const onUserSort = (key: string) => { setUserSort(s => toggleSort(s, key)); setUserPage(1); };
@@ -1544,6 +1555,66 @@ export function AdminClient({
         {/* AFFILIATE BANNERS */}
         {tab === 'affiliateBanners' && <AffiliateBannersManager />}
         {tab === 'leadMagnet' && <LeadMagnetManager />}
+{tab === 'reviews' && (
+  <div>
+    <h1 className="text-xl font-medium mb-5">Reviews ({reviewsState.length})</h1>
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">ID</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Rating</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Title</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Comment</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">User</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Created</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reviewsState.map(r => (
+            <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+              <td className="px-4 py-3 text-xs text-gray-400">{r.id.slice(0,8)}…</td>
+              <td className="px-4 py-3 text-xs text-gray-400">{r.rating}</td>
+              <td className="px-4 py-3 text-xs text-gray-400">{r.title ?? '-'}</td>
+              <td className="px-4 py-3 text-xs text-gray-400">{r.comment?.length ?? 0 > 0 ? (r.comment.length > 50 ? r.comment.substring(0,50)+'…' : r.comment) : '-'}</td>
+              <td className="px-4 py-3 text-xs text-gray-400">{r.userId ?? '(anonymous)'}</td>
+              <td className="px-4 py-3 text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</td>
+              <td className="px-4 py-3 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (confirm('Delete this review?')) {
+                      fetch(`/api/admin/reviews/${r.id}`, { method: 'DELETE' })
+                        .then(res => {
+                          if (res.ok) {
+                            setReviewsState(prev => prev.filter(rev => rev.id !== r.id));
+                            showToast('Review deleted', '🗑️');
+                          } else {
+                            showToast('Failed to delete', '⚠️');
+                          }
+                        })
+                        .catch(() => showToast('Network error', '⚠️'));
+                    }
+                  }}
+                  className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+          {reviewsState.length === 0 && (
+            <tr>
+              <td colSpan="7" className="px-4 py-3 text-center text-gray-400">
+                No reviews yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
         {tab === 'reviewers' && <ReviewersManager />}
         {tab === 'calendarEvents' && <CalendarEventsManager />}
         {tab === 'userEvents' && <UserEventsModerationManager />}

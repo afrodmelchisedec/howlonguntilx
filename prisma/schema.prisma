@@ -84,6 +84,7 @@ model User {
   followers                       UserFollow[]                     @relation("UserFollowFollowing")
   defaultFollowTargetOf           DefaultFollowConfig?             @relation("DefaultFollowTarget")
   defaultFollowSetBy              DefaultFollowConfig[]            @relation("DefaultFollowSetBy")
+  reviews                         Review[]
 }
 
 enum Plan {
@@ -1026,4 +1027,19 @@ model DefaultFollowConfig {
   setById   String?
   setBy     User?    @relation("DefaultFollowSetBy", fields: [setById], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
+}
+
+// Reviews model for storing user feedback and ratings
+model Review {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  rating    Int      // 1-5 stars (validated in API route)
+  title     String?
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([rating])
 }
