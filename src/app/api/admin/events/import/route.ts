@@ -10,7 +10,15 @@ import type { EventContent } from '@/lib/seo';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
 
-async function isAdmin() {
+async function isAdmin(req: NextRequest) {
+  // Allow server-to-server calls (the SEO pipeline script, or the admin
+  // dashboard's own server actions) via a shared secret, in addition to a
+  // real ADMIN browser session. Never accept the token over a non-HTTPS
+  // origin in production — set SEO_PIPELINE_TOKEN in .env.local only.
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (token && process.env.SEO_PIPELINE_TOKEN && token === process.env.SEO_PIPELINE_TOKEN) {
+    return { user: { role: 'ADMIN', id: 'seo-pipeline', name: 'SEO Pipeline' } };
+  }
   const s = await getServerSession(authOptions);
   return s?.user?.role === 'ADMIN' ? s : null;
 }
@@ -36,7 +44,7 @@ interface ImportResult {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await isAdmin();
+  const session = await isAdmin(req);
   if (!session) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

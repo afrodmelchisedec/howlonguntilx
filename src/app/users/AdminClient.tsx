@@ -18,6 +18,7 @@ import { hasInternalLink } from '@/components/articles/ArticleBlocks';
 import { PersonalOverviewPanel } from '@/components/admin/PersonalOverviewPanel';
 import { MyEventsPanel } from '@/components/admin/MyEventsPanel';
 import { WorldPanel } from '@/components/premium/panels/WorldPanel';
+import { SeoPipelinePanel } from '@/components/admin/SeoPipelinePanel';
 
 interface User {
   id: string; name: string | null; email: string | null;
@@ -70,7 +71,7 @@ interface Stats {
   totalUsers: number; verifiedUsers: number; unverifiedUsers: number;
   proUsers: number; freeUsers: number; totalTimers: number; totalEvents: number; totalViews: number;
 }
-type Tab = 'overview' | 'myEvents' | 'worldEvents' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow' | 'reviews';
+type Tab = 'overview' | 'myEvents' | 'worldEvents' | 'users' | 'subscribers' | 'apiUsers' | 'longevity' | 'events' | 'articles' | 'categories' | 'affiliateBanners' | 'leadMagnet' | 'reviewers' | 'calendarEvents' | 'userEvents' | 'comments' | 'defaultFollow' | 'reviews' | 'seoPipeline';
 
 const STAT_COLORS: Record<string, string> = {
   totalUsers: '#534AB7', verifiedUsers: '#1D9E75', unverifiedUsers: '#D85A30',
@@ -83,12 +84,14 @@ const TAB_ICONS: Record<Tab, string> = {
   userEvents: '🌍', comments: '💬',
   overview: '📊', myEvents: '📅', worldEvents: '🌍', users: '👥', subscribers: '💳', apiUsers: '🔑', longevity: '⏳', events: '📅', articles: '📝', categories: '🗂️', affiliateBanners: '🔗', leadMagnet: '🎁', reviewers: '🩺',
   calendarEvents: '🗓️', reviews: '⭐',
+  seoPipeline: '🚀',
 };
 const TAB_LABELS: Record<Tab, string> = {
   defaultFollow: 'Default Follow',
   overview: 'overview', myEvents: 'my events', worldEvents: 'world events', users: 'users', subscribers: 'subscribers', apiUsers: 'API users', longevity: 'longevity', events: 'events', articles: 'articles', categories: 'categories', affiliateBanners: 'Affiliate Banners', leadMagnet: 'Lead Magnet', reviewers: 'Reviewers',
   calendarEvents: 'Calendar Events', reviews: 'Reviews',
   userEvents: 'Community events', comments: 'Comments',
+  seoPipeline: 'SEO Pipeline',
 };
 
 // Single source of truth for who can see each tab. Explicit listing (not a
@@ -116,6 +119,7 @@ const TAB_ACCESS: Record<Tab, { roles: ('ADMIN'|'USER')[]; requiresPremium?: boo
   comments:         { roles: ['ADMIN'] },
   defaultFollow:    { roles: ['ADMIN'] },
   reviews:          { roles: ['ADMIN'] },
+  seoPipeline:      { roles: ['ADMIN'] },
 };
 
 function Pagination({
@@ -1146,6 +1150,11 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
             </div>
             <Pagination page={safeUserPage} totalPages={userTotalPages} onPageChange={setUserPage} pageSize={pageSize} onPageSizeChange={n => { setPageSize(n); resetPages(); }} totalItems={filtered.length} />
           </div>
+        )}
+
+        {/* SEO PIPELINE */}
+        {tab === 'seoPipeline' && (
+          <SeoPipelinePanel />
         )}
 
         {/* EVENTS */}
