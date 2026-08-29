@@ -70,7 +70,7 @@ type ContentType = 'event' | 'article';
 
 function classifyContentType(o: SeoOpportunity): ContentType {
   const dateLikeTemplates = ['days-until', 'weeks-until', 'months-until', 'countdown',
-    'how-many-days-until', 'how-many-weeks-until', 'how-many-months-until'];
+    'how-many-days-until', 'how-many-weeks-until', 'how-many-months-until', 'how-long-until'];
   return o.template && dateLikeTemplates.includes(o.template) ? 'event' : 'article';
 }
 
