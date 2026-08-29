@@ -71,45 +71,63 @@ type ContentType = 'event' | 'article';
 function classifyContentType(o: SeoOpportunity): ContentType {
   const dateLikeTemplates = ['days-until', 'weeks-until', 'months-until', 'countdown',
     'how-many-days-until', 'how-many-weeks-until', 'how-many-months-until', 'how-long-until'];
-  return o.template && dateLikeTemplates.includes(o.template) ? 'event' : 'article';
+  if (o.template && dateLikeTemplates.includes(o.template)) return 'event';
+
+  // Fallback: the backend template tag is often too coarse (or missing) for keywords tied
+  // to one fixed, real calendar date — e.g. "how many days till september 1st" or "how many
+  // days till 2026" — which were previously mis-tagged as Article. Inspect the raw keyword
+  // for month+day, named holidays, explicit target years, or MM/DD dates instead.
+  const kw = (o.keyword || '').toLowerCase();
+  const MONTH = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  const hasMonthDay = new RegExp(`\\b${MONTH}\\s+\\d{1,2}(st|nd|rd|th)?\\b`, 'i').test(kw)
+    || new RegExp(`\\b\\d{1,2}(st|nd|rd|th)?\\s+(of\\s+)?${MONTH}\\b`, 'i').test(kw);
+  const hasNamedHoliday = /\b(christmas|easter|halloween|thanksgiving|new\s*year'?s?(\s*(day|eve))?|valentine'?s?\s*day|hanukkah|chanukah|diwali|ramadan|eid(\s*al[-\s]?(fitr|adha))?|st\.?\s*patrick'?s?\s*day|independence\s*day|labor\s*day|memorial\s*day|mother'?s?\s*day|father'?s?\s*day|black\s*friday|cyber\s*monday|super\s*bowl|election\s*day)\b/i.test(kw);
+  const hasTargetYear = /\b(until|till|to|before)\s+\d{4}\b/i.test(kw);
+  const hasExplicitCalendarDate = /\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/.test(kw);
+
+  return (hasMonthDay || hasNamedHoliday || hasTargetYear || hasExplicitCalendarDate) ? 'event' : 'article';
 }
 
 const EVENT_SCHEMA_BLOCK = [
-  '{',
-  '  "slug": "kebab-case-slug",',
-  '  "name": "Display name of the event/date, e.g. \\"Christmas\\"",',
-  '  "targetDate": "YYYY-MM-DD",',
-  '  "categorySlug": "one of the site\'s existing category slugs (ask if unsure)",',
-  '  "description": "1-2 sentence meta description",',
-  '  "content": {',
-  '    "heroFact": "one punchy, quotable sentence — this is what AI Overviews / featured snippets will lift verbatim, so it must fully answer the primary question on its own",',
-  '    "quickFacts": [{ "label": "...", "value": "..." }],',
-  '    "body": [{ "type": "paragraph" | "heading", "text": "..." }],',
-  '    "timeline": [{ "offset": "...", "label": "...", "note": "optional" }],',
-  '    "faqs": [{ "question": "...", "answer": "..." }],',
-  '    "sources": [{ "label": "...", "url": "..." }],',
-  '    "lastReviewed": "YYYY-MM-DD"',
+  '[',
+  '  {',
+  '    "slug": "kebab-case-slug",',
+  '    "name": "Display name of the event/date, e.g. \\"Christmas\\"",',
+  '    "targetDate": "YYYY-MM-DD",',
+  '    "categorySlug": "one of the site\'s existing category slugs (ask if unsure)",',
+  '    "description": "1-2 sentence meta description",',
+  '    "content": {',
+  '      "heroFact": "one punchy, quotable sentence — this is what AI Overviews / featured snippets will lift verbatim, so it must fully answer the primary question on its own",',
+  '      "quickFacts": [{ "label": "...", "value": "..." }],',
+  '      "body": [{ "type": "paragraph" | "heading", "text": "..." }],',
+  '      "timeline": [{ "offset": "...", "label": "...", "note": "optional" }],',
+  '      "faqs": [{ "question": "...", "answer": "..." }],',
+  '      "sources": [{ "label": "...", "url": "..." }],',
+  '      "lastReviewed": "YYYY-MM-DD"',
+  '    }',
   '  }',
-  '}',
+  ']',
 ].join('\n');
 
 const ARTICLE_SCHEMA_BLOCK = [
-  '{',
-  '  "slug": "kebab-case-slug",',
-  '  "motherQuestion": "The primary question, phrased naturally, e.g. \\"How long until X?\\"",',
-  '  "shortAnswer": "One self-contained sentence that fully answers the question on its own — this is what AI Overviews, Perplexity, and voice assistants will quote directly, so it cannot depend on the rest of the article for context",',
-  '  "blocks": [',
-  '    { "type": "paragraph", "text": "..." },',
-  '    { "type": "heading", "text": "..." },',
-  '    { "type": "chart", "title": "...", "data": [{ "label": "...", "value": 0 }] }',
-  '  ],',
-  '  "faqs": [{ "q": "...", "a": "..." }],',
-  '  "sources": [{ "label": "...", "url": "..." }],',
-  '  "questionType": "DURATION",',
-  '  "heroImageUrl": "/images/questions/descriptive-filename.jpeg",',
-  '  "heroImageAlt": "descriptive alt text",',
-  '  "heroData": { "min": 0, "max": 0, "typical": 0, "unit": "days", "label": "...", "severity": "low|medium|high" }',
-  '}',
+  '[',
+  '  {',
+  '    "slug": "kebab-case-slug",',
+  '    "motherQuestion": "The primary question, phrased naturally, e.g. \\"How long until X?\\"",',
+  '    "shortAnswer": "One self-contained sentence that fully answers the question on its own — this is what AI Overviews, Perplexity, and voice assistants will quote directly, so it cannot depend on the rest of the article for context",',
+  '    "blocks": [',
+  '      { "type": "paragraph", "text": "..." },',
+  '      { "type": "heading", "text": "..." },',
+  '      { "type": "chart", "title": "...", "data": [{ "label": "...", "value": 0 }] }',
+  '    ],',
+  '    "faqs": [{ "q": "...", "a": "..." }],',
+  '    "sources": [{ "label": "...", "url": "..." }],',
+  '    "questionType": "DURATION",',
+  '    "heroImageUrl": "/images/questions/descriptive-filename.jpeg",',
+  '    "heroImageAlt": "descriptive alt text",',
+  '    "heroData": { "min": 0, "max": 0, "typical": 0, "unit": "days", "label": "...", "severity": "low|medium|high" }',
+  '  }',
+  ']',
 ].join('\n');
 
 const IMAGE_PLAN_BLOCK = [
@@ -200,9 +218,13 @@ function buildContentBrief(
     '',
     'OUTPUT FORMAT',
     '-'.repeat(60),
-    'Output the main article JSON object below, fully filled in for this specific topic, followed by',
-    'the imagePlan JSON block. No commentary, no markdown code fences, no explanation — the article',
-    `JSON pastes directly into the site's admin ${contentType === 'event' ? 'Events' : 'Articles'} JSON-paste field.`,
+    'Output the JSON ARRAY below (schema already wrapped in [ ] — the admin importer always expects',
+    'an array of items, even for a single one; a bare { } object will be REJECTED with a "Payload',
+    'must be an array" error), fully filled in for this specific topic, followed by the separate',
+    'imagePlan JSON block. No commentary, no markdown code fences, no explanation.',
+    `ONLY the array block above the imagePlan section pastes into the site's admin ${contentType === 'event' ? 'Events' : 'Articles'} JSON-paste field —`,
+    'the imagePlan block is for your own image-generation workflow only and must NEVER be pasted',
+    'into the admin Events/Articles importer, or the payload will be rejected.',
     '',
     schema,
     '',
