@@ -585,10 +585,22 @@ export function SeoPipelinePanel() {
                                   {related.length} supporting keyword{related.length === 1 ? '' : 's'}
                                 </p>
                               </div>
-                              <button onClick={() => copyBrief(dayNumber, brief)}
-                                className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium">
-                                {copiedDay === dayNumber ? 'Copied!' : 'Copy Prompt'}
-                              </button>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                                    contentType === 'event'
+                                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                  }`}
+                                  title={contentType === 'event' ? 'Import into Events' : 'Import into Articles'}
+                                >
+                                  {contentType === 'event' ? 'Event' : 'Article'}
+                                </span>
+                                <button onClick={() => copyBrief(dayNumber, brief)}
+                                  className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium">
+                                  {copiedDay === dayNumber ? 'Copied!' : 'Copy Prompt'}
+                                </button>
+                              </div>
                             </div>
                             <details>
                               <summary className="text-xs text-gray-400 cursor-pointer">Preview brief</summary>
