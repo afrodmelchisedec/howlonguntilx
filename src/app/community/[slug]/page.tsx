@@ -1,6 +1,7 @@
 // FILE: src/app/community/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -14,7 +15,18 @@ import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 
 interface Props { params: { slug: string } }
 
-async function getUserEventBySlug(slug: string) {
+// Wrapped in React's cache() so generateMetadata and the page component
+// below share ONE Postgres round trip per request instead of two -- same
+// bug, same fix as getPublishedArticle in articles.ts and getEventBySlug
+// in events.ts. Deliberately NOT given a Redis layer here (unlike those
+// two): this data is user-editable (owner can edit/delete their own
+// event) and adding a cross-request cache without also wiring
+// invalidation into every write path risks showing a user their OWN
+// stale edit. cache() alone is request-scoped and always safe -- it's
+// gone the moment this request finishes, so there's no staleness risk.
+// Worth adding Redis here too later, but only once the edit/delete
+// routes are in view so invalidation isn't guessed at.
+const getUserEventBySlug = cache(async (slug: string) => {
   return prisma.userEvent.findUnique({
     where: { slug },
     include: {
@@ -22,7 +34,7 @@ async function getUserEventBySlug(slug: string) {
       category: { select: { name: true, emoji: true, slug: true } },
     },
   });
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const rawSlug = params.slug.replace('how-long-until-', '');
