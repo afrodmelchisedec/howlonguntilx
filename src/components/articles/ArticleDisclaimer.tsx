@@ -36,7 +36,7 @@ export function ArticleDisclaimer({ categorySlug, glow }: { categorySlug?: strin
       <span className="text-lg flex-shrink-0" aria-hidden="true">{copy.icon}</span>
       <div className="min-w-0">
         <p className="text-caption font-bold mb-1" style={{ color: `rgb(${glow})`, letterSpacing: '0.05em' }}>{copy.label}</p>
-        <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>{copy.body}</p>
+        <p className="article-note-body">{copy.body}</p>
       </div>
     </div>
   );

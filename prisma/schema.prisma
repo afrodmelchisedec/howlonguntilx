@@ -1043,3 +1043,89 @@ model Review {
   @@index([userId])
   @@index([rating])
 }
+
+
+
+// ── SEO_PROGRAMMATIC_ENTITY_MODEL (added by setup-seo-pipeline.cjs) ──
+// NOTE: superseded once the Event model is confirmed to cover this use case
+// — see remove-programmatic-entity.sh in the same delivery batch.
+model ProgrammaticEntity {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  template           String
+  entityName         String
+  category           String?
+  targetDate         DateTime
+  recurring          Boolean  @default(false)
+  status             String   @default("draft")
+  primaryKeyword     String
+  secondaryKeywords  String[]
+  searchVolume       Int?
+  keywordDifficulty  Int?
+  opportunityScore   Float?
+  blurb              String?
+  historicalNote     String?
+  faq                Json?
+  relatedEntitySlugs String[]
+  images             Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+
+// ── SEO_ADMIN_MODELS (added by setup-seo-admin.cjs) ──
+enum SeoOpportunityStatus {
+  DISCOVERED
+  REVIEWED
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+model SeoRun {
+  id            String           @id @default(cuid())
+  seed          String
+  country       String
+  language      String
+  minVolume     Int
+  maxKd         Int
+  startedAt     DateTime         @default(now())
+  finishedAt    DateTime?
+  status        String           @default("running") // running | completed | failed
+  errorMessage  String?
+  triggeredBy   String? // "dashboard" | "cli"
+  opportunities SeoOpportunity[]
+}
+
+model SeoOpportunity {
+  id               String                @id @default(cuid())
+  runId            String
+  run              SeoRun                @relation(fields: [runId], references: [id])
+  keyword          String
+  volume           Int
+  kd               Int?
+  trend            String? // up | flat | down | ?
+  opportunityScore Float
+  template         String? // e.g. "days-until"
+  entity           String?
+  clusterKey       String?
+  status           SeoOpportunityStatus  @default(DISCOVERED)
+  eventSlug        String? // set once mapped to a published Event
+  reviewNotes      String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([runId])
+  @@unique([runId, keyword])
+}
+
+model ContentVoice {
+  id           String   @id @default(cuid())
+  name         String   @default("default")
+  description  String? // internal note, e.g. "warm, concise, no fluff"
+  systemPrompt String   @db.Text // injected into every AI content-generation call
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+

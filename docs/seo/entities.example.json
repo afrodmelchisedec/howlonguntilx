@@ -1,0 +1,29 @@
+{
+  "slug": "christmas",
+  "template": "days-until",
+  "entityName": "Christmas",
+  "category": "holiday",
+  "targetDate": "2026-12-25",
+  "recurring": true,
+  "status": "published",
+  "primaryKeyword": "days until christmas",
+  "secondaryKeywords": ["how many days until christmas", "christmas countdown"],
+  "searchVolume": 18000,
+  "keywordDifficulty": 14,
+  "opportunityScore": 94.2,
+  "uniqueContent": {
+    "blurb": "Christmas falls on December 25th every year and is one of the most searched countdowns globally, with interest climbing sharply from late November through the day itself.",
+    "historicalNote": "The December 25th date was fixed in the 4th century and has stayed constant even as the Gregorian calendar reform shifted other observances.",
+    "faq": [
+      { "question": "How many days until Christmas 2026?", "answer": "Use the live counter above — it updates automatically based on your local time zone." },
+      { "question": "Is Christmas always on December 25th?", "answer": "Yes, in the Gregorian calendar used by most countries. Some Orthodox churches observe it on January 7th instead." },
+      { "question": "How many weeks until Christmas?", "answer": "See the weeks-until conversion in the calculator above." }
+    ]
+  },
+  "relatedEntities": ["new-year", "christmas-eve", "boxing-day"],
+  "images": [
+    { "filename": "christmas-countdown-days-until-christmas.jpg", "alt": "Christmas countdown showing days remaining until December 25th", "purpose": "hero" },
+    { "filename": "christmas-calendar-countdown.jpg", "alt": "Calendar illustrating how the Christmas countdown is calculated", "purpose": "explanatory" }
+  ],
+  "schema": { "eventSchema": true, "faqPageSchema": true }
+}

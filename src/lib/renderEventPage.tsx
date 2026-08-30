@@ -84,8 +84,8 @@ export async function EventPageContent({ rawSlug }: { rawSlug: string }) {
   const structuredReviewer = (event as any).reviewEnabled && (event as any).reviewer ? (event as any).reviewer : null;
   const legacyReviewerName = !structuredReviewer ? event.reviewerName : null;
   const blocks = Array.isArray(content.body) ? content.body : [];
-  const headings = extractHeadings(blocks.map(b => ({ ...b, type: b.type })));
-  const faqItems = extractFaq(blocks.map(b => ({ ...b, type: b.type })));
+  const headings = extractHeadings(blocks as any);
+  const faqItems = extractFaq(blocks as any);
   const tocHeadings = faqItems && faqItems.length > 0 ? [...headings, { id: 'faq', text: 'FAQs' }] : headings;
 
   return (
@@ -107,7 +107,7 @@ export async function EventPageContent({ rawSlug }: { rawSlug: string }) {
             reviewerCredentials: event.reviewerCredentials || undefined,
             publishedAt: event.createdAt,
             updatedAt: event.updatedAt,
-            blocks: blocks.map(b => ({ ...b, type: b.type })),
+            blocks: blocks as any,
           }}
           toolName={event.category?.name || 'Countdown'}
           toolSlug={event.categorySlug || 'events'}

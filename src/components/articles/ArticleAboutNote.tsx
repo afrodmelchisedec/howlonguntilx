@@ -61,7 +61,7 @@ export function ArticleAboutNote({
         <p className="text-caption font-bold mb-1" style={{ color: `rgb(${glow})`, letterSpacing: '0.05em' }}>
           ABOUT THIS ARTICLE
         </p>
-        <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>
+        <p className="article-note-body">
           Researched and written by {authorName}, drawing on {copy.source} (see Sources below).
           {' '}{copy.professional}
           {updatedLabel && <> Last reviewed for accuracy on {updatedLabel}.</>}
@@ -75,7 +75,7 @@ export function ArticleAboutNote({
  * Once a real reviewer is in place for a given category, replace the paragraph
  * above with something like:
  *
- * <p className="text-footnote" style={{ color: 'var(--text-secondary)' }}>
+ * <p className="article-note-body">
  *   Written by {authorName}. Medically reviewed by {reviewerName}, {reviewerCredential}
  *   {updatedLabel && <> on {updatedLabel}</>}. {copy.professional}
  * </p>

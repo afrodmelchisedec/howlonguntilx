@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProgrammaticEntity",
+  "description": "One row = one programmatic page (e.g. /days-until/christmas/). This is the data contract between the SEO pipeline's 'Programmatic' tab and the site's dynamic route/layout component. Populate this from the pipeline output after human review, not automatically.",
+  "type": "object",
+  "required": ["slug", "template", "entityName", "targetDate", "status", "primaryKeyword"],
+  "properties": {
+    "slug": { "type": "string", "description": "URL segment, e.g. 'christmas'. Used to build /days-until/{slug}/" },
+    "template": { "type": "string", "enum": ["days-until", "weeks-until", "months-until", "countdown"], "description": "Which layout variant / URL pattern this entity belongs to" },
+    "entityName": { "type": "string", "description": "Display name, e.g. 'Christmas'" },
+    "category": { "type": "string", "description": "e.g. 'holiday', 'season', 'life-event', 'cultural' — used for related-entity grouping" },
+    "targetDate": { "type": "string", "format": "date", "description": "Next occurrence, ISO 8601. Recompute yearly for recurring events (build job, not manual edit)" },
+    "recurring": { "type": "boolean", "description": "True for annual events like Christmas; false for one-off dates" },
+    "status": { "type": "string", "enum": ["draft", "review", "published", "noindex"], "description": "Gates whether the route is statically generated / indexable. Only set to 'published' after the unique-content checklist below is satisfied." },
+    "primaryKeyword": { "type": "string" },
+    "secondaryKeywords": { "type": "array", "items": { "type": "string" } },
+    "searchVolume": { "type": "integer" },
+    "keywordDifficulty": { "type": "integer" },
+    "opportunityScore": { "type": "number" },
+    "uniqueContent": {
+      "type": "object",
+      "description": "Fields that MUST be filled in per-entity to avoid thin/duplicate programmatic pages. If any required sub-field is empty, status cannot be 'published'.",
+      "required": ["blurb", "faq"],
+      "properties": {
+        "blurb": { "type": "string", "description": "2-4 sentences unique to this entity — why this date/event matters, not template boilerplate" },
+        "historicalNote": { "type": "string", "description": "Optional: origin/history/trivia specific to this entity" },
+        "faq": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["question", "answer"],
+            "properties": {
+              "question": { "type": "string" },
+              "answer": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "relatedEntities": { "type": "array", "items": { "type": "string" }, "description": "Slugs of related entities for internal linking (same category or SERP cluster)" },
+    "images": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["filename", "alt", "purpose"],
+        "properties": {
+          "filename": { "type": "string", "description": "SEO-optimized, hyphenated, descriptive — e.g. christmas-countdown-days-until-christmas.jpg" },
+          "alt": { "type": "string" },
+          "purpose": { "type": "string", "enum": ["hero", "supporting", "explanatory"] },
+          "generationPrompt": { "type": "string", "description": "Prompt used with the image tool, kept for reproducibility" }
+        }
+      }
+    },
+    "schema": {
+      "type": "object",
+      "description": "Structured data to emit on the page",
+      "properties": {
+        "eventSchema": { "type": "boolean", "default": true },
+        "faqPageSchema": { "type": "boolean", "default": true }
+      }
+    }
+  }
+}

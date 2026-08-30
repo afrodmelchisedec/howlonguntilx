@@ -13,3 +13,9 @@ live-plan-check.json
 storage/plugin-releases/
 dev.log
 *.log
+
+
+# SEO pipeline (added by setup-seo-pipeline.cjs)
+scripts/seo-pipeline/cache/
+scripts/seo-pipeline/seo_output/
+scripts/seo-pipeline/

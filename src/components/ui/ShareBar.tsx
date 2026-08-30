@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EmbedCountdownButton } from '@/components/embeds/EmbedCountdownButton';
 
 interface Props {
@@ -20,7 +20,9 @@ function trackShare(id: string, type: 'event' | 'userEvent', platform: 'twitter'
 
 export function ShareBar({ name, slug, id, type, shareCount: initialShareCount }: Props) {
   const [shareCount, setShareCount] = useState(initialShareCount ?? 0);
-  const url = typeof window !== 'undefined' ? window.location.href : `https://howlonguntilx.com/questions/how-long-until-${slug}`;
+  const fallbackUrl = `https://howlonguntilx.com/questions/how-long-until-${slug}`;
+  const [url, setUrl] = useState(fallbackUrl);
+  useEffect(() => { setUrl(window.location.href); }, []);
   const text = `How long until ${name}? Check the live countdown!`;
 
   function track(platform: 'twitter' | 'facebook' | 'whatsapp' | 'copy' | 'embed') {

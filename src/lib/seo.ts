@@ -1,9 +1,12 @@
 // FILE: src/lib/seo.ts
 
-export interface EventContentBodyBlock {
-  type: 'paragraph' | 'heading';
-  text: string;
-}
+export type EventContentBodyBlock =
+  | { type: 'paragraph'; text: string; sourceUrl?: string; sourceLabel?: string }
+  | { type: 'heading'; text: string }
+  | { type: 'image'; src: string; alt: string; caption?: string }
+  | { type: 'chart'; title: string; data: { label: string; value: number }[] }
+  | { type: 'faq'; items: { q: string; a: string }[] }
+  | { type: 'sources'; items: { label: string; url: string }[] };
 
 export interface EventContent {
   body?: EventContentBodyBlock[];

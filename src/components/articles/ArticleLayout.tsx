@@ -66,93 +66,95 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
           users and search bots see the actual answer without scrolling past a
           large image first. The live countdown/duration widget — the "primary
           summary calculation" — stays grouped with them, also above the image. */}
-      <p className="text-caption mb-1" style={{ color: `rgb(${glow})` }}>{toolName.toUpperCase()}</p>
+      <div className="article-prose">
+        <p className="article-kicker text-caption mb-1" style={{ color: `rgb(${glow})` }}>{toolName.toUpperCase()}</p>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-        <h1 className="text-title1 m-0">{article.title}</h1>
-        {catGlow && catLabel && (
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0"
-            style={{
-              background: `rgba(${catGlow}, 0.1)`,
-              color: `rgb(${catGlow})`,
-              border: `1px solid rgba(${catGlow}, 0.25)`,
-            }}
-          >
-            {article.category?.emoji && <span>{article.category.emoji}</span>}
-            <span>{catLabel}</span>
-          </span>
-        )}
-      </div>
-
-      <p className="text-callout mb-3" style={{ color: 'var(--text-secondary)' }}>{article.dek}</p>
-
-      {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
-      {heroDuration && (
-        <>
-          <HeroDuration heroData={heroDuration} glow={glow} />
-          <div className="mb-5"><EmbedDurationButton toolSlug={toolSlug} articleSlug={article.slug} title={article.title} id={article.id} /></div>
-        </>
-      )}
-
-      <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
-
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <p className="text-caption m-0" style={{ color: 'var(--text-secondary)' }}>
-          By <Link href="/about" className="hover:underline" style={{ color: 'inherit' }}>{article.authorName}</Link>{!showUpdated && published && ` · ${published.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`}
-        </p>
-        {showUpdated && (
-          <span className="article-freshness-pill text-caption" style={{ color: `rgb(${glow})`, background: `rgba(${glow}, 0.1)`, border: `1px solid rgba(${glow}, 0.25)` }}>
-            Updated {updated!.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-          </span>
-        )}
-        <LikeButton articleId={article.id} glow={glow} />
-        <ShareButton glow={glow} title={article.title} id={article.id} type="article" shareCount={article.shareCount} />
-      </div>
-
-      {structuredReviewer && (
-        <p className="text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
-          ✓ Medically reviewed by{' '}
-          <Link href={`/reviewers/${structuredReviewer.slug}`} className="hover:underline" style={{ color: 'inherit' }}>
-            {structuredReviewer.name}
-          </Link>
-          {structuredReviewer.credentials ? `, ${structuredReviewer.credentials}` : ''}
-        </p>
-      )}
-      {legacyReviewerName && (
-        <p className="text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
-          ✓ Medically reviewed by {legacyReviewerName}
-          {article.reviewerCredentials ? `, ${article.reviewerCredentials}` : ''}
-        </p>
-      )}
-
-      <ArticleDisclaimer categorySlug={article.category?.slug} glow={glow} />
-
-      {/* Only shows when there's no reviewer set at all — the moment a structured
-          or legacy reviewer is populated, the badge above takes over and this
-          note disappears on its own. */}
-      {!hasAnyReviewer && (
-        <ArticleAboutNote authorName={article.authorName} updatedAt={article.updatedAt} categorySlug={article.category?.slug} glow={glow} />
-      )}
-
-      <ArticleTableOfContents headings={tocHeadings} glow={glow} />
-
-      <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} affiliateBanner={affiliateBanner} />
-
-      {sources && sources.length > 0 && (
-        <div className="mt-6">
-          <SourcesFooter sources={sources} />
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+          <h1 className="article-h1">{article.title}</h1>
+          {catGlow && catLabel && (
+            <span
+              className="article-kicker inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0"
+              style={{
+                background: `rgba(${catGlow}, 0.1)`,
+                color: `rgb(${catGlow})`,
+                border: `1px solid rgba(${catGlow}, 0.25)`,
+              }}
+            >
+              {article.category?.emoji && <span>{article.category.emoji}</span>}
+              <span>{catLabel}</span>
+            </span>
+          )}
         </div>
-      )}
 
-      <ArticleFeaturedPiece piece={featuredPiece} glow={glow} />
+        <p className="article-dek mb-3">{article.dek}</p>
 
-      <AdSlot slotId="article-lower" />
+        {hero && <HeroCountdown targetDate={hero.targetDate} label={hero.label} glow={glow} />}
+        {heroDuration && (
+          <>
+            <HeroDuration heroData={heroDuration} glow={glow} />
+            <div className="mb-5"><EmbedDurationButton toolSlug={toolSlug} articleSlug={article.slug} title={article.title} id={article.id} /></div>
+          </>
+        )}
 
-      <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} />
+        <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
 
-      <div className="mt-10">
-        <CommentThread subjectType="article" subjectId={article.id} glow={glow} />
+        <div className="article-kicker flex flex-wrap items-center gap-2 mb-6">
+          <p className="text-caption m-0" style={{ color: 'var(--text-secondary)' }}>
+            By <Link href="/about" className="hover:underline" style={{ color: 'inherit' }}>{article.authorName}</Link>{!showUpdated && published && ` · ${published.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`}
+          </p>
+          {showUpdated && (
+            <span className="article-freshness-pill text-caption" style={{ color: `rgb(${glow})`, background: `rgba(${glow}, 0.1)`, border: `1px solid rgba(${glow}, 0.25)` }}>
+              Updated {updated!.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          )}
+          <LikeButton articleId={article.id} glow={glow} />
+          <ShareButton glow={glow} title={article.title} id={article.id} type="article" shareCount={article.shareCount} />
+        </div>
+
+        {structuredReviewer && (
+          <p className="article-kicker text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
+            ✓ Medically reviewed by{' '}
+            <Link href={`/reviewers/${structuredReviewer.slug}`} className="hover:underline" style={{ color: 'inherit' }}>
+              {structuredReviewer.name}
+            </Link>
+            {structuredReviewer.credentials ? `, ${structuredReviewer.credentials}` : ''}
+          </p>
+        )}
+        {legacyReviewerName && (
+          <p className="article-kicker text-caption mb-4" style={{ color: 'var(--text-secondary)' }}>
+            ✓ Medically reviewed by {legacyReviewerName}
+            {article.reviewerCredentials ? `, ${article.reviewerCredentials}` : ''}
+          </p>
+        )}
+
+        <ArticleDisclaimer categorySlug={article.category?.slug} glow={glow} />
+
+        {/* Only shows when there's no reviewer set at all — the moment a structured
+            or legacy reviewer is populated, the badge above takes over and this
+            note disappears on its own. */}
+        {!hasAnyReviewer && (
+          <ArticleAboutNote authorName={article.authorName} updatedAt={article.updatedAt} categorySlug={article.category?.slug} glow={glow} />
+        )}
+
+        <ArticleTableOfContents headings={tocHeadings} glow={glow} />
+
+        <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} affiliateBanner={affiliateBanner} />
+
+        {sources && sources.length > 0 && (
+          <div className="mt-6">
+            <SourcesFooter sources={sources} />
+          </div>
+        )}
+
+        <ArticleFeaturedPiece piece={featuredPiece} glow={glow} />
+
+        <AdSlot slotId="article-lower" />
+
+        <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} />
+
+        <div className="mt-10">
+          <CommentThread subjectType="article" subjectId={article.id} glow={glow} />
+        </div>
       </div>
     </article>
   );

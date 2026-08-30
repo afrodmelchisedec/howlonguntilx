@@ -30,40 +30,54 @@ export function CommunityFeedCard({ item, index = 0, priority = false }: { item:
 
   return (
     <div
-      className="ios-card interactive glow anim-fade-up relative overflow-hidden"
+      className="ios-card interactive glow anim-fade-up relative overflow-hidden flex flex-col"
       style={{ animationDelay: `${index * 55}ms` }}
     >
-      <Link href={`/community/how-long-until-${item.slug}`} className="block">
-        <div className="absolute top-0 left-0 right-0 h-1 z-10" style={{ background: `rgb(${glow})` }} />
-        <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+      <div className="absolute top-0 left-0 bottom-0 w-1 z-10" style={{ background: `rgb(${glow})` }} />
+
+      <Link href={`/community/how-long-until-${item.slug}`} className="flex items-center" style={{ height: 128 }}>
+        {/* Square mat thumbnail, object-fit: contain — same fix as QuestionCard:
+            fixed shape independent of text length, true original L×W scaled
+            down rather than cropped/stretched, tinted background as the mat. */}
+        <div
+          className="relative flex-shrink-0 self-stretch my-2 ml-2 rounded-xl overflow-hidden"
+          style={{ width: 112, aspectRatio: '1 / 1', background: `rgba(${glow}, 0.08)` }}
+        >
           <Image
             src={imageUrl}
             alt={item.title}
             fill
-            sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) calc((100vw - 48px) / 2), 320px"
+            sizes="112px"
             quality={70}
-            style={{ objectFit: 'cover' }}
+            style={{ objectFit: 'contain' }}
             priority={priority}
           />
         </div>
-        <div className="p-4">
+
+        <div className="flex-1 min-w-0 p-3 flex flex-col justify-center gap-1">
           {item.category && (
-            <div className="text-caption mb-1" style={{ color: `rgb(${glowText})` }}>
+            <div className="text-caption truncate" style={{ color: `rgb(${glowText})` }}>
               {item.category.emoji} {item.category.name}
             </div>
           )}
-          <div className="text-sm font-bold mb-1.5 line-clamp-1" style={{ color: 'var(--text-primary)' }}>{item.title}</div>
+          <div className="text-sm font-bold line-clamp-1" style={{ color: 'var(--text-primary)' }}>{item.title}</div>
           {item.description && (
-            <p className="text-footnote line-clamp-2 mb-2" style={{ color: 'var(--text-secondary)' }}>{item.description}</p>
+            <p className="text-footnote line-clamp-1" style={{ color: 'var(--text-secondary)' }}>{item.description}</p>
           )}
-          <div className="text-2xl font-black tabular leading-none mb-0.5" style={{ color: `rgb(${glowText})` }}>{days_left}</div>
-          <div className="text-footnote mb-2">days left</div>
-          <div className="progress-track" style={{ height: 4 }}>
-            <div className="progress-fill" style={{ width: `${progress_percent}%`, background: `rgb(${glow})` }} />
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-base font-black tabular leading-none" style={{ color: `rgb(${glowText})` }}>{days_left}</span>
+            <span className="text-caption" style={{ color: 'var(--text-tertiary)' }}>days left</span>
+            <div className="progress-track flex-1" style={{ height: 3, maxWidth: 90 }}>
+              <div className="progress-fill" style={{ width: `${progress_percent}%`, background: `rgb(${glow})` }} />
+            </div>
           </div>
         </div>
       </Link>
-      <div className="flex items-center justify-between px-4 pb-4 -mt-1 text-caption" style={{ color: 'var(--text-tertiary)' }}>
+
+      {/* Footer stays a sibling of Link, not nested inside it — same as the
+          original — so UserSummaryCard's popover/click doesn't also
+          trigger the card's navigation. */}
+      <div className="flex items-center justify-between px-3 pb-2.5 pt-1.5 ml-1 text-caption" style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-hairline)' }}>
         {item.author ? (
           <UserSummaryCard user={item.author}>
             <span className="truncate hover:underline" style={{ cursor: 'pointer' }}>

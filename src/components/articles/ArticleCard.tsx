@@ -28,7 +28,7 @@ export function ArticleCard({
     <Link href={`/tools/${toolSlug}/${slug}`} className="article-glow-card ios-card-nested press flex flex-col overflow-hidden anim-fade-up" style={{ border: `1px solid rgba(${glow}, 0.2)` }}>
       <img src={heroImageUrl || '/images/default-article-hero.svg'} alt={title} className="w-full aspect-video object-cover" loading="lazy" />
       <div className="p-4 flex flex-col flex-1">
-        <p className="text-headline mb-1">{title}</p>
+        <h3 className="text-headline article-card-title mb-1">{title}</h3>
         <p className="text-footnote flex-1" style={{ color: 'var(--text-secondary)' }}>{dek}</p>
         {category && catGlow && catLabel && (
           <span

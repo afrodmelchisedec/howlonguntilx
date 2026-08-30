@@ -28,7 +28,7 @@ export function useCountdown(target: Date): CountdownState {
     setState(compute(target));
     const id = setInterval(() => setState(compute(target)), 1000);
     return () => clearInterval(id);
-  }, [target]);
+  }, [target.getTime()]);
 
   return state;
 }

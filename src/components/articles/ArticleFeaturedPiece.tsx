@@ -37,7 +37,7 @@ export function ArticleFeaturedPiece({ piece, glow }: { piece: any; glow: string
         </p>
         <h3 className="text-headline mb-2">{piece.title}</h3>
         {paragraphs.map((p, i) => (
-          <p key={i} className="text-footnote mb-2" style={{ color: 'var(--text-secondary)' }}>{p}</p>
+          <p key={i} className="article-note-body mb-2">{p}</p>
         ))}
         {piece.sourceLabel && (
           <p className="text-caption mt-2" style={{ color: 'var(--text-secondary)' }}>

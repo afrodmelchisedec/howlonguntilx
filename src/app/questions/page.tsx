@@ -1,6 +1,7 @@
 // FILE: src/app/questions/page.tsx
 import { getQuestionsFeed, getQuestionsCategories } from '@/lib/questionsFeed';
 import { QuestionsFeedClient } from '@/components/questions/QuestionsFeedClient';
+import { StarField } from '@/components/ui/StarField';
 
 export const metadata = {
   title: 'Questions — HowLongUntilX',
@@ -18,10 +19,15 @@ export default async function QuestionsPage() {
   ]);
 
   return (
-    <QuestionsFeedClient
-      initialItems={items}
-      initialCursor={nextCursor}
-      initialCategories={categories}
-    />
+    <div className="relative" style={{ background: 'var(--bg-base)' }}>
+      <StarField />
+      <div className="relative z-10">
+        <QuestionsFeedClient
+          initialItems={items}
+          initialCursor={nextCursor}
+          initialCategories={categories}
+        />
+      </div>
+    </div>
   );
 }

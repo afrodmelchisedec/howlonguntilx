@@ -8,6 +8,13 @@
    Dark:  true black base, desaturated-but-vivid accents, glass layers
 ════════════════════════════════════════════════════════════ */
 :root {
+  /* Global font stacks — used by the site-wide `body` rule below and by
+     the few deliberate exceptions (tabular digits, form controls, code)
+     that opt back OUT of the default serif. --font-serif's real value is
+     injected by next/font via a className on <html> in layout.tsx; the
+     fallback here covers the brief pre-hydration window. */
+  --font-sans-ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+
   /* category text-safe colors — WCAG AA (4.5:1) verified against dark card
      bg #1C1C1E. Same hue/family as the decorative category glow colors in
      lib/categoryGlow.ts; only lightened where the raw glow color itself
@@ -142,11 +149,35 @@ body {
   background: var(--bg-base);
   color: var(--text-primary);
   transition: background-color 0.3s var(--ease-soft), color 0.3s var(--ease-soft);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+  /* SITE-WIDE MEDIUM LOOK: serif is now the default font for every
+     element on every page — homepage, nav, footer, articles — via
+     ordinary CSS inheritance. This one declaration is the actual fix;
+     everything below it is either a size-scale utility (inherits this
+     font-family automatically) or one of three deliberate exceptions. */
+  font-family: var(--font-serif, Georgia, Cambria, 'Times New Roman', Times, serif);
   letter-spacing: -0.01em;
 }
 ::selection { background: rgba(var(--accent-brand), 0.2); }
-.tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* The three deliberate exceptions to "everything is serif" — global, not
+   scoped to articles, so they cover every usage site-wide:
+   1. .tabular — countdown timers, stat badges (HeroCountdown, HeroDuration,
+      MilestoneBar, StreakBadge, the FAQ day-count pills...). A serif "7"
+      and "1" are genuinely harder to tell apart while digits are ticking.
+   2. Real form controls (input/textarea/select) — should never silently
+      follow a content font.
+   3. code/pre — literal code stays monospace, not serif or sans. */
+.tabular {
+  font-family: var(--font-sans-ui);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+input, textarea, select {
+  font-family: var(--font-sans-ui);
+}
+code, pre {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+}
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -161,6 +192,116 @@ body {
 .text-subhead    { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
 .text-footnote   { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
 .text-caption    { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
+/* was referenced in ArticleBlocks.tsx (source links, figcaptions) but never
+   defined — those elements were silently falling back to inherited body
+   type. Small, sans, muted, no uppercase — a citation label, not a shout. */
+.text-caption1   { font-size: 12px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-tertiary); }
+
+/* ─── Medium-style article typography ────────────────────────
+   The site-wide `body` rule above already makes serif the default
+   EVERYWHERE via inheritance — nothing here needs to set font-family
+   again except the few spots that deliberately want the sans UI font
+   instead (kicker/byline/caption labels). This block's real job is the
+   larger Medium-specific heading scale for the long-form reading column. */
+.article-prose {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.article-kicker { font-family: var(--font-sans-ui); }
+
+/* h1/h2/h3/blockquote are matched by TAG, not just class — so any heading
+   anywhere inside .article-prose gets the larger Medium scale
+   automatically, including ones in components we never touched. */
+.article-prose h1, .article-h1 {
+  font-size: clamp(32px, 5vw, 46px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+.article-h1 { margin: 0; }
+
+.article-dek {
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.article-prose h2, .article-h2 {
+  font-size: clamp(26px, 4vw, 32px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.article-h2 { margin-top: 2.1em; margin-bottom: 0.5em; }
+
+.article-prose h3, .article-h3 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.article-h3 { margin-top: 1.7em; margin-bottom: 0.4em; }
+
+/* Card titles need the larger Medium *scale* but must keep the compact
+   card's own tight spacing — this wins over the plain "h3" rule above
+   on specificity. */
+.article-prose h3.article-card-title {
+  font-size: 17px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.article-body {
+  font-size: 20px;
+  line-height: 1.58;
+  letter-spacing: -0.003em;
+  color: var(--text-primary);
+}
+.article-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--accent-brand), 0.55);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease;
+}
+.article-body a:hover { text-decoration-color: rgb(var(--accent-brand)); }
+
+/* Medium centers its image captions in a small italic sans-serif,
+   distinct from the small-caps-y .text-caption used in UI chrome. */
+.article-caption {
+  font-family: var(--font-sans-ui);
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* Smaller serif for reading content that lives INSIDE a card/callout —
+   disclaimer body, "about this article", FAQ answers, featured-piece
+   copy. Supporting size (16px), not the 20px flowing .article-body scale. */
+.article-note-body {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.article-prose blockquote, .article-blockquote {
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  border-left: 3px solid var(--text-primary);
+  padding-left: 20px;
+  margin: 1.6em 0;
+}
+
+.article-byline { font-family: var(--font-sans-ui); }
 
 /* ─── glass nav / sheet ──────────────────────────────────── */
 .glass {
@@ -425,7 +566,14 @@ body {
 @keyframes ticker  { 0%{transform:translateY(0);opacity:1} 40%{transform:translateY(-4px);opacity:0} 60%{transform:translateY(4px);opacity:0} 100%{transform:translateY(0);opacity:1} }
 @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
 
-.anim-fade-up  { animation: fadeUp  0.5s var(--ease-out) both; }
+.anim-fade-up  { animation: fadeUp  0.6s var(--ease-out) both; animation-play-state: paused; }
+.anim-fade-up.is-revealed { animation-play-state: running; }
+/* No-JS / reduced-motion: never leave content invisible waiting for a
+   scroll trigger that will never fire (or shouldn't, for motion-sensitive
+   users). Real content, always visible, is more important than the effect. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up { animation: none; opacity: 1; transform: none; }
+}
 .anim-fade-in  { animation: fadeIn  0.35s var(--ease-out) both; }
 .anim-scale-in { animation: scaleIn 0.36s var(--spring)   both; }
 .tick          { animation: ticker  0.26s var(--ease-out); }
@@ -614,4 +762,18 @@ body {
   background: var(--bg-overlay);
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+.btn-gradient-glow {
+  background: linear-gradient(135deg, rgb(var(--accent-brand)) 0%, rgb(var(--accent-purple)) 55%, rgb(var(--accent-pink)) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 18px -2px rgba(var(--accent-pink), 0.5), 0 4px 24px -4px rgba(var(--accent-purple), 0.4);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-gradient-glow:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 26px -2px rgba(var(--accent-pink), 0.7), 0 6px 30px -4px rgba(var(--accent-purple), 0.55);
+  transform: translateY(-1px);
+}
+.btn-gradient-glow:active {
+  transform: translateY(0);
 }

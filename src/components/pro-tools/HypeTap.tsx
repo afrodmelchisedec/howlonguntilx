@@ -1,12 +1,13 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { ToolProGate } from './ToolProGate';
 
 interface Particle { id: number; x: number }
 
 function HypeTapInner({ eventName }: { eventName: string }) {
   const [taps, setTaps] = useState(0);
-  const [communityTotal, setCommunityTotal] = useState(() => 1000 + Math.floor(Math.random() * 5000));
+  const [communityTotal, setCommunityTotal] = useState(1000);
+  useEffect(() => { setCommunityTotal(1000 + Math.floor(Math.random() * 5000)); }, []);
   const [particles, setParticles] = useState<Particle[]>([]);
   const idRef = useRef(0);
 

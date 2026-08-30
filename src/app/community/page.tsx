@@ -1,6 +1,7 @@
 // FILE: src/app/community/page.tsx
 import { getCommunityFeed, getCommunityCategories, type FeedItemRow } from '@/lib/communityFeed';
 import { CommunityFeedClient } from '@/components/community/CommunityFeedClient';
+import { StarField } from '@/components/ui/StarField';
 import type { FeedItem } from '@/components/community/CommunityFeedCard';
 
 export const metadata = {
@@ -25,10 +26,15 @@ export default async function CommunityFeedPage() {
   }));
 
   return (
-    <CommunityFeedClient
-      initialItems={initialItems}
-      initialCursor={nextCursor}
-      initialCategories={categories}
-    />
+    <div className="relative" style={{ background: 'var(--bg-base)' }}>
+      <StarField />
+      <div className="relative z-10">
+        <CommunityFeedClient
+          initialItems={initialItems}
+          initialCursor={nextCursor}
+          initialCategories={categories}
+        />
+      </div>
+    </div>
   );
 }

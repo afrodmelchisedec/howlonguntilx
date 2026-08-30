@@ -96,6 +96,8 @@ const EVENT_SCHEMA_BLOCK = [
   '    "targetDate": "YYYY-MM-DD",',
   '    "categorySlug": "one of the site\'s existing category slugs (ask if unsure)",',
   '    "description": "1-2 sentence meta description",',
+  '    "heroImageUrl": "/images/questions/descriptive-filename.jpeg",',
+  '    "heroImageAlt": "descriptive alt text",',
   '    "content": {',
   '      "heroFact": "one punchy, quotable sentence — this is what AI Overviews / featured snippets will lift verbatim, so it must fully answer the primary question on its own",',
   '      "quickFacts": [{ "label": "...", "value": "..." }],',
@@ -130,12 +132,42 @@ const ARTICLE_SCHEMA_BLOCK = [
   ']',
 ].join('\n');
 
+
+const EVENT_SEO_CHECKLIST = [
+  "SEO SCORE CHECKLIST (mirrors the admin panel's scorer exactly \u2014 hit all 6 for a 100% score)",
+  '-'.repeat(60),
+  '\u2610 heroImageUrl set (15%) \u2014 use the imagePlan "hero" entry\'s filename, e.g. "/images/questions/<filename>".',
+  '\u2610 heroImageAlt set (5%) \u2014 must be present TOGETHER with heroImageUrl or this check fails entirely.',
+  '\u2610 categorySlug set to a real, existing category slug (20%) \u2014 subcategory is assigned in the admin UI after import; categorySlug alone unlocks this check.',
+  '\u2610 content.body totals at least 300 words across paragraph/heading text combined (30%) \u2014 the single heaviest-weighted check here, don\'t skimp.',
+  '\u2610 content.faqs has at least 3 entries (15%).',
+  '\u2610 content.sources has at least 1 entry (15%).',
+  'Skipping heroImageUrl/heroImageAlt alone caps this Event at 80% before a single word is written \u2014 always fill both.',
+];
+
+const ARTICLE_SEO_CHECKLIST = [
+  "SEO SCORE CHECKLIST (mirrors the admin panel's scorer exactly \u2014 hit all of these for a 100% score)",
+  '-'.repeat(60),
+  '\u2610 shortAnswer is 40\u2013400 characters long (10%) \u2014 it doubles as the meta description; too short or too long both fail this check.',
+  '\u2610 heroImageUrl set (5%) \u2014 use the imagePlan "hero" entry\'s filename, e.g. "/images/questions/<filename>".',
+  '\u2610 heroImageAlt set (5%) \u2014 must be present together with heroImageUrl.',
+  '\u2610 (Category + subcategory assigned in the admin UI after import \u2014 not JSON-controllable, worth 10% there, not blocked by this brief.)',
+  '\u2610 At least 3 FAQs (10%), AND every faqs[].q must start with a question word (How/What/Why/When/Do/Does/Can/Will/Is/Are) and end in "?" (5% more) \u2014 count and phrasing are scored separately.',
+  '\u2610 At least 2 sources (10%), each url a specific deep link to the actual source page, never a bare homepage like "https://example.com" \u2014 one homepage-only link fails this check for ALL sources.',
+  '\u2610 At least one { "type": "chart", ... } block among "blocks" (5%).',
+  '\u2610 Body word count across paragraph/heading blocks is at least 600 words (10%).',
+  '\u2610 questionType "DURATION" must be paired with a filled-in "heroData" object \u2014 one without the other fails this check (5%).',
+  '\u2610 motherQuestion itself reads as a genuine question: starts with How/What/Why/When/Do/Does/Can/Will/Is/Are and ends in "?" (5%).',
+  '\u2610 One of the FIRST 4 entries in "blocks" is a heading whose text contains a digit, e.g. "How Long Until X? (18\u201324 Weeks)" \u2014 surfaces the numeric answer near the top for featured snippets (10%).',
+  '\u2610 At least one internal link inside a paragraph block\'s text, markdown-style, pointing to a relative path on this site, e.g. "[Medications & Metabolism](/medications-metabolism)" \u2014 an external https:// link does NOT count (10%).',
+];
+
 const IMAGE_PLAN_BLOCK = [
   '{',
   '  "imagePlan": [',
   '    {',
   '      "purpose": "hero",',
-  '      "filename": "seo-optimized-hyphenated-descriptive-name.jpg",',
+  '      "filename": "seo-optimized-hyphenated-descriptive-name.jpeg",',
   '      "altText": "descriptive alt text for accessibility and image SEO",',
   '      "googleFlowPrompt": "detailed visual prompt for Google Flow — describe scene, mood, style, lighting; no text/words rendered in the image"',
   '    },',
@@ -153,6 +185,7 @@ function buildContentBrief(
 ): string {
   const contentType = classifyContentType(primary);
   const schema = contentType === 'event' ? EVENT_SCHEMA_BLOCK : ARTICLE_SCHEMA_BLOCK;
+  const seoChecklist = contentType === 'event' ? EVENT_SEO_CHECKLIST : ARTICLE_SEO_CHECKLIST;
   const relatedList = related.length
     ? related.map(r => `- "${r.keyword}" (vol ${r.volume}, KD ${r.kd ?? '?'}) — cover as a supporting section or FAQ, not a separate page`).join('\n')
     : '- (none detected in this cluster — this keyword stood alone in the SERP-overlap analysis)';
@@ -207,14 +240,21 @@ function buildContentBrief(
     '   (Tone, humor, length, and structure for THIS content come from Layer 1 above, not from here —',
     '   these two layers are deliberately kept separate so SEO strategy can change without touching voice.)',
     '',
+    ...seoChecklist,
+    '',
     'IMAGERY (Google Flow — 3 images per article)',
     '-'.repeat(60),
     'Also generate exactly 3 image entries as a SEPARATE "imagePlan" JSON block (shown below, after',
     'the main article JSON) — one hero, one supporting, one explanatory. Each needs an SEO-optimized',
     'hyphenated filename, descriptive alt text, and a detailed Google Flow generation prompt. Use the',
     'hero entry\'s filename/altText for this article\'s heroImageUrl/heroImageAlt fields above once the',
-    'image is generated and uploaded — the other 2 are for you to place manually until the layout',
-    'supports inline images (not yet wired into the renderer, so don\'t assume it will appear automatically).',
+    'This site now renders inline "type": "image" blocks directly inside "blocks" (Article) or',
+    '"body" (Event) — use the "supporting" and "explanatory" imagePlan entries as actual blocks at',
+    'natural points in the content, not just filler for the imagePlan JSON. Each inline image block',
+    'needs { "type": "image", "src": "/images/questions/<filename>", "alt": "...", "caption": "..." }.',
+    'Only the "hero" entry goes in heroImageUrl/heroImageAlt — the other 2 MUST appear as inline',
+    'image blocks in the article/event body itself, or the images will never be visible on the page.',
+    'All 3 Google Flow prompts must explicitly call for a dark, moody color palette — deep charcoal or near-black backgrounds, warm low-key accent lighting, strong contrast — so the generated image reads well against this site\'s dark UI. Never call for bright white backgrounds, flat daylight, or high-key studio lighting.',
     '',
     'OUTPUT FORMAT',
     '-'.repeat(60),

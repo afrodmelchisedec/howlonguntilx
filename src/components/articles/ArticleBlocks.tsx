@@ -11,7 +11,7 @@ interface ToolMapping { slug: string; label: string; path: string }
 type Block =
   | { type: 'heading'; text: string }
   | { type: 'paragraph'; text: string; sourceUrl?: string; sourceLabel?: string }
-  | { type: 'image'; src: string; alt: string }
+  | { type: 'image'; src: string; alt: string; caption?: string }
   | { type: 'tool_embed'; widget: string; config: Record<string, any> }
   // `toolSlug` is optional — when omitted, resolution falls back to the article's
   // subcategory tool mapping (see `subcategoryTools` prop on ArticleBlocks below).
@@ -130,11 +130,11 @@ export function ArticleBlocks({
         const delay = { animationDelay: `${Math.min(i, 8) * 60}ms` };
         if (b.type === 'heading') {
           const id = headings[headingCursor++]?.id;
-          return <h2 key={i} id={id} className="text-title3 mt-2 anim-fade-up scroll-mt-24" style={delay}>{b.text}</h2>;
+          return <h2 key={i} id={id} className="article-h2 anim-fade-up scroll-mt-24" style={delay}>{b.text}</h2>;
         }
         if (b.type === 'paragraph') {
           return (
-            <p key={i} className="text-callout anim-fade-up" style={{ ...delay, color: 'var(--text-secondary)' }}>
+            <p key={i} className="article-body anim-fade-up" style={delay}>
               {renderParagraphText(b.text)}
               {b.sourceUrl && (
                 <>
@@ -165,7 +165,18 @@ export function ArticleBlocks({
             </p>
           );
         }
-        if (b.type === 'image') return <img key={i} src={b.src} alt={b.alt} className="rounded-2xl w-full anim-fade-up" style={delay} loading="lazy" />;
+        if (b.type === 'image') {
+          return (
+            <figure key={i} className="anim-fade-up" style={delay}>
+              <img src={b.src} alt={b.alt} className="rounded-2xl w-full" loading="lazy" />
+              {b.caption && (
+                <figcaption className="article-caption mt-2">
+                  {b.caption}
+                </figcaption>
+              )}
+            </figure>
+          );
+        }
         if (b.type === 'chart') return <ArticleChart key={i} title={b.title} data={b.data} glow={glow} />;
         if (b.type === 'faq') {
           return (

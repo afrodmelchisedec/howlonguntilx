@@ -17,8 +17,8 @@ const SORT_TABS: { value: QuestionsSort; label: string }[] = [
   { value: 'engagement', label: 'Most engaged' },
 ];
 
-const INITIAL_TAKE = 9;  // first page: 3 rows of 3
-const MORE_TAKE = 6;     // each "Load more": 2 additional rows of 3
+const INITIAL_TAKE = 8;  // first page: 4 rows of 2
+const MORE_TAKE = 4;     // each "Load more": 2 additional rows of 2
 
 // Client wrapper for the /questions listing. Mirrors CommunityFeedClient's
 // tabs + search + IntersectionObserver load-more pattern. Category tabs
@@ -126,16 +126,15 @@ export function QuestionsFeedClient({ initialItems, initialCursor, initialCatego
       />
 
       {initialLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="ios-card overflow-hidden">
-              <div className="shimmer w-full" style={{ aspectRatio: '16/9' }} />
-              <div className="p-4">
-                <div className="shimmer" style={{ height: 10, width: '40%', borderRadius: 4, marginBottom: 8 }} />
-                <div className="shimmer" style={{ height: 14, width: '85%', borderRadius: 4, marginBottom: 6 }} />
-                <div className="shimmer" style={{ height: 12, width: '95%', borderRadius: 4, marginBottom: 12 }} />
-                <div className="shimmer" style={{ height: 24, width: '30%', borderRadius: 4, marginBottom: 8 }} />
-                <div className="shimmer" style={{ height: 4, width: '100%', borderRadius: 4 }} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="ios-card overflow-hidden flex items-center" style={{ height: 128 }}>
+              <div className="shimmer flex-shrink-0 self-stretch my-2 ml-2 rounded-xl" style={{ width: 112 }} />
+              <div className="p-3 flex-1 flex flex-col justify-center gap-2">
+                <div className="shimmer" style={{ height: 9, width: '35%', borderRadius: 4 }} />
+                <div className="shimmer" style={{ height: 14, width: '80%', borderRadius: 4 }} />
+                <div className="shimmer" style={{ height: 11, width: '90%', borderRadius: 4 }} />
+                <div className="shimmer" style={{ height: 10, width: '50%', borderRadius: 4 }} />
               </div>
             </div>
           ))}
@@ -147,7 +146,7 @@ export function QuestionsFeedClient({ initialItems, initialCursor, initialCatego
           <div className="text-footnote">Try a different search or category.</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map((item, i) => <QuestionCard key={`${item.kind}-${item.id}`} item={item} index={i % 12} priority={i < 3} />)}
         </div>
       )}

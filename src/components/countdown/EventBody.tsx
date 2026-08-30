@@ -59,15 +59,21 @@ export function EventBody({ blocks, glow = '83, 74, 217' }: { blocks?: EventCont
           }
 
           if (b.type === 'image') {
+            const caption = (b as any).caption;
             return (
-              <img
-                key={i}
-                src={(b as any).src}
-                alt={(b as any).alt}
-                className="rounded-2xl w-full anim-fade-up"
-                style={delay}
-                loading="lazy"
-              />
+              <figure key={i} className="anim-fade-up" style={delay}>
+                <img
+                  src={(b as any).src}
+                  alt={(b as any).alt}
+                  className="rounded-2xl w-full"
+                  loading="lazy"
+                />
+                {caption && (
+                  <figcaption className="text-caption1 mt-2" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
+                    {caption}
+                  </figcaption>
+                )}
+              </figure>
             );
           }
 
