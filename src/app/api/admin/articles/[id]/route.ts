@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { invalidateArticleCache } from '@/lib/articles';
 
 async function isAdmin() {
   const s = await getServerSession(authOptions);
@@ -59,6 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   revalidatePath(`/tools/${updated.toolSlug}/${updated.slug}`);
   revalidatePath('/categories');
+  await invalidateArticleCache(updated.toolSlug, updated.slug);
 
   return NextResponse.json(updated);
 }
@@ -75,6 +77,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   revalidatePath(`/tools/${article.toolSlug}`);
   revalidatePath('/sitemap.xml');
+  await invalidateArticleCache(article.toolSlug, article.slug);
 
   return NextResponse.json({ ok: true });
 }

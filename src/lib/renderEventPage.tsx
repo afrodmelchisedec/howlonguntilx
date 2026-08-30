@@ -68,7 +68,9 @@ export async function generateEventMetadata(rawSlug: string, canonicalPath: stri
 export async function EventPageContent({ rawSlug }: { rawSlug: string }) {
   const event = await getEventBySlug(rawSlug);
   if (!event) notFound();
-  await incrementViews(rawSlug);
+  // Fire-and-forget: the view counter has no reason to block the page render.
+  // Awaiting this added a full extra DB round trip to every page load.
+  incrementViews(rawSlug).catch(() => {});
 
   const countdown = buildCountdownResponse(event.name, new Date(event.targetDate));
   const weeks = Math.floor(countdown.days_left / 7);

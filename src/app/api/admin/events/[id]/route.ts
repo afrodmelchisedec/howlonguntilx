@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { invalidateEventCache } from '@/lib/events';
 
 async function isAdmin() {
   const s = await getServerSession(authOptions);
@@ -93,6 +94,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   revalidatePath('/users');
   revalidatePath('/categories');
   revalidatePath('/questions/how-long-until-' + updated.slug);
+  await invalidateEventCache(updated.slug);
 
   return NextResponse.json(updated);
 }
@@ -108,6 +110,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   revalidatePath('/users');
   revalidatePath('/categories');
+  await invalidateEventCache(event.slug);
 
   return NextResponse.json({ ok: true });
 }

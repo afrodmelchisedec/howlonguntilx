@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // TODO: adjust path
+import { prisma } from '@/lib/db';
 import { pingIndexNow } from '@/lib/indexnow';
 import { hasToolEmbed } from '@/components/articles/ArticleBlocks';
+import { invalidateArticleCache } from '@/lib/articles';
 
 async function isAdmin() {
   const s = await getServerSession(authOptions);
@@ -31,6 +32,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   revalidatePath(`/tools/${updated.toolSlug}/${updated.slug}`);
   revalidatePath(`/tools/${updated.toolSlug}`); // Discover grid changed
   revalidatePath('/sitemap.xml');
+  await invalidateArticleCache(updated.toolSlug, updated.slug);
   await pingIndexNow([url]);
   return NextResponse.json({ ok: true, url });
 }
