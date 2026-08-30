@@ -41,10 +41,12 @@ export function ScrollReveal() {
           }
         }
       },
-      // Slightly before the element is fully in view, so the animation
-      // finishes roughly as it crosses into the comfortable reading zone
-      // rather than starting exactly at the viewport edge.
-      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+      // Trigger once ~25% of the element is visible, and only once it's
+      // crossed well into the viewport (shrinking the bottom edge by 15%)
+      // rather than the instant it grazes the screen edge — the difference
+      // between "reveals as you scroll to it" and "already revealed before
+      // you noticed it arriving."
+      { threshold: 0.25, rootMargin: '0px 0px -15% 0px' }
     );
 
     function observeWithin(root: ParentNode) {
