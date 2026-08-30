@@ -48,7 +48,25 @@ export function ScrollReveal() {
     );
 
     function observeWithin(root: ParentNode) {
-      root.querySelectorAll('.anim-fade-up:not(.is-revealed)').forEach(el => io.observe(el));
+      root.querySelectorAll('.anim-fade-up:not(.is-revealed)').forEach(el => {
+        io.observe(el);
+        // Safety net: force-reveal after 1.5s no matter what. Normal
+        // scroll-reveal (the IntersectionObserver above) will have long
+        // since fired for anything actually on/near screen, so this timer
+        // does nothing in the happy path. It exists for the unhappy path —
+        // this class ever ending up on something that's off-screen but
+        // load-bearing, a browser that doesn't fire the observer the way
+        // expected, or any other edge case nobody's spotted yet. Content
+        // staying permanently invisible is a much worse failure than the
+        // fade-up effect occasionally not playing, so when in doubt this
+        // errs toward "just show it."
+        window.setTimeout(() => {
+          if (!el.classList.contains('is-revealed')) {
+            el.classList.add('is-revealed');
+            io.unobserve(el);
+          }
+        }, 1500);
+      });
     }
 
     observeWithin(document);

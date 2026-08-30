@@ -54,7 +54,7 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
   const hasAnyReviewer = !!structuredReviewer || !!legacyReviewerName;
 
   return (
-    <article className="anim-fade-up">
+    <article>
       <ArticleStyles />
       <ArticleSchema article={article} toolName={toolName} toolSlug={toolSlug} />
 
