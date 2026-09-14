@@ -1,18 +1,9 @@
 import { MoneyMilestonesTabs } from '@/components/pro-tools/MoneyMilestonesTabs';
 import { StarField } from '@/components/ui/StarField';
 
-// This static route shadows what would otherwise be served by the dynamic
-// src/app/categories/[category]/[sub]/page.tsx at the same URL
-// (/categories/finance/money-milestones) — Next.js gives static segments
-// priority over dynamic ones. That route sets alternates.canonical on every
-// subcategory page; this one previously set none, which is exactly the kind
-// of gap Search Console flags as "Duplicate without user-selected canonical."
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://howlonguntilx.com';
-
 export const metadata = {
   title: 'Money & Milestones — Growth Timeline',
   description: 'Drag your savings milestones onto a live growth curve and watch exactly when you\'ll hit each one.',
-  alternates: { canonical: `${BASE}/categories/finance/money-milestones` },
 };
 
 export default function MoneyMilestonesPage() {
