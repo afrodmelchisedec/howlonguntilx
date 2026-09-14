@@ -15,7 +15,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const events = listCalendarAdminEvents();
+    const events = await listCalendarAdminEvents();
     return NextResponse.json({ events });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed to load events' }, { status: 500 });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const created = createCalendarEvent(body);
+    const created = await createCalendarEvent(body);
     revalidatePath('/');
     revalidatePath('/calendar');
     return NextResponse.json({ event: created });

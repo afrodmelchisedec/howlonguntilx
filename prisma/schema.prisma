@@ -143,12 +143,18 @@ model Event {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   content             Json?
+  isCalendar          Boolean   @default(false)
+  calendarFeatured    Boolean   @default(false)
+  region              String?
+  emoji               String?
+  color               String?
 
   likes   Like[]
   follows Follow[]
 
   @@index([categoryId])
   @@index([subcategoryId])
+  @@index([isCalendar, region])
 }
 
 enum EventType {

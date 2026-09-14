@@ -2,6 +2,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Types
@@ -290,6 +292,8 @@ function ApiKeysTable({ onMutated }: { onMutated: () => void }) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   useEffect(() => setPage(1), [tier, status, debouncedSearch, pageSize]);
 
@@ -315,8 +319,21 @@ function ApiKeysTable({ onMutated }: { onMutated: () => void }) {
     }
   }
 
-  async function runAction(id: string, action: 'revoke' | 'reactivate', confirmMsg?: string) {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+  function runAction(id: string, action: 'revoke' | 'reactivate', confirmMsg?: string) {
+    if (confirmMsg) {
+      setConfirmDialog({
+        title: action === 'revoke' ? 'Revoke API Key' : 'Confirm',
+        message: confirmMsg,
+        confirmLabel: action === 'revoke' ? 'Revoke' : 'Confirm',
+        destructive: action === 'revoke',
+        onConfirm: () => performRunAction(id, action),
+      });
+      return;
+    }
+    performRunAction(id, action);
+  }
+
+  async function performRunAction(id: string, action: 'revoke' | 'reactivate') {
     setBusyId(id);
     try {
       const res = await fetch(`/api/admin/api-keys/${id}`, {
@@ -328,7 +345,7 @@ function ApiKeysTable({ onMutated }: { onMutated: () => void }) {
       setReloadFlag(f => f + 1);
       onMutated();
     } catch {
-      alert('Action failed — check the console/network tab for details.');
+      setAlertDialog({ message: 'Action failed — check the console/network tab for details.' });
     } finally {
       setBusyId(null);
     }
@@ -347,7 +364,7 @@ function ApiKeysTable({ onMutated }: { onMutated: () => void }) {
       setReloadFlag(f => f + 1);
       onMutated();
     } catch {
-      alert('Adjustment failed — check the console/network tab for details.');
+      setAlertDialog({ message: 'Adjustment failed — check the console/network tab for details.' });
     } finally {
       setBusyId(null);
     }
@@ -355,6 +372,8 @@ function ApiKeysTable({ onMutated }: { onMutated: () => void }) {
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white mr-auto">API keys</h2>
         <input

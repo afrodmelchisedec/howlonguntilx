@@ -1,6 +1,7 @@
 // FILE: src/components/community/CommentThread.tsx
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Comment, type CommentNode, formatCount } from './Comment';
@@ -49,6 +50,7 @@ export function CommentThread({ subjectType, subjectId, glow }: Props) {
   const [draft, setDraft] = useState('');
   const [openReplyId, setOpenReplyId] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,13 +110,20 @@ export function CommentThread({ subjectType, subjectId, glow }: Props) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this comment?')) return;
-    const res = await fetch(`/api/comments/${id}`, { method: 'PATCH' });
-    if (!res.ok) return;
-    setFlat(prev => prev.map(c => c.id === id
-      ? { ...c, body: '[deleted]', author: null, deletedAt: new Date().toISOString() }
-      : c));
+  function handleDelete(id: string) {
+    setConfirmDialog({
+      title: 'Delete Comment',
+      message: 'Delete this comment?',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const res = await fetch(`/api/comments/${id}`, { method: 'PATCH' });
+        if (!res.ok) return;
+        setFlat(prev => prev.map(c => c.id === id
+          ? { ...c, body: '[deleted]', author: null, deletedAt: new Date().toISOString() }
+          : c));
+      },
+    });
   }
 
   const tree = buildTree(flat);
@@ -126,6 +135,7 @@ export function CommentThread({ subjectType, subjectId, glow }: Props) {
 
   return (
     <div id="comments-section" className="mt-8">
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
       {!expanded && (
         <button
           onClick={() => setExpanded(true)}

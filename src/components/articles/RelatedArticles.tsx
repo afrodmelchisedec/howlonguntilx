@@ -2,7 +2,7 @@
 import { listPublishedArticles } from '@/lib/articles';
 import { ArticleCard } from './ArticleCard';
 
-export async function RelatedArticles({ toolSlug, excludeSlug, glow }: { toolSlug: string; excludeSlug: string; glow: string }) {
+export async function RelatedArticles({ toolSlug, excludeSlug, glow, publicPath }: { toolSlug: string; excludeSlug: string; glow: string; publicPath?: string }) {
   const all = await listPublishedArticles(toolSlug, 6);
   const related = all.filter(a => a.slug !== excludeSlug).slice(0, 3);
   if (related.length === 0) return null;
@@ -20,6 +20,7 @@ export async function RelatedArticles({ toolSlug, excludeSlug, glow }: { toolSlu
             dek={a.dek}
             heroImageUrl={a.heroImageUrl}
             glow={glow}
+            publicPath={publicPath}
             category={a.category ? { slug: a.category.slug, name: a.category.name, emoji: a.category.emoji } : null}
           />
         ))}

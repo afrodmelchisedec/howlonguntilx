@@ -90,7 +90,7 @@ export const TOOLS: Tool[] = [
     title: 'Day Timeline Builder',
     description: 'Drag task blocks onto a single-day timeline and watch hours allocated, free time, and overlaps update live.' },
 
-  { slug: 'tech-events', category: 'science',
+  { slug: 'upcoming-events', category: 'science',
     title: 'Tech Events Calendar',
     description: 'Every major keynote, product launch, and conference on one calendar — CES, WWDC, Google I/O, and more, with countdowns and a saveable watchlist.' },
   { slug: 'dark-sky-explorer', category: 'science',

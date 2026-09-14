@@ -7,7 +7,7 @@ import { CommentThread } from '@/components/community/CommentThread';
 import { EmbedCodeButton } from '@/components/embeds/EmbedCodeButton';
 
 type EventType = 'launch' | 'keynote' | 'conference';
-interface TechEvent { name: string; month: number; day: number; type: EventType; emoji: string; blurb: string; city: string }
+interface TechEvent { slug: string; name: string; date: Date; type: EventType; emoji: string; blurb: string; city: string }
 
 const GLOW = '162, 137, 255';
 const FREE_MONTHS_AHEAD = 1; // current month + 1 ahead, free tier
@@ -28,34 +28,10 @@ const TYPE_EMOJI: Record<EventType, string> = {
   conference: '🖥️',
 };
 
-// Recurring annual tech events. Exact day-of-month shifts slightly year to year in
-// real life — treat these as the typical historical window (see the guide tab).
-const TECH_EVENTS: TechEvent[] = [
-  { name: 'CES', month: 1, day: 6, type: 'conference', emoji: '🖥️', blurb: 'The world\'s biggest consumer tech showcase opens in Las Vegas.', city: 'Las Vegas' },
-  { name: 'Samsung Galaxy Unpacked', month: 1, day: 22, type: 'launch', emoji: '📱', blurb: 'Samsung\'s flagship Galaxy S-series unveiling.', city: 'San Francisco' },
-  { name: 'MWC Barcelona', month: 2, day: 24, type: 'conference', emoji: '📡', blurb: 'Mobile World Congress — the telecom industry\'s biggest stage.', city: 'Barcelona' },
-  { name: 'GDC', month: 3, day: 18, type: 'conference', emoji: '🎮', blurb: 'Game Developers Conference — the industry gathers to talk shop.', city: 'San Francisco' },
-  { name: 'Google I/O', month: 5, day: 14, type: 'keynote', emoji: '🤖', blurb: 'Google\'s big developer keynote — Android, AI, and search news.', city: 'Mountain View' },
-  { name: 'Apple WWDC', month: 6, day: 9, type: 'keynote', emoji: '🍎', blurb: 'Apple\'s Worldwide Developers Conference opening keynote.', city: 'Cupertino' },
-  { name: 'Prime Day Tech Drop', month: 7, day: 15, type: 'launch', emoji: '📦', blurb: 'A wave of hardware announcements riding along with Prime Day.', city: 'Seattle' },
-  { name: 'IFA Berlin', month: 9, day: 4, type: 'conference', emoji: '🌍', blurb: 'Europe\'s biggest consumer electronics show.', city: 'Berlin' },
-  { name: 'Apple September Event', month: 9, day: 9, type: 'launch', emoji: '🚀', blurb: 'Apple\'s annual iPhone and Watch launch event.', city: 'Cupertino' },
-  { name: 'Meta Connect', month: 9, day: 24, type: 'keynote', emoji: '🕶️', blurb: 'Meta\'s AR/VR and AI keynote.', city: 'Menlo Park' },
-  { name: 'Microsoft Ignite', month: 11, day: 17, type: 'conference', emoji: '💼', blurb: 'Microsoft\'s enterprise, cloud, and AI conference.', city: 'Chicago' },
-  { name: 'AWS re:Invent', month: 12, day: 1, type: 'conference', emoji: '☁️', blurb: 'AWS\'s massive cloud-computing conference.', city: 'Las Vegas' },
-];
-
-function eventKey(e: TechEvent) { return `${e.name}-${e.month}-${e.day}`; }
+function eventKey(e: TechEvent) { return e.slug; }
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function monthDiff(a: Date, b: Date) { return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()); }
-function nextOccurrence(month: number, day: number, from: Date): Date {
-  const year = from.getFullYear();
-  let candidate = new Date(year, month - 1, day);
-  if (candidate < from) candidate = new Date(year + 1, month - 1, day);
-  return candidate;
-}
 function daysUntil(d: Date, from: Date) { return Math.round((d.getTime() - from.getTime()) / 86400000); }
-function eventsOnDay(date: Date) { return TECH_EVENTS.filter(e => e.month === date.getMonth() + 1 && e.day === date.getDate()); }
 function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function fmtMonthYear(d: Date) { return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); }
 function fmtDay(d: Date) { return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }); }
@@ -95,15 +71,30 @@ export function TechEventsCalendar() {
   const [saving, setSaving] = useState(false);
   const [toolLiked, setToolLiked] = useState(false);
   const [toolLikeCount, setToolLikeCount] = useState(94);
+  const [events, setEvents] = useState<TechEvent[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
-  // Load saved watchlist for Pro users
+  // Load events (everyone) + saved watchlist (if signed in) in one request.
   useEffect(() => {
-    if (!isPro) return;
-    fetch('/api/tools/tech-events')
+    fetch('/api/tools/upcoming-events')
       .then(r => (r.ok ? r.json() : null))
-      .then(data => { if (data?.watchlist) setWatchlist(new Set(data.watchlist)); })
-      .catch(() => {});
-  }, [isPro]);
+      .then(data => {
+        if (!data) return;
+        const mapped: TechEvent[] = (data.events || []).map((e: any) => ({
+          slug: e.slug,
+          name: e.name,
+          date: new Date(e.targetDate),
+          type: (e.content?.type ?? 'conference') as EventType,
+          emoji: e.emoji ?? '📅',
+          blurb: e.description ?? '',
+          city: e.content?.city ?? '',
+        }));
+        setEvents(mapped);
+        if (data.watchlist) setWatchlist(new Set(data.watchlist));
+      })
+      .catch(() => {})
+      .finally(() => setEventsLoaded(true));
+  }, []);
 
   function requireAuth(): boolean {
     if (!session?.user) { showToast('Sign in to use this feature'); return false; }
@@ -124,17 +115,20 @@ export function TechEventsCalendar() {
     setViewDate(target);
   }, [viewDate, isPro, thisMonthStart, showToast]);
 
+  function eventsOnDay(date: Date) { return events.filter(e => isSameDay(e.date, date)); }
+
   const upcoming = useMemo(() => {
-    return TECH_EVENTS.map(e => ({ e, date: nextOccurrence(e.month, e.day, today) }))
+    return events
+      .filter(e => e.date >= today)
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(0, 5);
-  }, [today]);
+  }, [events, today]);
 
   const watchlistUpcoming = useMemo(() => {
-    return TECH_EVENTS.filter(e => watchlist.has(eventKey(e)))
-      .map(e => ({ e, date: nextOccurrence(e.month, e.day, today) }))
+    return events
+      .filter(e => watchlist.has(e.slug))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [watchlist, today]);
+  }, [events, watchlist]);
 
   async function toggleWatchlist(e: TechEvent) {
     if (!requireAuth()) return;
@@ -145,7 +139,7 @@ export function TechEventsCalendar() {
     setWatchlist(next);
     setSaving(true);
     try {
-      await fetch('/api/tools/tech-events', {
+      await fetch('/api/tools/upcoming-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ watchlist: Array.from(next) }),
@@ -171,9 +165,9 @@ export function TechEventsCalendar() {
     commentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function handleCopyPlan() {
-    const events = eventsOnDay(selectedDate);
-    if (!events.length) { showToast('No event on this date to copy'); return; }
-    const text = events.map(e => `${e.emoji} ${e.name} (${TYPE_LABEL[e.type]}) — ${fmtDay(selectedDate)}, ${e.city}\n${e.blurb}`).join('\n\n');
+    const dayEvents = eventsOnDay(selectedDate);
+    if (!dayEvents.length) { showToast('No event on this date to copy'); return; }
+    const text = dayEvents.map(e => `${e.emoji} ${e.name} (${TYPE_LABEL[e.type]}) — ${fmtDay(selectedDate)}, ${e.city}\n${e.blurb}`).join('\n\n');
     navigator.clipboard?.writeText(text);
     showToast('Plan copied to clipboard');
   }
@@ -201,13 +195,14 @@ export function TechEventsCalendar() {
 
         {/* Upcoming ticker */}
         <div className="flex gap-2 overflow-x-auto pb-1 mb-6" style={{ scrollbarWidth: 'none' }}>
-          {upcoming.map(({ e, date }) => (
-            <button key={eventKey(e)} onClick={() => { setViewDate(startOfMonth(date)); setSelectedDate(date); }}
+          {!eventsLoaded && <span className="text-caption" style={{ color: 'var(--text-secondary)' }}>Loading…</span>}
+          {upcoming.map(e => (
+            <button key={eventKey(e)} onClick={() => { setViewDate(startOfMonth(e.date)); setSelectedDate(e.date); }}
               className="ios-card-nested press flex-shrink-0 flex items-center gap-2 px-3 py-2"
               style={{ border: `1px solid rgba(${TYPE_COLOR[e.type]}, 0.35)` }}>
               <span>{e.emoji}</span>
               <span className="text-footnote font-semibold whitespace-nowrap">{e.name}</span>
-              <span className="text-caption" style={{ color: `rgb(${TYPE_COLOR[e.type]})` }}>{daysUntil(date, today)}d</span>
+              <span className="text-caption" style={{ color: `rgb(${TYPE_COLOR[e.type]})` }}>{daysUntil(e.date, today)}d</span>
             </button>
           ))}
         </div>
@@ -231,7 +226,7 @@ export function TechEventsCalendar() {
 
           <div key={fmtMonthYear(viewDate)} className="grid grid-cols-7 gap-1" style={{ animation: `${slideDir === 'left' ? 'slideInFromRight' : 'slideInFromLeft'} 280ms ease-out`, overflow: 'visible' }}>
             {grid.map((cell, idx) => {
-              const events = eventsOnDay(cell.date);
+              const dayEvents = eventsOnDay(cell.date);
               const isToday = isSameDay(cell.date, today);
               const isSelected = isSameDay(cell.date, selectedDate);
               const rowA = Math.floor(idx / 7), colA = idx % 7;
@@ -239,11 +234,11 @@ export function TechEventsCalendar() {
               const colB = hoveredIdx === null ? colA : hoveredIdx % 7;
               const dist = hoveredIdx === null ? 99 : Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
               const glow = dist === 0 ? 0.9 : dist === 1 ? 0.32 : dist === 2 ? 0.1 : 0;
-              const primaryEvent = events[0];
-              const showTooltip = hoveredIdx === idx && events.length > 0;
-              const tooltipBelow = rowA === 0; // first row: flip tooltip downward so it doesn't clip off-screen
-              const tooltipRight = colA >= 5;  // rightmost columns: nudge tooltip left so it doesn't clip
-              const tooltipLeft = colA <= 1;   // leftmost columns: nudge tooltip right
+              const primaryEvent = dayEvents[0];
+              const showTooltip = hoveredIdx === idx && dayEvents.length > 0;
+              const tooltipBelow = rowA === 0;
+              const tooltipRight = colA >= 5;
+              const tooltipLeft = colA <= 1;
 
               return (
                 <button
@@ -272,9 +267,9 @@ export function TechEventsCalendar() {
                   }}
                 >
                   <span className="text-footnote font-semibold">{cell.date.getDate()}</span>
-                  {events.length > 0 && (
+                  {dayEvents.length > 0 && (
                     <div className="flex gap-0.5 mt-0.5">
-                      {events.slice(0, 3).map((e, i) => (
+                      {dayEvents.slice(0, 3).map((e, i) => (
                         <span key={i} className="rounded-full" style={{ width: 5, height: 5, background: `rgb(${TYPE_COLOR[e.type]})` }} />
                       ))}
                     </div>
@@ -307,13 +302,13 @@ export function TechEventsCalendar() {
                         <span className="text-footnote font-bold" style={{ color: 'var(--text-primary, #fff)', lineHeight: 1.2 }}>{primaryEvent.name}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="pill text-xs font-bold" style={{ background: `rgba(${TYPE_COLOR[primaryEvent.type]}, 0.18)`, color: `rgb(${TYPE_COLOR[primaryEvent.type]})`, padding: '1px 8px' }}>
+                        <span className="pill text-xs font-bold" style={{ background: `rgba(${TYPE_COLOR[primaryEvent.type]}, 0.18)`, color: `rgb(${TYPE_COLOR[primaryEvent.type]})`, padding: '1px8px' }}>
                           {TYPE_LABEL[primaryEvent.type]}
                         </span>
                         <span className="text-caption" style={{ color: 'var(--text-secondary)' }}>{primaryEvent.city}</span>
                       </div>
-                      {events.length > 1 && (
-                        <p className="text-caption mt-1" style={{ color: 'var(--text-secondary)' }}>+{events.length - 1} more that day</p>
+                      {dayEvents.length > 1 && (
+                        <p className="text-caption mt-1" style={{ color: 'var(--text-secondary)' }}>+{dayEvents.length - 1} more that day</p>
                       )}
                       <div
                         style={{
@@ -385,10 +380,10 @@ export function TechEventsCalendar() {
             <div className="ios-card-nested p-4 mb-6">
               <p className="text-footnote font-semibold mb-3">⭐ Your watchlist</p>
               <div className="flex flex-col gap-2">
-                {watchlistUpcoming.map(({ e, date }) => (
+                {watchlistUpcoming.map(e => (
                   <div key={eventKey(e)} className="flex items-center justify-between gap-2">
                     <span className="text-footnote">{e.emoji} {e.name}</span>
-                    <span className="text-caption" style={{ color: `rgb(${TYPE_COLOR[e.type]})` }}>{daysUntil(date, today)}d away</span>
+                    <span className="text-caption" style={{ color: `rgb(${TYPE_COLOR[e.type]})` }}>{daysUntil(e.date, today)}d away</span>
                   </div>
                 ))}
               </div>
@@ -419,8 +414,8 @@ export function TechEventsCalendar() {
       </div>
 
       <div ref={commentRef}>
-      <EmbedCodeButton slug="tech-events" title="Tech Events Calendar" glow={GLOW} />
-        <CommentThread subjectType="tool" subjectId="tech-events" glow={GLOW} />
+      <EmbedCodeButton slug="upcoming-events" title="Tech Events Calendar" glow={GLOW} />
+        <CommentThread subjectType="tool" subjectId="upcoming-events" glow={GLOW} />
       </div>
       <ToastHost toast={toast} />
 

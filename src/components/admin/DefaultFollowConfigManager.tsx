@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
 
 type UserLite = {
   id: string;
@@ -28,6 +29,7 @@ export function DefaultFollowConfigManager() {
   const [candidates, setCandidates] = useState<UserLite[]>([]);
   const [searching, setSearching] = useState(false);
   const [settingId, setSettingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -68,11 +70,19 @@ export function DefaultFollowConfigManager() {
     return () => clearTimeout(t);
   }, [search, pickerOpen]);
 
-  async function setDefault(userId: string) {
+  function setDefault(userId: string) {
     const isChange = !!config;
-    if (!confirm(isChange
-      ? 'Change the default-follow account to this user? New signups will start following them instead.'
-      : 'Set this as the permanent default-follow account? This cannot be changed later without using the testing override.')) return;
+    setConfirmDialog({
+      title: isChange ? 'Change Default Account' : 'Set Default Account',
+      message: isChange
+        ? 'Change the default-follow account to this user? New signups will start following them instead.'
+        : 'Set this as the permanent default-follow account? This cannot be changed later without using the testing override.',
+      confirmLabel: isChange ? 'Change' : 'Set',
+      onConfirm: () => performSetDefault(userId, isChange),
+    });
+  }
+
+  async function performSetDefault(userId: string, isChange: boolean) {
     setSettingId(userId);
     setError('');
     try {
@@ -103,6 +113,7 @@ export function DefaultFollowConfigManager() {
 
   return (
     <div>
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Default follow account</h2>
         <p className="text-xs text-gray-400 mt-0.5">

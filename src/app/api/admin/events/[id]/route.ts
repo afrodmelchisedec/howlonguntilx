@@ -24,6 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     reviewerId?: string | null;
     reviewEnabled?: boolean;
     published?: boolean;
+    isCalendar?: boolean;
   };
   try {
     body = await req.json();
@@ -40,6 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     reviewEnabled?: boolean;
     reviewedAt?: Date | null;
     published?: boolean;
+    isCalendar?: boolean;
     publishedAt?: Date | null;
   } = {};
 
@@ -85,6 +87,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
+  if ('isCalendar' in body) data.isCalendar = !!body.isCalendar;
+
   const updated = await prisma.event.update({
     where: { id: params.id },
     data,
@@ -94,6 +98,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   revalidatePath('/users');
   revalidatePath('/categories');
   revalidatePath('/questions/how-long-until-' + updated.slug);
+  revalidatePath('/calendar');
   await invalidateEventCache(updated.slug);
 
   return NextResponse.json(updated);

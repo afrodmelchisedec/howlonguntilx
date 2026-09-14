@@ -5,6 +5,14 @@ export interface CountdownData {
   hours_left: number;
   minutes_left: number;
   seconds_left: number;
+  // Elapsed time SINCE target_date, only meaningful when is_past is true.
+  // Kept separate from the *_left fields (which stay 0 when past) so any
+  // existing consumer relying on "*_left === 0 means past" keeps working
+  // unchanged — these are purely additive.
+  elapsed_days: number;
+  elapsed_hours: number;
+  elapsed_minutes: number;
+  elapsed_seconds: number;
   progress_percent: number;
   is_past: boolean;
 }
@@ -24,7 +32,7 @@ export function buildCountdownResponse(name: string, target: Date): CountdownDat
   const cycleMs = 365 * 86_400_000;
   const elapsed = cycleMs - absDiff;
   const progress = isPast ? 100 : Math.max(0, Math.min(100, Math.round((elapsed / cycleMs) * 100)));
-  
+
   return {
     event: name,
     target_date: target.toISOString(),
@@ -32,6 +40,10 @@ export function buildCountdownResponse(name: string, target: Date): CountdownDat
     hours_left: isPast ? 0 : hours,
     minutes_left: isPast ? 0 : minutes,
     seconds_left: isPast ? 0 : seconds,
+    elapsed_days: isPast ? days : 0,
+    elapsed_hours: isPast ? hours : 0,
+    elapsed_minutes: isPast ? minutes : 0,
+    elapsed_seconds: isPast ? seconds : 0,
     progress_percent: progress,
     is_past: isPast,
   };

@@ -16,6 +16,14 @@ interface SeoOpportunity {
   status: 'DISCOVERED' | 'REVIEWED' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
   eventSlug: string | null;
   reviewNotes: string | null;
+  updatedAt: string;
+}
+
+interface CategoryOption {
+  id: number;
+  slug: string;
+  name: string;
+  parentId: number | null;
 }
 
 interface SeoRun {
@@ -52,6 +60,22 @@ function scoreBadge(score: number) {
   );
 }
 
+// "Marked done" caption for the calendar checkbox — reads off the existing
+// updatedAt column, which the REVIEWED-status PATCH already bumps, so no new
+// DB field is needed. Note: updatedAt also moves on Approve/Reject/Publish,
+// so this reflects "last status change", not strictly "last time this box
+// was checked" if those other actions happen afterward too.
+function formatWorkedTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const diffSec = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+  const rel = diffSec < 60 ? `${diffSec}s ago`
+    : diffSec < 3600 ? `${Math.floor(diffSec / 60)}m ago`
+    : diffSec < 86400 ? `${Math.floor(diffSec / 3600)}h ago`
+    : `${Math.floor(diffSec / 86400)}d ago`;
+  return `Marked done ${dateStr} (${rel})`;
+}
+
 // ---------------------------------------------------------------------------
 // Content Calendar: turns the top-scoring keyword in each SERP cluster into
 // a copy-pasteable content brief for an external Claude conversation to turn
@@ -82,10 +106,118 @@ function classifyContentType(o: SeoOpportunity): ContentType {
   const hasMonthDay = new RegExp(`\\b${MONTH}\\s+\\d{1,2}(st|nd|rd|th)?\\b`, 'i').test(kw)
     || new RegExp(`\\b\\d{1,2}(st|nd|rd|th)?\\s+(of\\s+)?${MONTH}\\b`, 'i').test(kw);
   const hasNamedHoliday = /\b(christmas|easter|halloween|thanksgiving|new\s*year'?s?(\s*(day|eve))?|valentine'?s?\s*day|hanukkah|chanukah|diwali|ramadan|eid(\s*al[-\s]?(fitr|adha))?|st\.?\s*patrick'?s?\s*day|independence\s*day|labor\s*day|memorial\s*day|mother'?s?\s*day|father'?s?\s*day|black\s*friday|cyber\s*monday|super\s*bowl|election\s*day)\b/i.test(kw);
-  const hasTargetYear = /\b(until|till|to|before)\s+\d{4}\b/i.test(kw);
+  const hasTargetYear = /\b(until|till|to|before)\s+\d{4}\b/i.test(kw)
+    || /\b(ago\s+was|was|since)\s+\d{4}\b/i.test(kw); // catches "ago was 2020", "since 2020" -- date-anchored, needs live daysSince tokens, not a static Article
   const hasExplicitCalendarDate = /\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/.test(kw);
 
   return (hasMonthDay || hasNamedHoliday || hasTargetYear || hasExplicitCalendarDate) ? 'event' : 'article';
+}
+
+const MONTH_NAMES: Record<string, number> = {
+  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5,
+  jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
+};
+
+// Only holidays with a FIXED calendar date each year -- Thanksgiving, Easter, Labor/Memorial
+// Day, Election Day, Black Friday, Ramadan/Eid/Diwali/Hanukkah etc. are deliberately excluded
+// because their date moves year to year and cannot be computed without a real calendar library;
+// keywords for those fall through to a null return below and are excluded from the dated
+// 30-40-day Event calendar window until someone adds a proper mover-holiday calculation.
+const FIXED_HOLIDAYS: { regex: RegExp; month: number; day: number }[] = [
+  { regex: /christmas/i, month: 12, day: 25 },
+  { regex: /halloween/i, month: 10, day: 31 },
+  { regex: /new\s*year'?s?\s*eve/i, month: 12, day: 31 },
+  { regex: /new\s*year'?s?(\s*day)?/i, month: 1, day: 1 },
+  { regex: /valentine'?s?\s*day/i, month: 2, day: 14 },
+  { regex: /st\.?\s*patrick'?s?\s*day/i, month: 3, day: 17 },
+  { regex: /independence\s*day/i, month: 7, day: 4 },
+];
+
+function startOfUtcDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+function daysBetweenUtc(from: Date, to: Date): number {
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.round((startOfUtcDay(to).getTime() - startOfUtcDay(from).getTime()) / MS_PER_DAY);
+}
+
+function nextOccurrence(month: number, day: number, now: Date): Date {
+  const year = now.getUTCFullYear();
+  let d = new Date(Date.UTC(year, month - 1, day));
+  if (d.getTime() < startOfUtcDay(now).getTime()) d = new Date(Date.UTC(year + 1, month - 1, day));
+  return d;
+}
+
+// Best-effort: pulls an actual calendar date out of a keyword string so the Event calendar can
+// be filtered to events happening in 30-40 days (Google's indexing lag means writing about an
+// event closer than that rarely ranks in time). Returns null when no fixed date can be found --
+// see the FIXED_HOLIDAYS comment above for why some event-shaped keywords still return null.
+function estimateEventDate(keyword: string, now: Date = new Date()): Date | null {
+  const kw = keyword.toLowerCase();
+
+  const slash = kw.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+  if (slash) {
+    const month = parseInt(slash[1], 10);
+    const day = parseInt(slash[2], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      if (slash[3]) {
+        let year = parseInt(slash[3], 10);
+        if (year < 100) year += 2000;
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+      return nextOccurrence(month, day, now);
+    }
+  }
+
+  const monthPattern = Object.keys(MONTH_NAMES).sort((a, b) => b.length - a.length).join('|');
+  const md = kw.match(new RegExp('\\b(' + monthPattern + ')\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s*(\\d{4}))?\\b', 'i'));
+  if (md) {
+    const month = MONTH_NAMES[md[1].toLowerCase()];
+    const day = parseInt(md[2], 10);
+    if (md[3]) return new Date(Date.UTC(parseInt(md[3], 10), month - 1, day));
+    return nextOccurrence(month, day, now);
+  }
+  const dm = kw.match(new RegExp('\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(' + monthPattern + ')\\b', 'i'));
+  if (dm) {
+    const day = parseInt(dm[1], 10);
+    const month = MONTH_NAMES[dm[2].toLowerCase()];
+    return nextOccurrence(month, day, now);
+  }
+
+  for (const h of FIXED_HOLIDAYS) {
+    if (h.regex.test(kw)) {
+      const explicitYear = kw.match(/\b(20\d{2})\b/);
+      if (explicitYear) return new Date(Date.UTC(parseInt(explicitYear[1], 10), h.month - 1, h.day));
+      return nextOccurrence(h.month, h.day, now);
+    }
+  }
+
+  const yearOnly = kw.match(/\b(?:until|till|to|before)\s+(\d{4})\b/i);
+  if (yearOnly) return new Date(Date.UTC(parseInt(yearOnly[1], 10), 0, 1));
+
+  return null;
+}
+
+// When the pipeline extracted a clean entity (e.g. "Christmas"), use it as-is
+// — buildFaqList (src/lib/seo.ts) wraps plain entity names in its own
+// "How long until X?" / "How many days ago was X?" templates. But plenty of
+// keywords have NO discrete entity to extract because the keyword itself
+// already *is* the natural-language question (e.g. "how many days ago was
+// 2020"). Passing that through unchanged used to publish it as the event's
+// literal name, which buildFaqList would then wrap AGAIN into things like
+// "How long ago was how many days ago was 2020?" — doubled, and prior to the
+// tense fix, also stuck in future-tense "until" phrasing regardless of the
+// target date. Formatting it as a real, capitalized, question-mark-terminated
+// question instead lets buildFaqList's alreadyPhrased branch treat the name
+// AS the question, matching what was actually searched for.
+function defaultEventName(o: SeoOpportunity): string {
+  if (o.entity) return o.entity;
+  const raw = o.keyword.trim();
+  if (!raw) return raw;
+  const capitalized = raw.charAt(0).toUpperCase() + raw.slice(1);
+  return /[?!.]$/.test(capitalized) ? capitalized : `${capitalized}?`;
 }
 
 const EVENT_SCHEMA_BLOCK = [
@@ -94,7 +226,7 @@ const EVENT_SCHEMA_BLOCK = [
   '    "slug": "kebab-case-slug",',
   '    "name": "Display name of the event/date, e.g. \\"Christmas\\"",',
   '    "targetDate": "YYYY-MM-DD",',
-  '    "categorySlug": "one of the site\'s existing category slugs (ask if unsure)",',
+  '    "categorySlug": "must exactly match one slug from the VALID CATEGORY SLUGS list above",',
   '    "description": "1-2 sentence meta description",',
   '    "heroImageUrl": "/images/questions/descriptive-filename.jpeg",',
   '    "heroImageAlt": "descriptive alt text",',
@@ -110,6 +242,75 @@ const EVENT_SCHEMA_BLOCK = [
   '  }',
   ']',
 ].join('\n');
+
+const EVENT_EVERGREEN_SCHEMA_BLOCK = [
+  '[',
+  '  {',
+  '    "slug": "<recurrenceKey, e.g. \\"september-14\\" — bare, no year, PERMANENT>",',
+  '    "name": "Display name, e.g. \\"September 14\\"",',
+  '    "targetDate": "YYYY-MM-DD (the NEXT upcoming occurrence from today — a safe initial value only; recurrenceKey below overrides this on every render forever, so it never needs manual bumping)",',
+  '    "categorySlug": "must exactly match one slug from the VALID CATEGORY SLUGS list above",',
+  '    "description": "1-2 sentence meta description",',
+  '    "heroImageUrl": "/images/questions/descriptive-filename.jpeg",',
+  '    "heroImageAlt": "descriptive alt text",',
+  '    "content": {',
+  '      "recurrenceKey": "<MUST exactly equal the slug above>",',
+  '      "heroFact": "one punchy, quotable sentence — this is what AI Overviews / featured snippets will lift verbatim, so it must fully answer the primary question on its own",',
+  '      "quickFacts": [{ "label": "...", "value": "..." }],',
+  '      "body": [{ "type": "paragraph" | "heading", "text": "..." }],',
+  '      "faqs": [{ "question": "...", "answer": "..." }],',
+  '      "sources": [{ "label": "...", "url": "..." }],',
+  '      "lastReviewed": "YYYY-MM-DD"',
+  '    }',
+  '  }',
+  ']',
+].join('\n');
+
+const MONTH_SLUG_NAMES = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
+// Generalizes the curated DATE_DEFS/YEARLY_TEMPLATES system (dateResolvers.ts,
+// yearlyEventTemplates.ts) to ANY plain month/day keyword the pipeline finds,
+// without hand-registering it there. Deliberately excludes keywords naming an
+// explicit year (those become an ordinary one-off dated Event instead) and
+// moving-date holidays (no generic month/day resolver exists for those).
+function evergreenRecurrenceKey(keyword: string): { recurrenceKey: string; entityLabel: string } | null {
+  const kw = keyword.toLowerCase();
+  if (/\b(19|20)\d{2}\b/.test(kw)) return null;
+  const MONTH = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  const monthFirst = kw.match(new RegExp(`\\b${MONTH}\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, 'i'));
+  const dayFirst = !monthFirst ? kw.match(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MONTH}\\b`, 'i')) : null;
+  const match = monthFirst ?? dayFirst;
+  if (!match) return null;
+  const monthWord = monthFirst ? match[1] : match[2];
+  const dayNum = monthFirst ? match[2] : match[1];
+  const monthFull = MONTH_SLUG_NAMES.find(m => m.startsWith(monthWord.toLowerCase()));
+  const day = parseInt(dayNum, 10);
+  if (!monthFull || day < 1 || day > 31) return null;
+  return {
+    recurrenceKey: `${monthFull}-${day}`,
+    entityLabel: `${monthFull.charAt(0).toUpperCase()}${monthFull.slice(1)} ${day}`,
+  };
+}
+
+function buildEvergreenInstructions(recurrenceKey: string, entityLabel: string): string[] {
+  const [monthSlug, dayStr] = recurrenceKey.split('-');
+  const day = dayStr.padStart(2, '0');
+  const monthNum = (MONTH_SLUG_NAMES.indexOf(monthSlug) + 1).toString().padStart(2, '0');
+  const thisYear = new Date().getUTCFullYear();
+  const years = [thisYear + 1, thisYear + 2, thisYear + 3];
+  return [
+    'EVERGREEN BARE-SLUG EVENT (recurrenceKey — resets automatically every year, no manual upkeep)',
+    '-'.repeat(60),
+    `This keyword has no fixed year attached (${entityLabel} happens every year), so this must be`,
+    'published as a PERMANENT bare-slug Event, not a one-off dated page. Set "recurrenceKey" inside',
+    `content to EXACTLY "${recurrenceKey}" — matching the top-level "slug" — so the live countdown`,
+    `recomputes to the next occurrence of ${entityLabel} on every page load, forever, automatically.`,
+    '',
+    'Add extra-year FAQ entries using self-updating date tokens (see DYNAMIC DATE TOKENS below)',
+    'instead of a number you compute yourself — these never go stale either:',
+    ...years.map(y => `  { "question": "How long until ${entityLabel} ${y}?", "answer": "There are {{daysUntil:${y}-${monthNum}-${day}}} days until ${entityLabel} ${y}." }`),
+  ];
+}
 
 const ARTICLE_SCHEMA_BLOCK = [
   '[',
@@ -160,6 +361,7 @@ const ARTICLE_SEO_CHECKLIST = [
   '\u2610 motherQuestion itself reads as a genuine question: starts with How/What/Why/When/Do/Does/Can/Will/Is/Are and ends in "?" (5%).',
   '\u2610 One of the FIRST 4 entries in "blocks" is a heading whose text contains a digit, e.g. "How Long Until X? (18\u201324 Weeks)" \u2014 surfaces the numeric answer near the top for featured snippets (10%).',
   '\u2610 At least one internal link inside a paragraph block\'s text, markdown-style, pointing to a relative path on this site, e.g. "[Medications & Metabolism](/medications-metabolism)" \u2014 an external https:// link does NOT count (10%).',
+  '\u2610 If this is a date-relative keyword ("X days ago/from now"), every calendar date and weekday in the content uses a {{dateN...}}/{{weekdayN...}} token \u2014 zero hardcoded dates.',
 ];
 
 const IMAGE_PLAN_BLOCK = [
@@ -169,7 +371,7 @@ const IMAGE_PLAN_BLOCK = [
   '      "purpose": "hero",',
   '      "filename": "seo-optimized-hyphenated-descriptive-name.jpeg",',
   '      "altText": "descriptive alt text for accessibility and image SEO",',
-  '      "googleFlowPrompt": "detailed visual prompt for Google Flow — describe scene, mood, style, lighting; no text/words rendered in the image"',
+  '      "googleFlowPrompt": "detailed visual prompt for Google Flow — ultra-realistic photo of a real scene with people/gadgets/context where relevant, vibrant saturated colors, specific lighting and setting; no text/words rendered in the image"',
   '    },',
   '    { "purpose": "supporting", "filename": "...", "altText": "...", "googleFlowPrompt": "..." },',
   '    { "purpose": "explanatory", "filename": "...", "altText": "...", "googleFlowPrompt": "..." }',
@@ -177,15 +379,155 @@ const IMAGE_PLAN_BLOCK = [
   '}',
 ].join('\n');
 
+const EVENT_DYNAMIC_TOKENS_BLOCK = [
+  'DYNAMIC DATE TOKENS (resolved live at render time — src/lib/dynamicTokens.ts)',
+  '-'.repeat(60),
+  'This keyword involves a day-count that changes daily — do NOT hardcode a number that will',
+  'go stale. Write the token text itself; resolveDynamicTokensDeep() substitutes the live value',
+  'on every page load. Tokens work inside heroFact, quickFacts, body (paragraph/heading text),',
+  'timeline, and faqs — anywhere inside the "content" object.',
+  '',
+  '  {{daysSince:YYYY-MM-DD}}    e.g. "2,446"   (days from that date to today)',
+  '  {{weeksSince:YYYY-MM-DD}}   e.g. "349"',
+  '  {{monthsSince:YYYY-MM-DD}}  e.g. "94"',
+  '  {{humanSince:YYYY-MM-DD}}   e.g. "6 years, 8 months, 11 days"',
+  '  {{daysUntil:YYYY-MM-DD}}    e.g. "131"     (days from today to that date; clamps to 0 once past)',
+  '  {{weeksUntil:YYYY-MM-DD}}   e.g. "18"',
+  '  {{monthsUntil:YYYY-MM-DD}}  e.g. "4"',
+  '  {{humanUntil:YYYY-MM-DD}}   e.g. "4 months, 12 days"',
+  '  {{today}}                   e.g. "September 12, 2026"',
+  '',
+  'Use "Since" tokens when targetDate is in the past, "Until" tokens when it\'s in the future.',
+  'YYYY-MM-DD is always a fixed reference date (this event\'s targetDate, or another specific',
+  'date named in the prose) — write the literal token text, never a number you computed yourself.',
+  'Example for "how many days ago was 2020": heroFact could read "It has been',
+  '{{daysSince:2020-01-01}} days since January 1, 2020."',
+];
+
+type DateOffsetUnit = 'day' | 'week' | 'month';
+type DateOffsetInfo = { amount: number; unit: DateOffsetUnit; direction: 'ago' | 'fromNow' };
+
+function normalizeOffsetUnit(u: string): DateOffsetUnit {
+  if (u.startsWith('week')) return 'week';
+  if (u.startsWith('month')) return 'month';
+  return 'day';
+}
+
+// Detects keywords whose ANSWER is a calendar date that shifts every day — "what
+// was 90 days ago", "what day is 45 days from now", "in 3 weeks" — as opposed to
+// a static duration/conversion fact like "how many days is 72 hours" (always
+// true, never shifts). This is the deciding factor for whether the brief
+// demands dynamic tokens.
+function parseDateOffsetKeyword(keyword: string): DateOffsetInfo | null {
+  const kw = keyword.toLowerCase();
+  const UNIT = '(day|days|week|weeks|month|months)';
+
+  const ago = kw.match(new RegExp(`\\b(\\d+)\\s*${UNIT}\\s+ago\\b`, 'i'));
+  if (ago) return { amount: parseInt(ago[1], 10), unit: normalizeOffsetUnit(ago[2]), direction: 'ago' };
+
+  const fromNow = kw.match(new RegExp(`\\b(\\d+)\\s*${UNIT}\\s+(from\\s+now|from\\s+today|hence)\\b`, 'i'));
+  if (fromNow) return { amount: parseInt(fromNow[1], 10), unit: normalizeOffsetUnit(fromNow[2]), direction: 'fromNow' };
+
+  const inX = kw.match(new RegExp(`\\bin\\s+(\\d+)\\s*${UNIT}\\b`, 'i'));
+  if (inX) return { amount: parseInt(inX[1], 10), unit: normalizeOffsetUnit(inX[2]), direction: 'fromNow' };
+
+  return null;
+}
+
+const OFFSET_UNIT_LABEL: Record<DateOffsetUnit, string> = { day: 'Days', week: 'Weeks', month: 'Months' };
+
+function offsetTokenName(kind: 'date' | 'weekday', info: DateOffsetInfo): string {
+  const dir = info.direction === 'ago' ? 'Ago' : 'FromNow';
+  return `${kind}N${OFFSET_UNIT_LABEL[info.unit]}${dir}`;
+}
+
+// The brief block for date-relative Articles — parallel to EVENT_DYNAMIC_TOKENS_BLOCK,
+// but tailored to the SPECIFIC offset in this keyword so the exact token name/amount
+// is spelled out, not left for whoever writes the article to assemble themselves.
+// NOTE: this assumes src/lib/dynamicTokens.ts has been extended with the matching
+// dateNDaysAgo/weekdayNDaysAgo/etc. resolvers and that the Article render path calls
+// resolveDynamicTokensDeep on shortAnswer/blocks/faqs — see the two companion patch
+// files. If either isn't done yet, tokens in the generated JSON will render as literal
+// unresolved text on the page.
+function buildArticleDateOffsetTokensBlock(info: DateOffsetInfo): string[] {
+  const dateTok = `{{${offsetTokenName('date', info)}:${info.amount}}}`;
+  const weekdayTok = info.unit === 'day' ? `{{${offsetTokenName('weekday', info)}:${info.amount}}}` : null;
+  const dirWord = info.direction === 'ago' ? 'ago' : 'from today';
+  const plural = info.amount === 1 ? '' : 's';
+
+  return [
+    'DYNAMIC DATE TOKENS (resolved live at render time — src/lib/dynamicTokens.ts)',
+    '-'.repeat(60),
+    `This keyword's answer is a calendar date that shifts every single day — it always means`,
+    `"today ${info.amount} ${info.unit}${plural} ${dirWord}". Never hardcode a specific date or`,
+    'weekday anywhere in this content. Use the tokens below instead — resolveDynamicTokensDeep()',
+    'substitutes the live value on every page load, forever, with zero manual updates required.',
+    'Tokens work inside shortAnswer, every block\'s "text", and every faqs[].a.',
+    '',
+    `  ${dateTok}`,
+    `      e.g. "June 16, 2026" — today ${dirWord}, as a full formatted date.`,
+    ...(weekdayTok
+      ? [`  ${weekdayTok}`, `      e.g. "Tuesday" — weekday name only, for "...was a Tuesday" phrasing.`]
+      : []),
+    '  {{today}}',
+    '      e.g. "September 14, 2026" — today\'s own date, for the anchor sentence.',
+    '  {{todayWeekday}}',
+    '      e.g. "Monday" — today\'s weekday name alone.',
+    '',
+    `Anchor-sentence pattern for shortAnswer: "As of {{today}}, ${info.amount} ${info.unit}${plural} ${dirWord} was ${dateTok}."`,
+    'Reuse the SAME tokens everywhere else the date or weekday comes up (the "what day of the',
+    'week" section, any FAQ answer, the conclusion) — never re-type the date as plain text once',
+    'it has already been introduced. Inconsistent tokens vs. hardcoded text is worse than no',
+    'tokens at all, because the two will silently disagree with each other after enough days pass.',
+  ];
+}
+
+// For genuinely static Articles (unit conversions, typical-value ranges) where the fact
+// itself never changes — replaces the old blanket "don't use tokens yet" caveat now that
+// tokens ARE supported for the keywords that actually need them.
+const ARTICLE_STATIC_NO_DATE_NOTE = [
+  'DYNAMIC DATE TOKENS — NOT NEEDED FOR THIS TOPIC',
+  '-'.repeat(60),
+  'This keyword\'s answer is a fixed conversion or typical-value fact that does NOT change day',
+  'to day (e.g. "72 hours is 3 days" is true forever). Write real, permanent numbers — no',
+  '{{...}} token required anywhere in this content.',
+];
+
+// Formats the SAME categoryOptions state the Publish modal's dropdown already
+// uses, so the brief always lists whatever is actually in the categories
+// table right now -- no separate hardcoded list to fall out of sync with it.
+function formatCategoryOptionsList(categoryOptions: { slug: string; label: string }[]): string {
+  if (!categoryOptions || categoryOptions.length === 0) {
+    return '(category list failed to load in the admin panel -- retry loading it there before publishing; do not guess a slug)';
+  }
+  return categoryOptions
+    .map(c => c.slug + '  --  ' + c.label)
+    .join('\n');
+}
+
 function buildContentBrief(
   primary: SeoOpportunity,
   related: SeoOpportunity[],
   dayNumber: number,
-  voice: { name: string; systemPrompt: string } | null
+  voice: { name: string; systemPrompt: string } | null,
+  categoryOptions: { slug: string; label: string }[]
 ): string {
   const contentType = classifyContentType(primary);
-  const schema = contentType === 'event' ? EVENT_SCHEMA_BLOCK : ARTICLE_SCHEMA_BLOCK;
+  const evergreen = contentType === 'event' ? evergreenRecurrenceKey(primary.keyword) : null;
+  // Only meaningful for Articles — Events always get EVENT_DYNAMIC_TOKENS_BLOCK below
+  // regardless, since every Event already anchors to a fixed targetDate.
+  const dateOffset = contentType === 'article' ? parseDateOffsetKeyword(primary.keyword) : null;
+  const schema = contentType === 'event' ? (evergreen ? EVENT_EVERGREEN_SCHEMA_BLOCK : EVENT_SCHEMA_BLOCK) : ARTICLE_SCHEMA_BLOCK;
   const seoChecklist = contentType === 'event' ? EVENT_SEO_CHECKLIST : ARTICLE_SEO_CHECKLIST;
+  // Replaces the old single ternary against ARTICLE_DYNAMIC_TOKENS_CAVEAT — now branches
+  // three ways instead of two, since Articles split into date-relative vs. static.
+  const dynamicTokensBlock =
+    contentType === 'event'
+      ? EVENT_DYNAMIC_TOKENS_BLOCK
+      : dateOffset
+        ? buildArticleDateOffsetTokensBlock(dateOffset)
+        : ARTICLE_STATIC_NO_DATE_NOTE;
+  const categorySlugList = formatCategoryOptionsList(categoryOptions);
   const relatedList = related.length
     ? related.map(r => `- "${r.keyword}" (vol ${r.volume}, KD ${r.kd ?? '?'}) — cover as a supporting section or FAQ, not a separate page`).join('\n')
     : '- (none detected in this cluster — this keyword stood alone in the SERP-overlap analysis)';
@@ -213,7 +555,13 @@ function buildContentBrief(
     '',
     `PRIMARY TARGET KEYWORD: "${primary.keyword}"`,
     `Search volume: ${primary.volume}/mo   Keyword difficulty: ${primary.kd ?? 'unknown'}   Trend: ${primary.trend}   Opportunity score: ${primary.opportunityScore}`,
-    `Recommended content type: ${contentType === 'event' ? 'Event (dated countdown)' : 'Article (duration/informational, no fixed date)'}`,
+    `Recommended content type: ${
+      contentType === 'event'
+        ? (evergreen ? 'Event (evergreen bare-slug — resets automatically every year)' : 'Event (dated countdown)')
+        : dateOffset
+          ? 'Article (date-relative — MUST use dynamic tokens, see below)'
+          : 'Article (static duration/informational, no date dependency)'
+    }`,
     '  — Confirm this fits before writing: Event needs a real, specific calendar date;',
     '    Article suits a question with a range/typical-value answer instead of one date.',
     '',
@@ -240,6 +588,14 @@ function buildContentBrief(
     '   (Tone, humor, length, and structure for THIS content come from Layer 1 above, not from here —',
     '   these two layers are deliberately kept separate so SEO strategy can change without touching voice.)',
     '',
+    'VALID CATEGORY SLUGS (categorySlug must be EXACTLY one of these -- anything else is rejected on import)',
+    '-'.repeat(60),
+    categorySlugList,
+    '',
+    ...dynamicTokensBlock,
+    '',
+    ...(evergreen ? buildEvergreenInstructions(evergreen.recurrenceKey, evergreen.entityLabel) : []),
+    '',
     ...seoChecklist,
     '',
     'IMAGERY (Google Flow — 3 images per article)',
@@ -254,15 +610,32 @@ function buildContentBrief(
     'needs { "type": "image", "src": "/images/questions/<filename>", "alt": "...", "caption": "..." }.',
     'Only the "hero" entry goes in heroImageUrl/heroImageAlt — the other 2 MUST appear as inline',
     'image blocks in the article/event body itself, or the images will never be visible on the page.',
-    'All 3 Google Flow prompts must explicitly call for a dark, moody color palette — deep charcoal or near-black backgrounds, warm low-key accent lighting, strong contrast — so the generated image reads well against this site\'s dark UI. Never call for bright white backgrounds, flat daylight, or high-key studio lighting.',
+    'Style for all 3 prompts: ultra-realistic photography, not abstract/illustrated/CG-render tech',
+    'art (no floating circuit boards, glowing particle clouds, or generic "digital network" visuals',
+    'unless the topic is literally about circuitry or networks). Each image should feel like a real',
+    'photo of a real moment — a person actually doing the thing the article is about, using a real',
+    'gadget, in a real, lived-in place. Populate scenes with people, objects, gadgets, and context;',
+    'avoid empty/lifeless compositions. Colors should be bold and vibrant/saturated (rich color',
+    'grading, punchy contrast) rather than desaturated or flat.',
+    'Contrast against this site\'s dark UI should come from the image\'s natural content and lighting',
+    '— shoot during golden hour, blue hour, neon-lit interiors/exteriors, or moody dramatic lighting',
+    'where the environment itself skews darker while the subject and accent colors still pop — not',
+    'from forcing every image into a literal near-black studio background. A vibrant sunset street',
+    'scene or a warmly lit indoor shot both work fine. Only actively avoid: flat, shadowless daylight',
+    'against a plain bright-white studio backdrop, since that\'s the one look that visually clashes',
+    'with the dark UI.',
     '',
     'OUTPUT FORMAT',
     '-'.repeat(60),
     'Output the JSON ARRAY below (schema already wrapped in [ ] — the admin importer always expects',
     'an array of items, even for a single one; a bare { } object will be REJECTED with a "Payload',
-    'must be an array" error), fully filled in for this specific topic, followed by the separate',
-    'imagePlan JSON block. No commentary, no markdown code fences, no explanation.',
-    `ONLY the array block above the imagePlan section pastes into the site's admin ${contentType === 'event' ? 'Events' : 'Articles'} JSON-paste field —`,
+    'must be an array" error), fully filled in for this specific topic.',
+    '',
+    'Formatting: output it as a SINGLE fenced code block using ```json ... ``` — valid, parseable',
+    'JSON only inside the fence, no comments, no trailing commas, no truncation. Then output the',
+    'separate imagePlan object (below) as its OWN fenced ```json ... ``` block straight after it.',
+    'No commentary, prose, or explanation before, between, or after the two fenced blocks.',
+    `ONLY the contents of the FIRST fenced block (the article array) paste into the site's admin ${contentType === 'event' ? 'Events' : 'Articles'} JSON-paste field —`,
     'the imagePlan block is for your own image-generation workflow only and must NEVER be pasted',
     'into the admin Events/Articles importer, or the payload will be rejected.',
     '',
@@ -282,7 +655,7 @@ export function SeoPipelinePanel() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [view, setView] = useState<'discovery' | 'calendar'>('discovery');
+  const [view, setView] = useState<'discovery' | 'calendar-event' | 'calendar-article'>('discovery');
   const [copiedDay, setCopiedDay] = useState<number | null>(null);
 
   const [seed, setSeed] = useState('');
@@ -297,9 +670,12 @@ export function SeoPipelinePanel() {
   const [publishSlug, setPublishSlug] = useState('');
   const [publishName, setPublishName] = useState('');
   const [publishDate, setPublishDate] = useState('');
-  const [publishCategorySlug, setPublishCategorySlug] = useState('leisure');
+  const [publishCategorySlug, setPublishCategorySlug] = useState('');
   const [publishBlurb, setPublishBlurb] = useState('');
   const [publishFaq, setPublishFaq] = useState(''); // one "Question? || Answer" per line
+
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
   async function loadRuns() {
     setLoading(true);
@@ -330,9 +706,22 @@ export function SeoPipelinePanel() {
     }
   }
 
+  async function loadCategories() {
+    setCategoriesError(null);
+    try {
+      const res = await fetch('/api/admin/categories?includeEmpty=true');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Failed to load categories (${res.status})`);
+      setCategories(data.categories ?? []);
+    } catch (e) {
+      setCategoriesError(e instanceof Error ? e.message : 'Failed to load categories');
+    }
+  }
+
   useEffect(() => {
     loadRuns();
     loadVoice();
+    loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -365,11 +754,29 @@ export function SeoPipelinePanel() {
     if (res.ok) await loadRuns();
   }
 
+  // Calendar "worked on" checkbox — persists via the existing REVIEWED status
+  // rather than a new DB column. Toggles the WHOLE cluster (primary + every
+  // supporting keyword merged under it), since "done" means the one article
+  // covering all of them is done, not just the primary keyword's own row.
+  async function toggleWorked(primary: SeoOpportunity, related: SeoOpportunity[]) {
+    const nextStatus: SeoOpportunity['status'] = primary.status === 'REVIEWED' ? 'DISCOVERED' : 'REVIEWED';
+    const ids = [primary.id, ...related.map(r => r.id)];
+    await Promise.all(ids.map(id =>
+      fetch(`/api/admin/seo/opportunities/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      })
+    ));
+    await loadRuns();
+  }
+
   function openPublishForm(o: SeoOpportunity) {
     setPublishingId(o.id);
     setPublishSlug(o.entity ? o.entity.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '');
-    setPublishName(o.entity ?? o.keyword);
+    setPublishName(defaultEventName(o));
     setPublishDate('');
+    setPublishCategorySlug('');
     setPublishBlurb('');
     setPublishFaq('');
   }
@@ -409,6 +816,28 @@ export function SeoPipelinePanel() {
 
   const selectedRun = runs.find(r => r.id === selectedRunId) ?? null;
 
+  // Flatten the category tree into an ordered, indented option list —
+  // top-level categories first, each immediately followed by its own
+  // subcategories, so the <select> below reads like the tree in
+  // CategoriesManager without needing a nested <optgroup> per parent.
+  const categoryOptions = (() => {
+    const byParent = new Map<number | null, CategoryOption[]>();
+    for (const c of categories) {
+      const key = c.parentId ?? null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    }
+    const ordered: { slug: string; label: string }[] = [];
+    const walk = (parentId: number | null, depth: number) => {
+      for (const c of byParent.get(parentId) ?? []) {
+        ordered.push({ slug: c.slug, label: `${'— '.repeat(depth)}${c.name}` });
+        walk(c.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return ordered;
+  })();
+
   // Group by SERP-overlap cluster so related keywords sit together — the
   // highest-scoring keyword in each cluster is the one to actually write
   // an article for; the rest are candidate FAQ/H2 topics for that SAME
@@ -430,16 +859,28 @@ export function SeoPipelinePanel() {
     return groups;
   })();
 
-  // One cluster per day for 7 days — skips anything already rejected or
-  // published, since those don't need a brief written for them.
-  const calendarDays = clusteredGroups
-    .filter(g => g.items[0].status !== 'REJECTED' && g.items[0].status !== 'PUBLISHED')
+  // Eligible clusters (not rejected/published), split by content type so the
+  // Event and Article calendars are independent 30-day sequences.
+  const eligibleGroups = clusteredGroups
+    .filter(g => g.items[0].status !== 'REJECTED' && g.items[0].status !== 'PUBLISHED');
+
+  const eventCalendarDays = eligibleGroups
+    .filter(g => classifyContentType(g.items[0]) === 'event')
+    .filter(g => {
+      const date = estimateEventDate(g.items[0].keyword);
+      if (!date) return false;
+      const days = daysBetweenUtc(startOfUtcDay(new Date()), date);
+      return days >= 30; // no upper bound — anything 30+ days out qualifies
+    })
     .slice(0, 30)
-    .map((g, idx) => ({
-      dayNumber: idx + 1,
-      primary: g.items[0],
-      related: g.items.slice(1),
-    }));
+    .map((g, idx) => ({ dayNumber: idx + 1, primary: g.items[0], related: g.items.slice(1) }));
+
+  const articleCalendarDays = eligibleGroups
+    .filter(g => classifyContentType(g.items[0]) === 'article')
+    .slice(0, 30)
+    .map((g, idx) => ({ dayNumber: idx + 1, primary: g.items[0], related: g.items.slice(1) }));
+
+  const calendarDays = view === 'calendar-article' ? articleCalendarDays : eventCalendarDays;
 
   async function copyBrief(dayNumber: number, brief: string) {
     try {
@@ -462,11 +903,17 @@ export function SeoPipelinePanel() {
           )}>
           Discovery
         </button>
-        <button onClick={() => setView('calendar')}
+        <button onClick={() => setView('calendar-event')}
           className={'px-3 py-1.5 rounded-lg text-sm font-medium ' + (
-            view === 'calendar' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+            view === 'calendar-event' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
           )}>
-          30-Day Content Calendar
+          30-Day Content Calendar (Events)
+        </button>
+        <button onClick={() => setView('calendar-article')}
+          className={'px-3 py-1.5 rounded-lg text-sm font-medium ' + (
+            view === 'calendar-article' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+          )}>
+          30-Day Content Calendar (Article)
         </button>
       </div>
 
@@ -610,7 +1057,7 @@ export function SeoPipelinePanel() {
         </>
       )}
 
-      {view === 'calendar' && (
+      {(view === 'calendar-event' || view === 'calendar-article') && (
         <div>
           {voiceLoaded && !voice && (
             <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm">
@@ -620,7 +1067,11 @@ export function SeoPipelinePanel() {
           )}
           {!selectedRun && <p className="text-sm text-gray-400">Select a run on the Discovery tab first.</p>}
           {selectedRun && calendarDays.length === 0 && (
-            <p className="text-sm text-gray-400">No eligible keywords left in this run — everything is either rejected or published.</p>
+            <p className="text-sm text-gray-400">
+              {view === 'calendar-event'
+                ? 'No event keywords are 30+ days out yet (moving-date holidays like Thanksgiving or Easter cannot be auto-detected yet).'
+                : 'No eligible keywords left in this run — everything is either rejected or published.'}
+            </p>
           )}
           {selectedRun && calendarDays.length > 0 && (
             <div className="space-y-6">
@@ -633,21 +1084,38 @@ export function SeoPipelinePanel() {
                     </p>
                     <div className="space-y-4">
                       {weekDays.map(({ dayNumber, primary, related }) => {
-                        const brief = buildContentBrief(primary, related, dayNumber, voice);
+                        const brief = buildContentBrief(primary, related, dayNumber, voice, categoryOptions);
                         const contentType = classifyContentType(primary);
+                        const dateOffsetBadge = contentType === 'article' ? parseDateOffsetKeyword(primary.keyword) : null;
                         return (
-                          <div key={primary.id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                          <div key={primary.id} className={`p-4 rounded-xl border bg-white dark:bg-gray-900 ${primary.status === 'REVIEWED' ? 'border-emerald-400 dark:border-emerald-600' : 'border-gray-200 dark:border-gray-800'}`}>
                             <div className="flex items-start justify-between mb-2">
                               <div>
                                 <p className="text-xs font-bold uppercase tracking-widest text-amber-600">Day {dayNumber}</p>
                                 <p className="text-sm font-semibold">{primary.keyword}</p>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                   Vol {primary.volume} · KD {primary.kd ?? '?'} · Score {primary.opportunityScore} ·{' '}
-                                  {contentType === 'event' ? 'Event (dated)' : 'Article (duration/informational)'} ·{' '}
+                                  {contentType === 'event' ? 'Event (dated)' : dateOffsetBadge ? 'Article (dynamic \ud83d\udd04)' : 'Article (static)'} ·{' '}
                                   {related.length} supporting keyword{related.length === 1 ? '' : 's'}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
+                                {primary.status === 'REVIEWED' && primary.updatedAt && (
+                                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                    {formatWorkedTimestamp(primary.updatedAt)}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => toggleWorked(primary, related)}
+                                  title={primary.status === 'REVIEWED' ? 'Mark as not worked on' : 'Mark as worked on'}
+                                  className={`w-6 h-6 flex items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${
+                                    primary.status === 'REVIEWED'
+                                      ? 'bg-emerald-500 border-emerald-500 text-white'
+                                      : 'border-gray-300 dark:border-gray-600 text-transparent hover:border-emerald-400'
+                                  }`}
+                                >
+                                  ✓
+                                </button>
                                 <span
                                   className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
                                     contentType === 'event'
@@ -693,8 +1161,16 @@ export function SeoPipelinePanel() {
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent" />
               <input type="date" value={publishDate} onChange={e => setPublishDate(e.target.value)}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent" />
-              <input value={publishCategorySlug} onChange={e => setPublishCategorySlug(e.target.value)} placeholder="categorySlug"
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent" />
+              <select value={publishCategorySlug} onChange={e => setPublishCategorySlug(e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                <option value="" disabled className="text-gray-400">Select a category…</option>
+                {categoryOptions.map(opt => (
+                  <option key={opt.slug} value={opt.slug} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{opt.label}</option>
+                ))}
+              </select>
+              {categoriesError && (
+                <p className="text-xs text-red-500">{categoriesError} — <button type="button" onClick={loadCategories} className="underline">retry</button></p>
+              )}
               <textarea value={publishBlurb} onChange={e => setPublishBlurb(e.target.value)} placeholder="heroFact / blurb"
                 rows={3} className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent" />
               <textarea value={publishFaq} onChange={e => setPublishFaq(e.target.value)}
@@ -704,7 +1180,7 @@ export function SeoPipelinePanel() {
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setPublishingId(null)} className="px-3 py-1.5 text-sm text-gray-500">Cancel</button>
               <button onClick={() => submitPublish(publishingId)}
-                disabled={!publishSlug || !publishName || !publishDate}
+                disabled={!publishSlug || !publishName || !publishDate || !publishCategorySlug}
                 className="px-3 py-1.5 text-sm rounded-lg bg-amber-600 text-white disabled:opacity-50">
                 Publish
               </button>

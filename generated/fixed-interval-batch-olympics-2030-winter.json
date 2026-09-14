@@ -1,0 +1,102 @@
+[
+  {
+    "slug": "how-long-until-winter-olympics-2030",
+    "name": "2030 French Alps Winter Olympics",
+    "description": "Countdown to the 2030 Winter Olympics in the French Alps, officially scheduled for February 1–17, 2030.",
+    "targetDate": "2030-02-01T00:00:00.000Z",
+    "categorySlug": "time",
+    "heroImageUrl": "/images/questions/2030-french-alps-olympics-hero.jpeg",
+    "heroImageAlt": "Snow-covered French Alps mountain landscape",
+    "heroImagePrompt": "Snow-covered French Alps mountain peaks under a clear blue sky, dramatic golden-hour light on the snow, wide alpine landscape, no people, no text or logos",
+    "authorName": "Afrod M (Msc Statistics at Makerere University)",
+    "content": {
+      "provisional": false,
+      "body": [
+        {
+          "type": "heading",
+          "text": "When Do the 2030 Winter Olympics Start?"
+        },
+        {
+          "type": "paragraph",
+          "text": "The French Alps Winter Olympics are now officially scheduled for February 1 to 17, 2030, with the Paralympic Games following from March 1 to 10. Unlike earlier in the planning process, these dates are locked in, not a placeholder."
+        },
+        {
+          "type": "heading",
+          "text": "A Venue Plan Still Being Finalized"
+        },
+        {
+          "type": "paragraph",
+          "text": "The original plan had ice sports — figure skating, hockey, curling, and short track — hosted in Nice on the Mediterranean coast. That changed in mid-2026 after Nice's newly elected mayor objected to converting the city's football stadium into a temporary ice rink. Organizers and the IOC subsequently agreed to move all ice sports inland to Lyon instead, a decision the IOC approved at the end of June 2026."
+        },
+        {
+          "type": "paragraph",
+          "text": "Speed skating, which France has no dedicated arena for, was originally expected to be hosted in Turin, Italy, reusing a rink from the 2006 Winter Games there. As of mid-2026, however, organizers were instead pursuing an arrangement with the Thialf arena in Heerenveen, Netherlands — long considered speed skating's spiritual home. A fully finalized venue plan, including the exact allocation of every sport, is still expected to be announced later in 2026."
+        },
+        {
+          "type": "paragraph",
+          "text": "The mountain venues have been more settled throughout: Alpine skiing is split between Courchevel and Val d'Isère in Savoie, sliding sports (bobsleigh, luge, skeleton) reuse and upgrade the historic La Plagne track from the Albertville 1992 Games, and cross-country skiing and biathlon are set for La Clusaz and Le Grand-Bornand in Haute-Savoie."
+        },
+        {
+          "type": "heading",
+          "text": "France's Fourth Winter Games"
+        },
+        {
+          "type": "paragraph",
+          "text": "This will be France's fourth time hosting the Winter Olympics, after Chamonix 1924, Grenoble 1968, and Albertville 1992, and its second Olympics in six years following Paris's 2024 Summer Games. In June 2026, the IOC also approved ski mountaineering as a newly added sport for these Games and doubled the athlete quota for it, from 36 to 72 competitors."
+        },
+        {
+          "type": "paragraph",
+          "text": "Because the venue plan is still moving, expect further updates before 2030: the Lyon ice-sports decision was only approved in principle in June 2026, the speed skating arrangement with the Netherlands was still pending final agreement at that point, and the opening ceremony location has not yet been announced."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Are the 2030 Winter Olympics dates confirmed?",
+          "answer": "Yes — the Games are officially scheduled for February 1–17, 2030, with the Paralympics from March 1–10, 2030."
+        },
+        {
+          "question": "Where will ice sports be held at the 2030 Winter Olympics?",
+          "answer": "Lyon, not Nice as originally planned — the IOC approved the change in June 2026 after a dispute over Nice's stadium."
+        },
+        {
+          "question": "Has France hosted the Winter Olympics before?",
+          "answer": "Yes — three times before: Chamonix 1924, Grenoble 1968, and Albertville 1992. 2030 will be the fourth."
+        }
+      ],
+      "sources": [
+        {
+          "label": "Olympics.com — French Alps 2030 FAQ",
+          "url": "https://www.olympics.com/en/news/olympic-winter-games-french-alps-2030-questions-answered-faq"
+        },
+        {
+          "label": "NBC Sports — Lyon Approved for Ice Sports",
+          "url": "https://www.nbcsports.com/olympics/news/french-alps-2030-winter-olympics-lyon-nice"
+        },
+        {
+          "label": "Wikipedia — 2030 Winter Olympics",
+          "url": "https://en.wikipedia.org/wiki/2030_Winter_Olympics"
+        }
+      ],
+      "heroFact": "The 2030 Winter Olympics run February 1–17 in the French Alps — France's fourth time hosting the Winter Games, with ice sports moved to Lyon after a mid-2026 venue dispute in Nice.",
+      "quickFacts": [
+        {
+          "label": "Opening Ceremony",
+          "value": "February 1, 2030"
+        },
+        {
+          "label": "Closing Ceremony",
+          "value": "February 17, 2030"
+        },
+        {
+          "label": "Host",
+          "value": "French Alps, France (4th French Winter Games)"
+        },
+        {
+          "label": "Ice sports venue",
+          "value": "Lyon (changed from original Nice plan, June 2026)"
+        }
+      ],
+      "lastReviewed": "2026-09-01"
+    }
+  }
+]

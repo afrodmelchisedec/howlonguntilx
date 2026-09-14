@@ -12,8 +12,7 @@ interface DeadlineTemplate {
   key: string;
   name: string;
   emoji: string;
-  month: number;
-  day: number;
+  date: string; // ISO — the concrete next occurrence, snapshotted in the DB
   category: Category;
   defaultTarget: number;
 }
@@ -49,23 +48,11 @@ const FREE_SNAP_AMOUNT = 250;
 const PRO_SNAP_AMOUNT = 25;
 const WINDOW_DAYS = 420;
 
-// Fixed geometry — never derived from live drag values, so the bar you're
-// dragging can never re-scale itself mid-gesture.
 const TRACK_HEIGHT = 170;
 const LABEL_HEIGHT = 42;
 const TOP_PADDING = 34;
 const CONTAINER_HEIGHT = TRACK_HEIGHT + LABEL_HEIGHT + TOP_PADDING;
 const COLUMN_WIDTH = 64;
-
-const TEMPLATES: DeadlineTemplate[] = [
-  { key: 'q1',        name: 'Q1 Estimated Tax',       emoji: '📄', month: 4,  day: 15, category: 'quarterly', defaultTarget: 2500 },
-  { key: 'q2',        name: 'Q2 Estimated Tax',       emoji: '📄', month: 6,  day: 16, category: 'quarterly', defaultTarget: 2500 },
-  { key: 'q3',        name: 'Q3 Estimated Tax',       emoji: '📄', month: 9,  day: 15, category: 'quarterly', defaultTarget: 2500 },
-  { key: 'q4',        name: 'Q4 Estimated Tax',       emoji: '📄', month: 1,  day: 15, category: 'quarterly', defaultTarget: 2500 },
-  { key: 'annual',    name: 'Annual Filing Deadline', emoji: '🗂️', month: 4,  day: 15, category: 'federal',   defaultTarget: 4000 },
-  { key: 'extension', name: 'Extension Deadline',     emoji: '⏳', month: 10, day: 15, category: 'federal',   defaultTarget: 0 },
-  { key: 'state',     name: 'State Estimated Tax',    emoji: '🏛️', month: 4,  day: 15, category: 'state',     defaultTarget: 1200 },
-];
 
 const PRESETS: { label: string; emoji: string; keys: string[] }[] = [
   { label: 'W2 Employee',    emoji: '💼', keys: ['annual', 'state'] },
@@ -81,13 +68,6 @@ function startOfToday(): Date {
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
-function nextOccurrence(month: number, day: number): Date {
-  const today = startOfToday();
-  const year = today.getFullYear();
-  let candidate = new Date(year, month - 1, day);
-  if (candidate < today) candidate = new Date(year + 1, month - 1, day);
-  return candidate;
-}
 function daysUntil(dateStr: string): number {
   const target = new Date(dateStr + 'T00:00:00');
   return Math.round((target.getTime() - startOfToday().getTime()) / 86400000);
@@ -98,15 +78,15 @@ function buildFromTemplate(tpl: DeadlineTemplate): Deadline {
     key: tpl.key,
     name: tpl.name,
     emoji: tpl.emoji,
-    date: isoDate(nextOccurrence(tpl.month, tpl.day)),
+    date: tpl.date.slice(0, 10),
     category: tpl.category,
     target: tpl.defaultTarget,
     saved: 0,
     custom: false,
   };
 }
-function defaultDeadlines(): Deadline[] {
-  return TEMPLATES
+function defaultDeadlines(templates: DeadlineTemplate[]): Deadline[] {
+  return templates
     .map(buildFromTemplate)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, FREE_MAX_DEADLINES);
@@ -129,7 +109,6 @@ function urgencyColor(days: number): string {
   return '52, 199, 89';
 }
 
-// ---- inline editable name ----
 function EditableName({ value, onCommit, colorRgb }: { value: string; onCommit: (v: string) => void; colorRgb: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -160,7 +139,6 @@ function EditableName({ value, onCommit, colorRgb }: { value: string; onCommit: 
   );
 }
 
-// ---- inline editable dollar amount ----
 function EditableAmount({ value, onCommit, colorRgb, label }: { value: number; onCommit: (v: number) => void; colorRgb: string; label?: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
@@ -192,7 +170,6 @@ function EditableAmount({ value, onCommit, colorRgb, label }: { value: number; o
   );
 }
 
-// ---- floating hover/drag tooltip ----
 function DragTooltip({ deadline }: { deadline: Deadline }) {
   const catColor = CATEGORY_COLORS[deadline.category];
   const days = daysUntil(deadline.date);
@@ -222,7 +199,8 @@ export function TaxBudgetDeadlines() {
   const maxDeadlines = isPro ? PRO_MAX_DEADLINES : FREE_MAX_DEADLINES;
   const snapAmount = isPro ? PRO_SNAP_AMOUNT : FREE_SNAP_AMOUNT;
 
-  const [deadlines, setDeadlines] = useState<Deadline[]>(() => defaultDeadlines());
+  const [templates, setTemplates] = useState<DeadlineTemplate[]>([]);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [pulse, setPulse] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -241,18 +219,30 @@ export function TaxBudgetDeadlines() {
 
   useEffect(() => { setDeadlines(prev => prev.slice(0, maxDeadlines)); }, [maxDeadlines]);
 
+  // Load the real deadline templates (everyone) + saved config (Pro) in one request.
   useEffect(() => {
-    if (!isPro || configLoaded) return;
+    if (configLoaded) return;
     fetch('/api/tools/tax-budget-deadlines')
       .then(r => r.json())
       .then(data => {
+        const tpls: DeadlineTemplate[] = (data.deadlines || []).map((e: any) => ({
+          key: e.content?.key ?? e.slug,
+          name: e.name,
+          emoji: e.emoji ?? '📄',
+          date: e.targetDate,
+          category: (e.content?.category ?? 'other') as Category,
+          defaultTarget: e.content?.defaultTarget ?? 0,
+        }));
+        setTemplates(tpls);
         if (data.config && Array.isArray(data.config.deadlines) && data.config.deadlines.length > 0) {
           setDeadlines(data.config.deadlines.slice(0, PRO_MAX_DEADLINES));
+        } else {
+          setDeadlines(defaultDeadlines(tpls));
         }
         setConfigLoaded(true);
       })
       .catch(() => setConfigLoaded(true));
-  }, [isPro, configLoaded]);
+  }, [configLoaded]);
 
   const totalTarget = useMemo(() => deadlines.reduce((a, d) => a + d.target, 0), [deadlines]);
   const totalSaved = useMemo(() => deadlines.reduce((a, d) => a + d.saved, 0), [deadlines]);
@@ -294,8 +284,6 @@ export function TaxBudgetDeadlines() {
   }[health];
   const healthColor = { strong: '52, 199, 89', ontrack: '255, 159, 10', behind: '255, 159, 10', urgent: '255, 69, 58' }[health];
 
-  // IMPORTANT: derived only from `target`, never from `saved` — this is what
-  // stops the bar you're dragging from re-scaling itself mid-drag.
   const scaleMax = useMemo(() => Math.max(3000, ...deadlines.map(d => d.target)), [deadlines.map(d => d.target).join('|')]);
 
   const totalsByCategory = useMemo(() => {
@@ -314,7 +302,6 @@ export function TaxBudgetDeadlines() {
 
   const atFreeLimit = !isPro && deadlines.length >= FREE_MAX_DEADLINES;
 
-  // ---- drag to log saved amount ----
   function ratioAtClientY(clientY: number): number {
     if (!trackRef.current) return 0;
     const rect = trackRef.current.getBoundingClientRect();
@@ -349,7 +336,11 @@ export function TaxBudgetDeadlines() {
   }, [handlePointerMove]);
 
   function applyPreset(preset: typeof PRESETS[number]) {
-    const built = preset.keys.map(k => buildFromTemplate(TEMPLATES.find(t => t.key === k)!));
+    if (templates.length === 0) { showToast('Still loading — try again in a moment'); return; }
+    const built = preset.keys
+      .map(k => templates.find(t => t.key === k))
+      .filter((t): t is DeadlineTemplate => !!t)
+      .map(buildFromTemplate);
     if (!isPro && built.length > FREE_MAX_DEADLINES) {
       showToast(`Upgrade to Pro to track all ${built.length} ${preset.label} deadlines at once`, '⭐');
       setDeadlines(built.slice(0, FREE_MAX_DEADLINES));
@@ -360,10 +351,11 @@ export function TaxBudgetDeadlines() {
   }
 
   function addNextTemplate() {
+    if (templates.length === 0) { showToast('Still loading — try again in a moment'); return; }
     if (!isPro && deadlines.length >= FREE_MAX_DEADLINES) { showToast('Upgrade to Pro to track more deadlines', '⭐'); return; }
     if (deadlines.length >= maxDeadlines) { showToast(`You can track up to ${maxDeadlines} deadlines`, '⚠️'); return; }
     const usedKeys = new Set(deadlines.map(d => d.key));
-    const template = TEMPLATES.find(t => !usedKeys.has(t.key));
+    const template = templates.find(t => !usedKeys.has(t.key));
     if (!template) { showToast('All standard deadlines are already added', 'ℹ️'); return; }
     setDeadlines(prev => [...prev, buildFromTemplate(template)]);
   }
@@ -422,7 +414,7 @@ export function TaxBudgetDeadlines() {
     }
   }
   function handleReset() {
-    setDeadlines(defaultDeadlines());
+    setDeadlines(defaultDeadlines(templates));
     setShowCustomForm(false);
     showToast('Reset to defaults', '↺');
   }
@@ -452,7 +444,6 @@ export function TaxBudgetDeadlines() {
     <div style={{ maxWidth: 780, margin: '0 auto' }}>
       <div className="ios-card p-6 sm:p-8" style={{ boxShadow: `0 0 0 1.5px rgba(${GLOW}, 0.25), 0 0 40px rgba(${GLOW}, 0.12)` }}>
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <p className="text-caption mb-1" style={{ color: `rgb(${GLOW})` }}>TAX & BUDGET DEADLINES</p>
@@ -475,7 +466,6 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Safe-Harbor Score */}
         <div className="ios-card-nested p-5 mb-6 flex items-center justify-between flex-wrap gap-4" style={{ background: `rgba(${GLOW}, 0.06)` }}>
           <div>
             <p className="text-caption mb-1">SAFE-HARBOR SCORE</p>
@@ -486,7 +476,6 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Live stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
           {[
             { label: 'Total needed', value: formatMoney(totalTarget) },
@@ -503,7 +492,6 @@ export function TaxBudgetDeadlines() {
           ))}
         </div>
 
-        {/* Quick setup presets */}
         <div className="mb-6">
           <p className="text-footnote font-semibold mb-2">Quick setup — I am a…</p>
           <div className="flex gap-2 flex-wrap">
@@ -515,7 +503,6 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Underfunded-and-close banner */}
         {urgentUnderfunded.length > 0 && (
           <div className="flex flex-col gap-2 mb-6">
             {urgentUnderfunded.map(d => (
@@ -529,7 +516,6 @@ export function TaxBudgetDeadlines() {
           </div>
         )}
 
-        {/* Drag-to-log-savings timeline */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <p className="text-footnote font-semibold">Drag any bar up or down to log how much you've saved</p>
@@ -556,7 +542,6 @@ export function TaxBudgetDeadlines() {
                   className="absolute flex flex-col items-center"
                   style={{ left: `${xPct}%`, bottom: LABEL_HEIGHT, transform: 'translateX(-50%)', width: COLUMN_WIDTH, height: TRACK_HEIGHT }}
                 >
-                  {/* Big grabbable zone — the whole column, not just a sliver */}
                   <div
                     className="absolute inset-0 cursor-ns-resize"
                     style={{ touchAction: 'none' }}
@@ -587,7 +572,6 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Funded-percent line chart */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-footnote font-semibold">Funded % across deadlines</p>
@@ -631,7 +615,6 @@ export function TaxBudgetDeadlines() {
           )}
         </div>
 
-        {/* Category breakdown */}
         <div className="mb-6">
           <p className="text-footnote font-semibold mb-2">Needed by category</p>
           <div className="w-full h-8 rounded-xl overflow-hidden flex" style={{ border: '1px solid var(--border-hairline)' }}>
@@ -656,7 +639,6 @@ export function TaxBudgetDeadlines() {
           </div>
         </div>
 
-        {/* Deadline cards */}
         <div className="flex flex-col gap-2 mb-4">
           {sorted.length === 0 && (
             <div className="ios-card-nested p-6 text-center">

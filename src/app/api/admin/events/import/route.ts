@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { pingIndexNow } from '@/lib/indexnow';
+import { invalidateEventCache } from '@/lib/events';
 import type { Prisma } from '@prisma/client';
 import type { EventContent } from '@/lib/seo';
 
@@ -128,12 +129,14 @@ export async function POST(req: NextRequest) {
         });
 
         results.push({ slug: item.slug, status: 'created' });
-        revalidatePath(`/questions/how-long-until-${item.slug}`);
-        publishedUrls.push(`${BASE}/questions/how-long-until-${item.slug}`);
+        await invalidateEventCache(item.slug);
+        revalidatePath(`/questions/${item.slug}`);
+        publishedUrls.push(`${BASE}/questions/${item.slug}`);
         continue;
       }
 
       const data: Prisma.EventUpdateInput = {};
+      if (item.name !== undefined) data.name = item.name;
       if (item.heroImageUrl !== undefined) data.heroImageUrl = item.heroImageUrl;
       if (item.heroImageAlt !== undefined) data.heroImageAlt = item.heroImageAlt;
       if (item.authorName !== undefined) data.authorName = item.authorName;
@@ -149,9 +152,10 @@ export async function POST(req: NextRequest) {
       });
 
       results.push({ slug: item.slug, status: 'updated' });
+      await invalidateEventCache(item.slug);
 
-      revalidatePath(`/questions/how-long-until-${item.slug}`);
-      publishedUrls.push(`${BASE}/questions/how-long-until-${item.slug}`);
+      revalidatePath(`/questions/${item.slug}`);
+      publishedUrls.push(`${BASE}/questions/${item.slug}`);
     } catch (err) {
       results.push({
         slug: item.slug,

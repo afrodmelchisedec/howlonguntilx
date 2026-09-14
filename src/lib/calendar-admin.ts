@@ -1,23 +1,22 @@
 // FILE: src/lib/calendar-admin.ts
-// Server-only — reads/writes content/calendar/source/*.json for the admin CRUD UI.
+// Server-only — reads/writes calendar-flagged Event rows via Prisma.
 // Never import this from a 'use client' component.
-import fs from 'fs';
-import path from 'path';
+import { prisma } from './db';
 import { CALENDAR_REGIONS } from './calendar-shared';
-
-const SOURCE_DIR = path.join(process.cwd(), 'content', 'calendar', 'source');
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const CALENDAR_REGIONS_SET = new Set<string>(CALENDAR_REGIONS);
+
 export interface CalendarAdminEvent {
   id: string;
-  file: string;
+  file: string; // unused post-migration; kept for shape compatibility with the admin UI
   region: string;
-  isoDate: string;   // YYYY-MM-DD, derived from the entry's "Month Day" + the file's year
-  rawDate: string;    // "Month Day" exactly as stored in the JSON
+  isoDate: string;
+  rawDate: string;
   event: string;
   description: string;
   featured: boolean;
@@ -26,17 +25,7 @@ export interface CalendarAdminEvent {
   color?: string;
 }
 
-interface RawEntry {
-  date: string;
-  event: string;
-  description?: string;
-  slug?: string;
-  emoji?: string;
-  color?: string;
-  featured?: boolean;
-}
-
-export interface EventInput {
+interface EventInput {
   isoDate: string;
   region: string;
   event: string;
@@ -53,157 +42,144 @@ export interface ImportResult {
   error?: string;
 }
 
-function parseIsoDate(dateStr: string, year: number): string | null {
-  const match = dateStr.trim().match(/^([A-Za-z]+)\s+(\d{1,2})/);
-  if (!match) return null;
-  const monthIdx = MONTH_NAMES.findIndex(m => m.toLowerCase() === match[1].toLowerCase());
-  if (monthIdx === -1) return null;
-  const day = match[2].padStart(2, '0');
-  return `${year}-${String(monthIdx + 1).padStart(2, '0')}-${day}`;
+function isoToRawDate(isoDate: string): string {
+  const [, m, d] = isoDate.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${d}`;
 }
 
-function toRawDate(isoDate: string): { rawDate: string; year: number; month: number; day: number } {
-  const [y, m, d] = isoDate.split('-').map(Number);
-  return { rawDate: `${MONTH_NAMES[m - 1]} ${d}`, year: y, month: m, day: d };
+function isoToUtcDate(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00.000Z`);
 }
 
-function sourceFiles(): string[] {
-  if (!fs.existsSync(SOURCE_DIR)) return [];
-  return fs.readdirSync(SOURCE_DIR).filter(f => f.endsWith('.json') && f !== 'TEMPLATE.json');
+function dateToIso(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-function readFile(file: string): any {
-  return JSON.parse(fs.readFileSync(path.join(SOURCE_DIR, file), 'utf8'));
+function dayRange(isoDate: string): { gte: Date; lt: Date } {
+  const start = isoToUtcDate(isoDate);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { gte: start, lt: end };
 }
 
-function writeFile(file: string, data: any) {
-  if (!fs.existsSync(SOURCE_DIR)) fs.mkdirSync(SOURCE_DIR, { recursive: true });
-  fs.writeFileSync(path.join(SOURCE_DIR, file), JSON.stringify(data, null, 2) + '\n', 'utf8');
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/['"]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function emptyMonthFile(year: number) {
-  return { year, united_states: [], europe: [], united_kingdom: [], africa: [], middle_east: [] } as Record<string, any>;
+async function generateUniqueSlug(base: string): Promise<string> {
+  let candidate = base;
+  let suffix = 2;
+  while (await prisma.event.findUnique({ where: { slug: candidate }, select: { id: true } })) {
+    candidate = `${base}-${suffix}`;
+    suffix++;
+  }
+  return candidate;
 }
 
 function validateInput(input: EventInput): string | null {
   if (!input.isoDate || isNaN(new Date(input.isoDate).getTime())) return `Invalid date: "${input.isoDate}"`;
-  if (!input.region || !(CALENDAR_REGIONS as readonly string[]).includes(input.region)) return `Invalid region: "${input.region}"`;
+  if (!input.region || !CALENDAR_REGIONS_SET.has(input.region)) return `Invalid region: "${input.region}"`;
   if (!input.event || !input.event.trim()) return 'Event name is required';
-  if (input.featured && !input.slug) return 'Featured events require a slug (used for the /questions/how-long-until-<slug> countdown page link)';
+  if (input.featured && !input.slug?.trim()) return 'Featured events require a slug (used for the /questions/how-long-until-<slug> countdown page link)';
   return null;
 }
 
-function buildEntry(input: EventInput, rawDate: string): RawEntry {
-  const entry: RawEntry = {
-    date: rawDate,
-    event: input.event,
-    description: input.description ?? '',
-  };
-  if (input.featured) entry.featured = true;
-  if (input.slug) entry.slug = input.slug;
-  if (input.emoji) entry.emoji = input.emoji;
-  if (input.color) entry.color = input.color;
-  return entry;
-}
-
-function toAdminEvent(id: string, file: string, region: string, isoDate: string, rawDate: string, entry: RawEntry): CalendarAdminEvent {
+function toAdminEvent(ev: {
+  id: string; region: string | null; targetDate: Date; name: string;
+  description: string | null; calendarFeatured: boolean; slug: string;
+  emoji: string | null; color: string | null;
+}): CalendarAdminEvent {
+  const isoDate = dateToIso(ev.targetDate);
   return {
-    id, file, region, isoDate, rawDate,
-    event: entry.event, description: entry.description ?? '',
-    featured: !!entry.featured, slug: entry.slug, emoji: entry.emoji, color: entry.color,
+    id: ev.id,
+    file: '',
+    region: ev.region ?? '',
+    isoDate,
+    rawDate: isoToRawDate(isoDate),
+    event: ev.name,
+    description: ev.description ?? '',
+    featured: ev.calendarFeatured,
+    slug: ev.slug,
+    emoji: ev.emoji ?? undefined,
+    color: ev.color ?? undefined,
   };
 }
 
-export function listCalendarAdminEvents(): CalendarAdminEvent[] {
-  const out: CalendarAdminEvent[] = [];
-  for (const file of sourceFiles()) {
-    const raw = readFile(file);
-    const year: number = raw.year ?? new Date().getFullYear();
-    for (const region of Object.keys(raw)) {
-      if (region === 'year') continue;
-      const entries = (raw[region] ?? []) as RawEntry[];
-      entries.forEach((entry, index) => {
-        const isoDate = parseIsoDate(entry.date, year);
-        if (!isoDate) return; // unparsable date (e.g. leftover template row) — skip
-        out.push(toAdminEvent(`${file}::${region}::${index}`, file, region, isoDate, entry.date, entry));
-      });
-    }
-  }
-  return out;
+export async function listCalendarAdminEvents(): Promise<CalendarAdminEvent[]> {
+  const rows = await prisma.event.findMany({
+    where: { isCalendar: true },
+    orderBy: { targetDate: 'asc' },
+  });
+  return rows.map(toAdminEvent);
 }
 
-export function createCalendarEvent(input: EventInput): CalendarAdminEvent {
+export async function createCalendarEvent(input: EventInput): Promise<CalendarAdminEvent> {
   const err = validateInput(input);
   if (err) throw new Error(err);
 
-  const { rawDate, year, month } = toRawDate(input.isoDate);
-  const file = `${year}-${String(month).padStart(2, '0')}-events.json`;
+  const slug = input.slug?.trim() || await generateUniqueSlug(`${slugify(input.event)}-${input.isoDate}`);
 
-  const raw = fs.existsSync(path.join(SOURCE_DIR, file)) ? readFile(file) : emptyMonthFile(year);
-  if (!Array.isArray(raw[input.region])) raw[input.region] = [];
-
-  const entry = buildEntry(input, rawDate);
-  raw[input.region].push(entry);
-  writeFile(file, raw);
-
-  const index = raw[input.region].length - 1;
-  return toAdminEvent(`${file}::${input.region}::${index}`, file, input.region, input.isoDate, rawDate, entry);
+  const created = await prisma.event.create({
+    data: {
+      slug,
+      name: input.event,
+      description: input.description || null,
+      targetDate: isoToUtcDate(input.isoDate),
+      categorySlug: 'time',
+      published: true,
+      isCalendar: true,
+      calendarFeatured: !!input.featured,
+      region: input.region,
+      emoji: input.emoji || null,
+      color: input.color || null,
+    },
+  });
+  return toAdminEvent(created);
 }
 
-export function updateCalendarEvent(id: string, input: EventInput): CalendarAdminEvent {
+export async function updateCalendarEvent(id: string, input: EventInput): Promise<CalendarAdminEvent> {
   const err = validateInput(input);
   if (err) throw new Error(err);
 
-  const [oldFile, oldRegion, oldIndexStr] = id.split('::');
-  const oldIndex = Number(oldIndexStr);
-  if (!oldFile || !oldRegion || isNaN(oldIndex)) throw new Error(`Malformed id: "${id}"`);
-  if (!fs.existsSync(path.join(SOURCE_DIR, oldFile))) throw new Error(`Source file not found: "${oldFile}"`);
-
-  const oldRaw = readFile(oldFile);
-  if (!Array.isArray(oldRaw[oldRegion]) || !oldRaw[oldRegion][oldIndex]) {
+  const existing = await prisma.event.findUnique({ where: { id } });
+  if (!existing || !existing.isCalendar) {
     throw new Error(`Event not found at "${id}" — it may have been edited or deleted elsewhere. Refresh and try again.`);
   }
 
-  const { rawDate, year, month } = toRawDate(input.isoDate);
-  const newFile = `${year}-${String(month).padStart(2, '0')}-events.json`;
+  const slug = input.slug?.trim() || existing.slug;
 
-  // Remove from its old location first.
-  oldRaw[oldRegion].splice(oldIndex, 1);
-  writeFile(oldFile, oldRaw);
-
-  // Insert into the (possibly identical) target file/region.
-  const sameFile = newFile === oldFile;
-  const targetRaw = sameFile
-    ? oldRaw
-    : fs.existsSync(path.join(SOURCE_DIR, newFile)) ? readFile(newFile) : emptyMonthFile(year);
-  if (!Array.isArray(targetRaw[input.region])) targetRaw[input.region] = [];
-
-  const entry = buildEntry(input, rawDate);
-  targetRaw[input.region].push(entry);
-  writeFile(newFile, targetRaw);
-
-  const index = targetRaw[input.region].length - 1;
-  return toAdminEvent(`${newFile}::${input.region}::${index}`, newFile, input.region, input.isoDate, rawDate, entry);
+  try {
+    const updated = await prisma.event.update({
+      where: { id },
+      data: {
+        slug,
+        name: input.event,
+        description: input.description || null,
+        targetDate: isoToUtcDate(input.isoDate),
+        calendarFeatured: !!input.featured,
+        region: input.region,
+        emoji: input.emoji || null,
+        color: input.color || null,
+      },
+    });
+    return toAdminEvent(updated);
+  } catch (e: any) {
+    if (e?.code === 'P2002') throw new Error(`Slug "${slug}" is already used by another event — choose a different slug.`);
+    throw e;
+  }
 }
 
-export function deleteCalendarEvent(id: string): void {
-  const [file, region, indexStr] = id.split('::');
-  const index = Number(indexStr);
-  if (!file || !region || isNaN(index)) throw new Error(`Malformed id: "${id}"`);
-  if (!fs.existsSync(path.join(SOURCE_DIR, file))) throw new Error(`Source file not found: "${file}"`);
-
-  const raw = readFile(file);
-  if (!Array.isArray(raw[region]) || !raw[region][index]) {
+export async function deleteCalendarEvent(id: string): Promise<void> {
+  const existing = await prisma.event.findUnique({ where: { id }, select: { id: true, isCalendar: true } });
+  if (!existing || !existing.isCalendar) {
     throw new Error(`Event not found at "${id}" — it may have already been deleted. Refresh and try again.`);
   }
-  raw[region].splice(index, 1);
-  writeFile(file, raw);
+  await prisma.event.delete({ where: { id } });
 }
 
-// Bulk import: matches an existing entry by (file + region + exact date + exact
-// event name) to decide update vs. create, same "upsert by natural key" spirit
-// as the /api/admin/events/import route (which upserts by slug).
-export function importCalendarEvents(items: EventInput[]): { created: number; updated: number; failed: ImportResult[] } {
+// Bulk import: matches by slug when given (most precise), else by
+// (region + event name + same calendar day) — same natural-key spirit as
+// the original JSON-based importer.
+export async function importCalendarEvents(items: EventInput[]): Promise<{ created: number; updated: number; failed: ImportResult[] }> {
   let created = 0;
   let updated = 0;
   const failed: ImportResult[] = [];
@@ -215,27 +191,59 @@ export function importCalendarEvents(items: EventInput[]): { created: number; up
       continue;
     }
     try {
-      const { rawDate, year, month } = toRawDate(item.isoDate);
-      const file = `${year}-${String(month).padStart(2, '0')}-events.json`;
+      let existing: { id: string } | null = null;
+      if (item.slug?.trim()) {
+        existing = await prisma.event.findUnique({ where: { slug: item.slug.trim() }, select: { id: true } });
+      }
+      if (!existing) {
+        existing = await prisma.event.findFirst({
+          where: {
+            isCalendar: true,
+            region: item.region,
+            name: item.event,
+            targetDate: dayRange(item.isoDate),
+          },
+          select: { id: true },
+        });
+      }
 
-      const raw = fs.existsSync(path.join(SOURCE_DIR, file)) ? readFile(file) : emptyMonthFile(year);
-      if (!Array.isArray(raw[item.region])) raw[item.region] = [];
-
-      const existingIndex = raw[item.region].findIndex(
-        (e: RawEntry) => e.date === rawDate && e.event === item.event
-      );
-      const entry = buildEntry(item, rawDate);
-
-      if (existingIndex !== -1) {
-        raw[item.region][existingIndex] = entry;
+      if (existing) {
+        await prisma.event.update({
+          where: { id: existing.id },
+          data: {
+            name: item.event,
+            description: item.description || null,
+            targetDate: isoToUtcDate(item.isoDate),
+            calendarFeatured: !!item.featured,
+            region: item.region,
+            emoji: item.emoji || null,
+            color: item.color || null,
+            ...(item.slug?.trim() ? { slug: item.slug.trim() } : {}),
+          },
+        });
         updated++;
       } else {
-        raw[item.region].push(entry);
+        const slug = item.slug?.trim() || await generateUniqueSlug(`${slugify(item.event)}-${item.isoDate}`);
+        await prisma.event.create({
+          data: {
+            slug,
+            name: item.event,
+            description: item.description || null,
+            targetDate: isoToUtcDate(item.isoDate),
+            categorySlug: 'time',
+            published: true,
+            isCalendar: true,
+            calendarFeatured: !!item.featured,
+            region: item.region,
+            emoji: item.emoji || null,
+            color: item.color || null,
+          },
+        });
         created++;
       }
-      writeFile(file, raw);
-    } catch (e) {
-      failed.push({ event: item.event ?? '(unknown)', status: 'error', error: e instanceof Error ? e.message : 'Unknown error' });
+    } catch (e: any) {
+      const msg = e?.code === 'P2002' ? `Slug "${item.slug}" is already used by another event` : (e instanceof Error ? e.message : 'Unknown error');
+      failed.push({ event: item.event ?? '(unknown)', status: 'error', error: msg });
     }
   }
 

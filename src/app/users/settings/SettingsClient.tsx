@@ -1,6 +1,7 @@
 // FILE: src/app/users/settings/SettingsClient.tsx
 'use client';
 import { useEffect, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { UpgradeButton } from '@/components/premium/UpgradeButton';
@@ -65,6 +66,7 @@ export function SettingsClient({ session }: Props) {
   const [cancelError, setCancelError] = useState('');
   const [cancellingKeyId, setCancellingKeyId] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => {
     Promise.all([loadBilling(), loadKeys()]).finally(() => setLoading(false));
@@ -84,12 +86,17 @@ export function SettingsClient({ session }: Props) {
       .catch(() => {});
   }
 
-  async function cancelApiKey(k: ApiKeyInfo) {
-    const confirmed = confirm(
-      `Cancel your ${k.tier} API subscription? Your key will stop working immediately.`
-    );
-    if (!confirmed) return;
+  function cancelApiKey(k: ApiKeyInfo) {
+    setConfirmDialog({
+      title: 'Cancel API Subscription',
+      message: `Cancel your ${k.tier} API subscription? Your key will stop working immediately.`,
+      confirmLabel: 'Cancel Subscription',
+      destructive: true,
+      onConfirm: () => performCancelApiKey(k),
+    });
+  }
 
+  async function performCancelApiKey(k: ApiKeyInfo) {
     setCancellingKeyId(k.id);
     setApiKeyError('');
     try {
@@ -111,21 +118,33 @@ export function SettingsClient({ session }: Props) {
     }
   }
 
-  async function deleteAccount() {
-    if (!confirm('Delete your account and all data? This cannot be undone.')) return;
-    await fetch('/api/user', { method: 'DELETE' });
-    signOut({ callbackUrl: '/' });
+  function deleteAccount() {
+    setConfirmDialog({
+      title: 'Delete Account',
+      message: 'Delete your account and all data? This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await fetch('/api/user', { method: 'DELETE' });
+        signOut({ callbackUrl: '/' });
+      },
+    });
   }
 
-  async function cancelSubscription() {
+  function cancelSubscription() {
     if (!billing) return;
-    const confirmed = confirm(
-      billing.subscriptionStatus === 'trialing'
+    setConfirmDialog({
+      title: 'Cancel Subscription',
+      message: billing.subscriptionStatus === 'trialing'
         ? 'Cancel your trial? You\'ll lose Pro access immediately.'
-        : 'Cancel your Pro subscription? You\'ll keep access until the current billing period ends, then move to the Free plan.'
-    );
-    if (!confirmed) return;
+        : 'Cancel your Pro subscription? You\'ll keep access until the current billing period ends, then move to the Free plan.',
+      confirmLabel: 'Cancel Subscription',
+      destructive: true,
+      onConfirm: performCancelSubscription,
+    });
+  }
 
+  async function performCancelSubscription() {
     setCancelling(true);
     setCancelError('');
     try {
@@ -152,6 +171,7 @@ export function SettingsClient({ session }: Props) {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
       <Link href="/users" className="text-sm text-gray-400 hover:text-brand-500 mb-6 block">← Dashboard</Link>
       <h1 className="text-2xl font-medium mb-8">Account settings</h1>
 

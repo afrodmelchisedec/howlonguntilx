@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
 
 interface MyEvent {
   id: string;
@@ -18,29 +19,38 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
   const router = useRouter();
   const { toast, showToast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`Delete "${title}"? This can't be undone.`)) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/user-events/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        showToast('Could not delete event', '⚠️');
-        return;
-      }
-      showToast('Event deleted', '✅');
-      router.refresh();
-    } catch {
-      showToast('Network error — please try again', '⚠️');
-    } finally {
-      setDeletingId(null);
-    }
+  function handleDelete(id: string, title: string) {
+    setConfirmDialog({
+      title: 'Delete Event',
+      message: `Delete "${title}"? This can't be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          const res = await fetch(`/api/user-events/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            showToast('Could not delete event', '⚠️');
+            return;
+          }
+          showToast('Event deleted', '✅');
+          router.refresh();
+        } catch {
+          showToast('Network error — please try again', '⚠️');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   if (events.length === 0) {
     return (
       <div className="text-center py-16 text-sm text-gray-400">
         <ToastHost toast={toast} />
+        <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
         You haven't created any events yet.{' '}
         <Link href="/dashboard/events/new" className="underline">Create one</Link>.
       </div>
@@ -50,6 +60,7 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
   return (
     <div className="space-y-3">
       <ToastHost toast={toast} />
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
       {events.map(ev => (
         <div
           key={ev.id}

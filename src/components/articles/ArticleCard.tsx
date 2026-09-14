@@ -12,6 +12,7 @@ export function ArticleCard({
   heroImageUrl,
   glow,
   category,
+  publicPath,
 }: {
   toolSlug: string;
   slug: string;
@@ -20,12 +21,14 @@ export function ArticleCard({
   heroImageUrl?: string | null;
   glow: string;
   category?: CardCategory;
+  publicPath?: string;
 }) {
+  const resolvedPublicPath = publicPath ?? `/tools/${toolSlug}`;
   const catGlow = category ? getCategoryGlowRGB(category.slug) : null;
   const catLabel = category ? category.slug.charAt(0).toUpperCase() + category.slug.slice(1) : null;
 
   return (
-    <Link href={`/tools/${toolSlug}/${slug}`} className="article-glow-card ios-card-nested press flex flex-col overflow-hidden anim-fade-up" style={{ border: `1px solid rgba(${glow}, 0.2)` }}>
+    <Link href={`${resolvedPublicPath}/${slug}`} className="article-glow-card ios-card-nested press flex flex-col overflow-hidden anim-fade-up" style={{ border: `1px solid rgba(${glow}, 0.2)` }}>
       <img src={heroImageUrl || '/images/default-article-hero.svg'} alt={title} className="w-full aspect-video object-cover" loading="lazy" />
       <div className="p-4 flex flex-col flex-1">
         <h3 className="text-headline article-card-title mb-1">{title}</h3>

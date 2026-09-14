@@ -352,9 +352,9 @@ results.forEach(r => console.log(r.type, r.name, r.href));`}
   {
     "slug": "ces-2027-dates",
     "name": "CES 2027",
-    "category": "tech-events",
+    "category": "upcoming-events",
     "type": "article",
-    "href": "/tools/tech-events/ces-2027-dates"
+    "href": "/tools/upcoming-events/ces-2027-dates"
   }
 ]`}
             />

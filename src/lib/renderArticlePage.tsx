@@ -1,6 +1,7 @@
 // FILE: src/lib/renderArticlePage.tsx
 import { notFound } from 'next/navigation';
 import { getPublishedArticle } from '@/lib/articles';
+import { resolveDynamicTokensDeep } from '@/lib/dynamicTokens';
 import { ArticleLayout } from '@/components/articles/ArticleLayout';
 import { StarField } from '@/components/ui/StarField';
 import { getCategoryGlowRGB } from '@/lib/categoryGlow';
@@ -8,11 +9,17 @@ import { getCategoryGlowRGB } from '@/lib/categoryGlow';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? '';
 
 // TODO: extend with your other tools as you migrate them onto this pattern
-export const TOOL_META: Record<string, { name: string; glow: string }> = {
-  'tech-events': { name: 'Tech Events Calendar', glow: '162, 137, 255' },
+export const TOOL_META: Record<string, { name: string; glow: string; publicPath?: string }> = {
+  'upcoming-events': { name: 'Tech Events Calendar', glow: '162, 137, 255' },
   'dark-sky-explorer': { name: 'Dark Sky Explorer', glow: '110, 231, 183' },
-  'questions': { name: 'Questions', glow: '255, 120, 110' },
+  'questions': { name: 'Questions', glow: '255, 120, 110', publicPath: '/questions' },
 };
+
+// Falls back to the legacy /tools/<toolSlug> pattern for any tool that
+// hasn't been merged onto its own top-level route.
+export function resolvePublicPath(toolSlug: string): string {
+  return TOOL_META[toolSlug]?.publicPath ?? `/tools/${toolSlug}`;
+}
 
 const FALLBACK_IMAGE = '/images/default-article-hero.svg';
 const CATEGORY_DEFAULT_IMAGES: Record<string, string[]> = {
@@ -48,7 +55,12 @@ function resolveHeroImage(article: any): string {
 export async function generateArticleMetadata(toolSlug: string, articleSlug: string) {
   const article = await getPublishedArticle(toolSlug, articleSlug);
   if (!article) return {};
-  const url = `${SITE_URL}/tools/${toolSlug}/${articleSlug}`;
+  // Same dek/shortAnswer token gap as ArticleLayout.tsx -- meta description and
+  // OpenGraph/Twitter descriptions all read article.dek directly, so a
+  // date-relative shortAnswer would otherwise ship raw {{token}} text into
+  // search results and social previews.
+  article.dek = resolveDynamicTokensDeep(article.dek);
+  const url = `${SITE_URL}${resolvePublicPath(toolSlug)}/${articleSlug}`;
   return {
     title: article.title,
     description: truncateDescription(article.dek),
@@ -75,7 +87,7 @@ export async function ArticlePageContent({ toolSlug, articleSlug }: { toolSlug: 
       <StarField />
 
       <div className="relative z-10" style={{ maxWidth: 780, margin: '0 auto', padding: '24px 16px' }}>
-        <ArticleLayout article={article} toolName={meta.name} toolSlug={toolSlug} glow={getCategoryGlowRGB(article.category?.slug)} />
+        <ArticleLayout article={article} toolName={meta.name} toolSlug={toolSlug} publicPath={resolvePublicPath(toolSlug)} glow={getCategoryGlowRGB(article.category?.slug)} />
       </div>
     </div>
   );

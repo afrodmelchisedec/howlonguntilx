@@ -21,7 +21,7 @@ export default function CountdownWidget({ config }: { config: { targetDate: stri
           </div>
         ))}
       </div>
-      <a href="/tools/tech-events" className="text-caption underline mt-3 inline-block" style={{ color: `rgb(${glow})` }}>Save this to your watchlist →</a>
+      <a href="/tools/upcoming-events" className="text-caption underline mt-3 inline-block" style={{ color: `rgb(${glow})` }}>Save this to your watchlist →</a>
     </div>
   );
 }

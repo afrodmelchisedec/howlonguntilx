@@ -1,5 +1,6 @@
 // FILE: src/components/articles/ArticleBlocks.tsx
 import Link from 'next/link';
+import { resolveRecurrenceDate } from '@/lib/dateResolvers';
 import { widgetsForTool, fullToolForTool, toolComponentForSlug } from '@/lib/widgetRegistry';
 import { ArticleChart } from './ArticleChart';
 import { ArticleFaq } from './ArticleFaq';
@@ -25,6 +26,11 @@ type Block =
       type: 'hero_countdown';
       targetDate: string;
       label: string;
+      // Optional — when set, targetDate above is ignored and the date is
+      // computed at render time via DATE_RESOLVERS[recurrenceKey] instead.
+      // Use for evergreen recurring entities (see src/lib/dateResolvers.ts)
+      // so the countdown never needs manual annual updates.
+      recurrenceKey?: string;
       // Optional — populates Event.location in JSON-LD when the event has a
       // known physical venue. Omit entirely for virtual/TBD-location events.
       locationName?: string;
@@ -41,11 +47,41 @@ export function bodyBlocks(blocks: Block[]) {
   return blocks.filter(b => b.type !== 'hero_countdown' && b.type !== 'sources');
 }
 export function extractHeroCountdown(blocks: Block[]) {
-  return (blocks.find(b => b.type === 'hero_countdown') as Extract<Block, { type: 'hero_countdown' }> | undefined) ?? null;
+  const hero = (blocks.find(b => b.type === 'hero_countdown') as Extract<Block, { type: 'hero_countdown' }> | undefined) ?? null;
+  if (!hero) return null;
+  // Evergreen recurring entities carry a recurrenceKey instead of a stored
+  // targetDate — resolve it here so every caller (ArticleLayout, ArticleSchema)
+  // automatically gets the correct next-occurrence date with no extra wiring.
+  if (hero.recurrenceKey) {
+    const resolved = resolveRecurrenceDate(hero.recurrenceKey);
+    if (resolved) return { ...hero, targetDate: resolved };
+  }
+  return hero;
 }
 
 export function extractSources(blocks: Block[]) {
   return (blocks.find(b => b.type === 'sources') as Extract<Block, { type: 'sources' }> | undefined)?.items ?? null;
+}
+
+// The very first visible block, when it's a paragraph, is treated as the direct-answer
+// lead — SEO/AEO wants this rendered immediately after the hero image, ahead of the
+// disclaimer/reviewer/TOC furniture, rather than buried below them. Only pulls the
+// SINGLE first block (not every leading paragraph) — see ArticleLayout.tsx usage.
+export function extractLeadParagraph(blocks: Block[]): Extract<Block, { type: 'paragraph' }> | null {
+  const first = bodyBlocks(blocks)[0];
+  return first && first.type === 'paragraph' ? first : null;
+}
+
+// Same visible-block list ArticleBlocks would normally render, minus whichever block
+// extractLeadParagraph pulled out (so it isn't rendered twice). Pass this — not the
+// raw article.blocks — into <ArticleBlocks blocks={...} /> once you've rendered the
+// lead paragraph separately above it.
+export function bodyBlocksWithoutLead(blocks: Block[]) {
+  const visible = bodyBlocks(blocks);
+  const lead = extractLeadParagraph(blocks);
+  if (!lead) return visible;
+  const idx = visible.indexOf(lead);
+  return idx === -1 ? visible : [...visible.slice(0, idx), ...visible.slice(idx + 1)];
 }
 
 function slugify(text: string) {
@@ -77,7 +113,7 @@ function isInternalUrl(url: string) {
 // not just as a single trailing "Source" link per paragraph. Internal (relative)
 // links render as Next <Link> for client-side nav + crawlability; external links
 // open in a new tab, same as the existing sourceUrl link.
-function renderParagraphText(text: string) {
+export function renderParagraphText(text: string) {
   const parts: (string | JSX.Element)[] = [];
   const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
   let lastIndex = 0;
@@ -104,20 +140,46 @@ function renderParagraphText(text: string) {
   return parts;
 }
 
+// Standalone renderer for the lead paragraph pulled out by extractLeadParagraph —
+// mirrors the 'paragraph' branch inside ArticleBlocks below exactly (same link
+// parsing, same sourceUrl handling) so it's visually identical, just rendered
+// in a different position in the page (immediately under the hero image).
+export function ArticleLeadParagraph({ block }: { block: Extract<Block, { type: 'paragraph' }> }) {
+  return (
+    <p className="article-body article-lead anim-fade-up mb-5">
+      {renderParagraphText(block.text)}
+      {block.sourceUrl && (
+        <>
+          {' '}
+          {isInternalUrl(block.sourceUrl) ? (
+            <Link href={block.sourceUrl} className="text-caption1 underline underline-offset-2" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
+              {block.sourceLabel ?? 'Source'}
+            </Link>
+          ) : (
+            <a href={block.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-caption1 underline underline-offset-2" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
+              {block.sourceLabel ?? 'Source'}
+            </a>
+          )}
+        </>
+      )}
+    </p>
+  );
+}
+
 export function ArticleBlocks({
   toolSlug, blocks, glow, subcategoryTools, affiliateBanner,
 }: {
   toolSlug: string; blocks: Block[]; glow: string;
   // Tool mapping from the article's subcategory (Category.tools) — used to resolve
   // tool_embed_full blocks that don't specify an explicit toolSlug. Pass [] or omit
-  // for tools (like tech-events) that use the legacy article.toolSlug-keyed path instead.
+  // for tools (like upcoming-events) that use the legacy article.toolSlug-keyed path instead.
   subcategoryTools?: ToolMapping[];
   // Fetched server-side by the caller (ArticleLayout) via getAffiliateBanner(category.slug).
   // Rendered once, right before the FAQ block, themed with the page's glow color.
   affiliateBanner?: { title: string; description: string; ctaLabel: string; href: string; imageUrl: string | null } | null;
 }) {
   const widgets = widgetsForTool(toolSlug);
-  // Legacy path first (tech-events / dark-sky-explorer, keyed by the article's own toolSlug) —
+  // Legacy path first (upcoming-events / dark-sky-explorer, keyed by the article's own toolSlug) —
   // unchanged from before, so those pages keep working exactly as-is.
   const LegacyFullTool = fullToolForTool(toolSlug);
   const visible = bodyBlocks(blocks);

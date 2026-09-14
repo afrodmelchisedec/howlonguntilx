@@ -36,9 +36,7 @@ type Tab = EventTab | 'guides';
 
 const TAB_CONFIG: { id: Tab; label: string; color: string }[] = [
   { id: 'live-future',    label: '🟢 Live',            color: '#22c55e' },
-  { id: 'archive-future', label: '🟠 Archive',         color: '#f97316' },
   { id: 'live-past',      label: '🟣 Elapsed',         color: '#a78bfa' },
-  { id: 'archive-past',   label: '⚫ History',         color: '#64748b' },
   { id: 'guides',         label: '📚 Guides',          color: '#8B7CF8' },
 ];
 

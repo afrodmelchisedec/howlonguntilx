@@ -31,7 +31,7 @@ export const EMBED_REGISTRY: Record<string, () => ComponentType<any>> = {
   'meeting-overlap': () => dynamic(() => import('@/components/embeds/TimeZoneRadarEmbed').then(m => m.TimeZoneRadarEmbed), { ssr: false }),
   'deadline-buffer-slider': () => dynamic(() => import('@/components/embeds/LaunchCountdownPlannerEmbed').then(m => m.LaunchCountdownPlannerEmbed), { ssr: false }),
   'focus-block-builder': () => dynamic(() => import('@/components/embeds/DayTimelineBuilderEmbed').then(m => m.DayTimelineBuilderEmbed), { ssr: false }),
-  'tech-events': () => dynamic(() => import('@/components/embeds/TechEventsCalendarEmbed').then(m => m.TechEventsCalendarEmbed), { ssr: false }),
+  'upcoming-events': () => dynamic(() => import('@/components/embeds/TechEventsCalendarEmbed').then(m => m.TechEventsCalendarEmbed), { ssr: false }),
   'dark-sky-explorer': () => dynamic(() => import('@/components/embeds/DarkSkyExplorerEmbed').then(m => m.DarkSkyExplorerEmbed), { ssr: false }),
   'password-rotation-board': () => dynamic(() => import('@/components/embeds/PasswordRotationBoardEmbed').then(m => m.PasswordRotationBoardEmbed), { ssr: false }),
   'phishing-identity-watch': () => dynamic(() => import('@/components/embeds/PhishingIdentityWatchEmbed').then(m => m.PhishingIdentityWatchEmbed), { ssr: false }),

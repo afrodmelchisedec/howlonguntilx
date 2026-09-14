@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const id = decodeURIComponent(params.id);
-    const updated = updateCalendarEvent(id, body);
+    const updated = await updateCalendarEvent(id, body);
     revalidatePath('/');
     revalidatePath('/calendar');
     return NextResponse.json({ event: updated });
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   try {
     const id = decodeURIComponent(params.id);
-    deleteCalendarEvent(id);
+    await deleteCalendarEvent(id);
     revalidatePath('/');
     revalidatePath('/calendar');
     return NextResponse.json({ ok: true });

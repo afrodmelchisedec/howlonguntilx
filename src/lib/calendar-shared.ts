@@ -14,7 +14,7 @@ export interface CalendarEvent {
   featured?: boolean;
 }
 
-export const CALENDAR_REGIONS = ['united_states', 'europe', 'united_kingdom', 'africa', 'middle_east'] as const;
+export const CALENDAR_REGIONS = ['united_states', 'europe', 'united_kingdom', 'africa', 'middle_east', 'world_wide'] as const;
 
 const REGION_LABELS: Record<string, string> = {
   united_states: 'United States',
@@ -22,6 +22,7 @@ const REGION_LABELS: Record<string, string> = {
   united_kingdom: 'United Kingdom',
   africa: 'Africa',
   middle_east: 'Middle East',
+  world_wide: 'World Wide',
 };
 
 const REGION_GLOW: Record<string, string> = {
@@ -30,6 +31,7 @@ const REGION_GLOW: Record<string, string> = {
   united_kingdom: 'entertainment',
   africa: 'nature',
   middle_east: 'space',
+  world_wide: 'health',
 };
 
 export function prettifyRegion(region: string): string {

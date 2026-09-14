@@ -15,8 +15,14 @@ export interface EventContent {
   faqs?: { question: string; answer: string }[];
   timeline?: { label: string; offset: string; note?: string }[];
   relatedSlugs?: string[];
+  provisional?: boolean;
   sources?: { label: string; url: string }[];
   lastReviewed?: string;
+  // When set, this Event's targetDate is recomputed live on every request via
+  // resolveRecurrenceDate(recurrenceKey) (see dateResolvers.ts + renderEventPage.tsx)
+  // instead of trusting the stored targetDate column -- used for evergreen
+  // bare-slug events (e.g. "september-14") that should never need an annual bump.
+  recurrenceKey?: string;
 }
 
 const GLOW_MAP: Record<string, string> = {
@@ -30,7 +36,7 @@ const GLOW_MAP: Record<string, string> = {
   entertainment: 'entertainment',
   'holidays-celebrations': 'holidays',
   'shopping-deals': 'shopping',
-  'tech-events': 'tech',
+  'upcoming-events': 'tech',
   'food-festivals': 'nature',
   'restaurant-launches': 'nature',
   'harvest-seasons': 'nature',
@@ -59,7 +65,7 @@ export interface FaqPair { q: string; a: string }
 
 export function buildFaqList(
   event: { name: string; targetDate: Date | string; type?: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE' },
-  countdown: { days_left: number; hours_left: number },
+  countdown: { days_left: number; hours_left: number; is_past?: boolean; elapsed_days?: number; elapsed_hours?: number },
   custom?: EventContent['faqs']
 ): FaqPair[] {
   const dateStr = new Date(event.targetDate).toLocaleDateString('en-US', {
@@ -68,9 +74,21 @@ export function buildFaqList(
 
   const name = event.name.trim();
   const alreadyPhrased = name.endsWith('?');
-  const isElapsed = event.type === 'ELAPSED';
-  const days = Math.abs(countdown.days_left);
-  const hours = Math.abs(countdown.hours_left);
+  // Tense must come from the actual date math (countdown.is_past), not from
+  // whether the name happens to end in '?'. event.type === 'ELAPSED' is kept
+  // as an additional override for content explicitly modeled as elapsed-time,
+  // but a bare past-dated event with an ordinary name must still get "ago"
+  // phrasing — that's the bug this replaces (it previously only checked
+  // event.type, and only inside the alreadyPhrased branch).
+  const isElapsed = event.type === 'ELAPSED' || countdown.is_past === true;
+  // days_left/hours_left are clamped to 0 for past events (see countdown.ts),
+  // so past events must read from elapsed_days/elapsed_hours instead.
+  const days = isElapsed
+    ? Math.abs(countdown.elapsed_days ?? countdown.days_left)
+    : Math.abs(countdown.days_left);
+  const hours = isElapsed
+    ? Math.abs(countdown.elapsed_hours ?? countdown.hours_left)
+    : Math.abs(countdown.hours_left);
   const weeks = Math.floor(days / 7);
 
   const base: FaqPair[] = alreadyPhrased
@@ -87,6 +105,13 @@ export function buildFaqList(
           q: `How many weeks ${isElapsed ? 'has it been since' : 'until'} ${dateStr}?`,
           a: `Approximately ${weeks.toLocaleString()} weeks.`,
         },
+      ]
+    : isElapsed
+    ? [
+        { q: `How long ago was ${name}?`, a: `${name} was ${days.toLocaleString()} days and ${hours} hours ago, on ${dateStr}.` },
+        { q: `How many days ago was ${name}?`, a: `Exactly ${days.toLocaleString()} days ago.` },
+        { q: `When was ${name}?`, a: `${name} was on ${dateStr}.` },
+        { q: `How many weeks ago was ${name}?`, a: `Approximately ${weeks.toLocaleString()} weeks ago.` },
       ]
     : [
         { q: `How long until ${name}?`, a: `There are ${days} days and ${hours} hours until ${name} on ${dateStr}.` },

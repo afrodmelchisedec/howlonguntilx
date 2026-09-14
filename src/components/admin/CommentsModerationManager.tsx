@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 interface CommentRow {
   id: string;
@@ -21,6 +23,8 @@ export function CommentsModerationManager() {
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(true);
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -33,13 +37,26 @@ export function CommentsModerationManager() {
       .finally(() => setLoading(false));
   }
 
-  async function act(c: CommentRow, action: 'flag' | 'unflag' | 'remove') {
-    if (action === 'remove' && !confirm('Remove this comment? This hides it (soft-delete), same as an author self-deleting.')) return;
+  function act(c: CommentRow, action: 'flag' | 'unflag' | 'remove') {
+    if (action === 'remove') {
+      setConfirmDialog({
+        title: 'Remove Comment',
+        message: 'Remove this comment? This hides it (soft-delete), same as an author self-deleting.',
+        confirmLabel: 'Remove',
+        destructive: true,
+        onConfirm: () => performAct(c, 'remove', null),
+      });
+      return;
+    }
     let reason: string | null = null;
     if (action === 'flag') {
       reason = window.prompt('Flag reason for this comment? (optional)');
       if (reason === null) return; // cancelled
     }
+    performAct(c, action, reason);
+  }
+
+  async function performAct(c: CommentRow, action: 'flag' | 'unflag' | 'remove', reason: string | null) {
     setSavingId(c.id);
     try {
       const res = await fetch('/api/admin/comments/' + c.id, {
@@ -48,14 +65,14 @@ export function CommentsModerationManager() {
         body: JSON.stringify({ action, reason: reason || undefined }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Action failed.'); return; }
+      if (!res.ok) { setAlertDialog({ message: data.error || 'Action failed.' }); return; }
       if (action === 'remove') {
         setComments(prev => prev.filter(x => x.id !== c.id));
       } else {
         setComments(prev => prev.map(x => x.id === c.id ? { ...x, ...data } : x));
       }
     } catch {
-      alert('Network error.');
+      setAlertDialog({ message: 'Network error.' });
     } finally {
       setSavingId(null);
     }
@@ -74,6 +91,8 @@ export function CommentsModerationManager() {
 
   return (
     <div>
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Comments ({filtered.length}{(search || showFlaggedOnly) ? ' of ' + comments.length : ''})</h2>
         <p className="text-xs text-gray-400 mt-0.5">

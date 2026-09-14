@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 // Typed loosely (config: any) to match Block's `tool_embed.config: Record<string, any>` —
 // each widget narrows/validates its own config shape internally.
 export const WIDGET_REGISTRY: Record<string, Record<string, ComponentType<{ config: any }>>> = {
-  'tech-events': {
+  'upcoming-events': {
     countdown: dynamic(() => import('@/components/widgets/CountdownWidget'), { ssr: false }) as ComponentType<{ config: any }>,
   },
   'dark-sky-explorer': {
@@ -17,13 +17,13 @@ export const WIDGET_REGISTRY: Record<string, Record<string, ComponentType<{ conf
 // Full tools: the actual Pro-tool component (free tier works without auth), embedded directly
 // in an article so readers can play with the real thing, not just a teaser.
 //
-// LEGACY PATH — keyed by the ARTICLE'S OWN toolSlug (Article.toolSlug), e.g. 'tech-events',
+// LEGACY PATH — keyed by the ARTICLE'S OWN toolSlug (Article.toolSlug), e.g. 'upcoming-events',
 // 'dark-sky-explorer'. This only works because those two tools coincidentally share their name
 // with the content-collection they belong to. Do not extend this map for new tools — use
 // SUBCATEGORY_TOOL_REGISTRY below instead, which is keyed by individual tool slug and resolved
 // via the article's Category.tools mapping (see ArticleBlocks.tsx / ArticleLayout.tsx).
 export const FULL_TOOL_REGISTRY: Record<string, ReturnType<typeof dynamic>> = {
-  'tech-events': dynamic(() => import('@/components/pro-tools/TechEventsCalendar').then(m => m.TechEventsCalendar), { ssr: false }),
+  'upcoming-events': dynamic(() => import('@/components/pro-tools/TechEventsCalendar').then(m => m.TechEventsCalendar), { ssr: false }),
   'dark-sky-explorer': dynamic(() => import('@/components/pro-tools/DarkSkyExplorer').then(m => m.DarkSkyExplorer), { ssr: false }),
 };
 
@@ -64,7 +64,7 @@ export const SUBCATEGORY_TOOL_REGISTRY: Record<string, ReturnType<typeof dynamic
   'password-rotation-board': dynamic(() => import('@/components/pro-tools/PasswordRotationBoardTabs').then(m => m.PasswordRotationBoardTabs), { ssr: false }),
   'fraud-response-clock': dynamic(() => import('@/components/pro-tools/FraudResponseClockTabs').then(m => m.FraudResponseClockTabs), { ssr: false }),
   'phishing-identity-watch': dynamic(() => import('@/components/pro-tools/PhishingIdentityWatchTabs').then(m => m.PhishingIdentityWatchTabs), { ssr: false }),
-  'tech-events': dynamic(() => import('@/components/pro-tools/TechEventsCalendarTabs').then(m => m.TechEventsCalendarTabs), { ssr: false }),
+  'upcoming-events': dynamic(() => import('@/components/pro-tools/TechEventsCalendarTabs').then(m => m.TechEventsCalendarTabs), { ssr: false }),
   'dark-sky-explorer': dynamic(() => import('@/components/pro-tools/DarkSkyExplorerTabs').then(m => m.DarkSkyExplorerTabs), { ssr: false }),
 };
 

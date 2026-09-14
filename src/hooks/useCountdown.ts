@@ -1,27 +1,32 @@
 'use client';
 import { useState, useEffect } from 'react';
-
 interface CountdownState {
   days: number;
   hours: number;
   minutes: number;
   seconds: number;
+  // Elapsed time SINCE target, only meaningful when isPast is true.
+  // Kept separate from days/hours/minutes/seconds (which stay 0 when past)
+  // so any existing consumer of this hook keeps working unchanged — these
+  // are purely additive fields.
+  elapsedDays: number;
+  elapsedHours: number;
+  elapsedMinutes: number;
+  elapsedSeconds: number;
   progress: number;
   isPast: boolean;
   justHit: boolean; // true the moment the clock hits 0:0:0:0
 }
-
 // Deterministic placeholder used for both the server render and the client's
 // very first paint — guarantees they match, avoiding the hydration mismatch
 // that comes from calling Date.now() during render (server time != client time).
 const PLACEHOLDER: CountdownState = {
   days: 0, hours: 0, minutes: 0, seconds: 0,
+  elapsedDays: 0, elapsedHours: 0, elapsedMinutes: 0, elapsedSeconds: 0,
   progress: 0, isPast: false, justHit: false,
 };
-
 export function useCountdown(target: Date): CountdownState {
   const [state, setState] = useState<CountdownState>(PLACEHOLDER);
-
   useEffect(() => {
     // Compute immediately on mount (client-only, so Date.now() here never
     // needs to match anything the server produced) then tick every second.
@@ -29,30 +34,28 @@ export function useCountdown(target: Date): CountdownState {
     const id = setInterval(() => setState(compute(target)), 1000);
     return () => clearInterval(id);
   }, [target.getTime()]);
-
   return state;
 }
-
 function compute(target: Date): CountdownState {
   const now  = Date.now();
   const diff = target.getTime() - now;
-
   // isPast ONLY when strictly negative — last second (diff=0) still shows 0d 0h 0m 0s
   const isPast   = diff < -1000;          // 1 s grace
   const justHit  = diff >= -1000 && diff < 0;
   const absDiff  = Math.abs(diff);
-
   const days    = Math.floor(absDiff / 86_400_000);
   const hours   = Math.floor((absDiff % 86_400_000) / 3_600_000);
   const minutes = Math.floor((absDiff % 3_600_000)  / 60_000);
   const seconds = Math.floor((absDiff % 60_000)      / 1_000);
-
   const cycleMs = 365 * 86_400_000;
   const progress = isPast
     ? 100
     : Math.max(0, Math.min(100, Math.round(((cycleMs - absDiff) / cycleMs) * 100)));
-
-  return { days: isPast ? 0 : days, hours: isPast ? 0 : hours,
+  return {
+    days: isPast ? 0 : days, hours: isPast ? 0 : hours,
     minutes: isPast ? 0 : minutes, seconds: isPast ? 0 : seconds,
-    progress, isPast, justHit };
+    elapsedDays: isPast ? days : 0, elapsedHours: isPast ? hours : 0,
+    elapsedMinutes: isPast ? minutes : 0, elapsedSeconds: isPast ? seconds : 0,
+    progress, isPast, justHit,
+  };
 }

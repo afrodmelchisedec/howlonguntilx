@@ -10,6 +10,33 @@ function slugify(text: string) {
   return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// Standalone renderer for the lead (first) body paragraph, pulled out in
+// renderEventPage.tsx so it can render immediately under the hero image,
+// ahead of the disclaimer/reviewer/TOC — mirrors the 'paragraph' branch
+// below exactly (same text + sourceUrl handling) so it's visually identical,
+// just rendered in a different position on the page.
+export function EventLeadParagraph({ block }: { block: Extract<EventContentBodyBlock, { type: 'paragraph' }> }) {
+  return (
+    <p className="text-callout anim-fade-up mb-2" style={{ color: 'var(--text-secondary)' }}>
+      {block.text}
+      {block.sourceUrl && (
+        <>
+          {' '}
+          <a
+            href={block.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-caption underline underline-offset-2"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            {block.sourceLabel ?? 'Source'}
+          </a>
+        </>
+      )}
+    </p>
+  );
+}
+
 export function EventBody({ blocks, glow = '83, 74, 217' }: { blocks?: EventContentBodyBlock[]; glow?: string }) {
   if (!blocks || blocks.length === 0) return null;
 

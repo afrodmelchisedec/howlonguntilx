@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { ArticleCard } from '@/components/articles/ArticleCard';
 import { ReviewerAvatar } from '@/components/reviewers/ReviewerAvatar';
 import { getCategoryGlowRGB } from '@/lib/categoryGlow';
+import { resolvePublicPath } from '@/lib/renderArticlePage';
 
 interface Props { params: { slug: string } }
 
@@ -108,6 +109,7 @@ export default async function ReviewerProfilePage({ params }: Props) {
                 dek={a.dek}
                 heroImageUrl={a.heroImageUrl}
                 glow={a.category?.slug ? getCategoryGlowRGB(a.category.slug) : '83,74,183'}
+                publicPath={resolvePublicPath(a.toolSlug)}
                 category={a.category as any}
               />
             ))}

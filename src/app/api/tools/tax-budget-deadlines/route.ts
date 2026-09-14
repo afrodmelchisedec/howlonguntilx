@@ -3,22 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getToolEvents } from '@/lib/toolEvents';
 
 function isProSession(session: any): boolean {
   return session?.user?.plan === 'PRO' || session?.user?.role === 'ADMIN';
 }
 
 export async function GET() {
+  const deadlines = await getToolEvents('tax');
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!isProSession(session)) return NextResponse.json({ config: null });
-
-  const config = await prisma.taxDeadlineConfig.findUnique({
-    where: { userId: session.user.id },
-  });
-  return NextResponse.json({
-    config: config ? { deadlines: config.deadlines } : null,
-  });
+  if (!session || !isProSession(session)) {
+    return NextResponse.json({ deadlines, config: null });
+  }
+  const config = await prisma.taxDeadlineConfig.findUnique({ where: { userId: session.user.id } });
+  return NextResponse.json({ deadlines, config: config ? { deadlines: config.deadlines } : null });
 }
 
 export async function POST(req: NextRequest) {

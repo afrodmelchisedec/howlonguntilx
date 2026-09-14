@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "winter-olympics-2034",
+    "name": "2034 Utah Winter Olympics",
+    "description": "Countdown to the 2034 Winter Olympics in Utah (Salt Lake City), officially scheduled for February 10–26, 2034.",
+    "targetDate": "2034-02-10T00:00:00.000Z",
+    "categorySlug": "time",
+    "heroImageUrl": "/images/questions/2034-salt-lake-city-olympics-hero.jpeg",
+    "heroImageAlt": "Salt Lake City skyline with snow-capped mountains behind it",
+    "heroImagePrompt": "Snow-capped mountain range behind a modern city skyline at dusk, winter atmosphere, soft blue and orange light, wide landscape shot, no text or logos",
+    "authorName": "Afrod M (Msc Statistics at Makerere University)",
+    "content": {
+      "provisional": false,
+      "body": [
+        {
+          "type": "heading",
+          "text": "When Do the 2034 Winter Olympics Start?"
+        },
+        {
+          "type": "paragraph",
+          "text": "The Winter Olympics in Utah are scheduled for February 10 to 26, 2034, with the Paralympic Games following from March 10 to 19. Salt Lake City was elected host at the 142nd IOC Session in Paris on July 24, 2024, by a delegate vote of 83 to 6, and in November 2025 the Games were rebranded from \"Salt Lake City 2034\" to \"Utah 2034\" to better reflect the wider set of host communities involved."
+        },
+        {
+          "type": "heading",
+          "text": "A Second Turn for Utah"
+        },
+        {
+          "type": "paragraph",
+          "text": "Salt Lake City previously hosted the 2002 Winter Games, and 2034 will make it just the second American city — alongside Lake Placid — to host the Winter Olympics twice. Ten of the thirteen competition venues are being reused directly from 2002, and all venues sit within roughly an hour of the Olympic Village at the University of Utah, whose Rice-Eccles Stadium is set to serve as the Games' main stadium."
+        },
+        {
+          "type": "paragraph",
+          "text": "Beyond Salt Lake City itself, events will be spread across Park City, Soldier Hollow, Snowbasin, and Provo. Polling around the bid put local public support above 80 percent, and Utah organizers have said the Games will not require state or local taxpayer funding, relying instead on ticket sales, sponsorships, and IOC broadcast revenue."
+        },
+        {
+          "type": "paragraph",
+          "text": "The IOC has already begun coordinating preparations across all four upcoming Games at once — Los Angeles 2028, the French Alps in 2030, Brisbane in 2032, and Utah in 2034 — reflecting the unusually long planning runway host cities now get compared to earlier decades."
+        },
+        {
+          "type": "heading",
+          "text": "A Longer Bid Than Most"
+        },
+        {
+          "type": "paragraph",
+          "text": "Salt Lake City had originally hoped to bid for the 2030 Games, but held off because that timeline sat too close to the 2028 Los Angeles Summer Olympics. It entered the IOC's formal \"Targeted Dialogue\" process in late 2023 alongside the French Alps before the final host vote in mid-2024."
+        },
+        {
+          "type": "paragraph",
+          "text": "With ten years between confirmation and the Games themselves, Utah 2034 has one of the longest lead times of any modern Olympics — giving organizers time to finalize sponsorships, ticketing, and the remaining venue details well ahead of the opening ceremony."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Are the 2034 Winter Olympics dates confirmed?",
+          "answer": "Yes — the Games are scheduled for February 10–26, 2034, with the Paralympics from March 10–19, 2034."
+        },
+        {
+          "question": "Has Salt Lake City hosted before?",
+          "answer": "Yes — the 2002 Winter Olympics. 2034 will be its second time, making it one of only two U.S. cities to host the Winter Games twice."
+        },
+        {
+          "question": "Why is it called \"Utah 2034\" instead of \"Salt Lake City 2034\"?",
+          "answer": "The Games were rebranded in November 2025 to reflect that venues are spread across Salt Lake City, Park City, Soldier Hollow, Snowbasin, and Provo."
+        }
+      ],
+      "sources": [
+        {
+          "label": "Wikipedia — 2034 Winter Olympics",
+          "url": "https://en.wikipedia.org/wiki/2034_Winter_Olympics"
+        },
+        {
+          "label": "Olympics.com — Utah 2034",
+          "url": "https://www.olympics.com/en/olympic-games/utah-2034"
+        }
+      ],
+      "heroFact": "The 2034 Winter Olympics — rebranded \"Utah 2034\" — run February 10–26 in Salt Lake City and nearby Utah venues, 32 years after the city's 2002 Games.",
+      "quickFacts": [
+        {
+          "label": "Opening Ceremony",
+          "value": "February 10, 2034"
+        },
+        {
+          "label": "Closing Ceremony",
+          "value": "February 26, 2034"
+        },
+        {
+          "label": "Host",
+          "value": "Utah, USA (rebranded from \"Salt Lake City 2034\" in Nov 2025)"
+        },
+        {
+          "label": "Main venue",
+          "value": "Rice-Eccles Stadium, University of Utah"
+        }
+      ],
+      "lastReviewed": "2026-09-01"
+    }
+  }
+]

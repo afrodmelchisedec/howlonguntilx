@@ -16,7 +16,7 @@ export default async function CalendarPage() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  const events = getCalendarMonth(year, month);
+  const events = await getCalendarMonth(year, month);
 
   return (
     <div className="relative" style={{ background: 'var(--bg-base)' }}>

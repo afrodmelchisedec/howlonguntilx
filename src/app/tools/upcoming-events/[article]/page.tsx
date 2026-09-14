@@ -1,7 +1,7 @@
-// FILE: src/app/tools/tech-events/[article]/page.tsx
+// FILE: src/app/tools/upcoming-events/[article]/page.tsx
 import { generateArticleMetadata, ArticlePageContent } from '@/lib/renderArticlePage';
 
-const TOOL_SLUG = 'tech-events';
+const TOOL_SLUG = 'upcoming-events';
 
 export async function generateMetadata({ params }: { params: { article: string } }) {
   return generateArticleMetadata(TOOL_SLUG, params.article);

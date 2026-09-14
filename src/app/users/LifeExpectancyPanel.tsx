@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 type Region = 'US' | 'EUROPE' | 'AFRICA' | 'MIDDLE_EAST' | 'CHINA' | 'INDIA';
 type Sex = 'MALE' | 'FEMALE';
@@ -55,12 +57,13 @@ Give me one array element per age per sex (222 elements total for ages 0-110 x 2
 
 function CopyPromptBanner() {
   const [copied, setCopied] = useState(false);
+  const [copyAlert, setCopyAlert] = useState<AlertDialogState>(null);
 
   function handleCopy() {
     navigator.clipboard.writeText(AI_PROMPT_TEMPLATE).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }).catch(() => alert('Could not copy — select and copy the prompt manually.'));
+    }).catch(() => setCopyAlert({ message: 'Could not copy — select and copy the prompt manually.' }));
   }
 
   return (
@@ -68,6 +71,7 @@ function CopyPromptBanner() {
       className="rounded-2xl p-5 flex items-start gap-4 flex-wrap sm:flex-nowrap"
       style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.14), rgba(34,197,94,0.14))', border: '1px solid rgba(139,92,246,0.35)' }}
     >
+      <AlertDialog state={copyAlert} onClose={() => setCopyAlert(null)} />
       <div className="text-3xl flex-shrink-0">✨</div>
       <div className="flex-1 min-w-[240px]">
         <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Need an updated dataset later? Don't re‑figure this out — copy this prompt.</p>
@@ -108,6 +112,8 @@ export default function LifeExpectancyPanel() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   function load() {
     setLoading(true);
@@ -139,13 +145,13 @@ export default function LifeExpectancyPanel() {
       parsed = JSON.parse(importText);
     } catch {
       setImportResult(null);
-      alert('Invalid JSON — check syntax');
+      setAlertDialog({ message: 'Invalid JSON — check syntax' });
       return;
     }
 
     const items = Array.isArray(parsed) ? parsed : (parsed as any).items;
     if (!Array.isArray(items)) {
-      alert('Payload must be an array, or an object with an "items" array.');
+      setAlertDialog({ message: 'Payload must be an array, or an object with an "items" array.' });
       return;
     }
 
@@ -198,7 +204,7 @@ export default function LifeExpectancyPanel() {
 
   async function saveEdit(row: Row) {
     const remainingYears = parseFloat(editValue);
-    if (!Number.isFinite(remainingYears) || remainingYears < 0) { alert('Enter a valid positive number'); return; }
+    if (!Number.isFinite(remainingYears) || remainingYears < 0) { setAlertDialog({ message: 'Enter a valid positive number' }); return; }
     try {
       const res = await fetch('/api/admin/life-expectancy/import', {
         method: 'PATCH',
@@ -209,20 +215,27 @@ export default function LifeExpectancyPanel() {
       setRows(prev => prev.map(r => (r.id === row.id ? { ...r, remainingYears } : r)));
       setEditingId(null);
     } catch {
-      alert('Could not save — try again');
+      setAlertDialog({ message: 'Could not save — try again' });
     }
   }
 
-  async function deleteRow(row: Row) {
-    if (!confirm(`Delete ${REGION_LABELS[row.region]} · ${row.sex} · age ${row.age} (${row.sourceYear})?`)) return;
-    try {
-      const res = await fetch(`/api/admin/life-expectancy/import?id=${row.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
-      setRows(prev => prev.filter(r => r.id !== row.id));
-      setTotal(t => t - 1);
-    } catch {
-      alert('Could not delete — try again');
-    }
+  function deleteRow(row: Row) {
+    setConfirmDialog({
+      title: 'Delete Row',
+      message: `Delete ${REGION_LABELS[row.region]} · ${row.sex} · age ${row.age} (${row.sourceYear})?`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/life-expectancy/import?id=${row.id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error();
+          setRows(prev => prev.filter(r => r.id !== row.id));
+          setTotal(t => t - 1);
+        } catch {
+          setAlertDialog({ message: 'Could not delete — try again' });
+        }
+      },
+    });
   }
 
   async function toggleDataset(ds: Dataset) {
@@ -243,7 +256,7 @@ export default function LifeExpectancyPanel() {
       }));
       load(); // refresh coverage + rows
     } catch {
-      alert('Could not update — try again');
+      setAlertDialog({ message: 'Could not update — try again' });
     } finally {
       setTogglingKey(null);
     }
@@ -256,6 +269,8 @@ export default function LifeExpectancyPanel() {
 
   return (
     <div className="space-y-8">
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div>
         <h1 className="text-xl font-medium text-gray-900 dark:text-white mb-1">Life expectancy source data</h1>
         <p className="text-sm text-gray-500">

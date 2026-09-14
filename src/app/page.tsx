@@ -10,7 +10,7 @@ import { InteractiveGlobe } from '@/components/countdown/InteractiveGlobe';
 import { CommunityBarRace } from '@/components/countdown/CommunityBarRace';
 import { CountdownBuilder } from '@/components/countdown/CountdownBuilder';
 import { getPopularEvents } from '@/lib/events';
-import { getUpcomingEvents } from '@/lib/calendar';
+import { getUpcomingEvents, getPastFeaturedEvents } from '@/lib/calendar';
 import { prisma } from '@/lib/db';
 import { CategoryPills } from '@/components/ui/CategoryPills';
 import { FaqSection } from '@/components/ui/FaqSection';
@@ -51,7 +51,7 @@ const GLOW_MAP: Record<string, string> = {
 };
 
 export default async function HomePage() {
-  const [events, faqs, articleFaqs, categories, upcomingEvents] = await Promise.all([
+  const [events, faqs, articleFaqs, categories, upcomingEvents, pastEvents] = await Promise.all([
     getPopularEvents(8),
     getLiveFaqs(),
     getArticleFaqs(),
@@ -60,6 +60,7 @@ export default async function HomePage() {
       orderBy: { name: 'asc' },
     }),
     getUpcomingEvents(8),
+    getPastFeaturedEvents(8),
   ]);
 
   const pillCategories = categories.map(c => ({
@@ -154,7 +155,7 @@ export default async function HomePage() {
 
               {/* Hero Ticker — wide, swipeable */}
               <div className="anim-fade-up" style={{ position: 'relative', zIndex: 1 }}>
-                <HeroTicker events={upcomingEvents} />
+                <HeroTicker events={upcomingEvents} pastEvents={pastEvents} />
               </div>
 
               <CategoryPills categories={pillCategories} />

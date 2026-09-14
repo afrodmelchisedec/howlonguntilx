@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { EmbedCountdownButton } from '@/components/embeds/EmbedCountdownButton';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 interface Props {
   name: string;
@@ -22,6 +23,7 @@ export function ShareBar({ name, slug, id, type, shareCount: initialShareCount }
   const [shareCount, setShareCount] = useState(initialShareCount ?? 0);
   const fallbackUrl = `https://howlonguntilx.com/questions/how-long-until-${slug}`;
   const [url, setUrl] = useState(fallbackUrl);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
   useEffect(() => { setUrl(window.location.href); }, []);
   const text = `How long until ${name}? Check the live countdown!`;
 
@@ -33,12 +35,13 @@ export function ShareBar({ name, slug, id, type, shareCount: initialShareCount }
   function copy() {
     navigator.clipboard.writeText(url);
     track('copy');
-    alert('Link copied!');
+    setAlertDialog({ message: 'Link copied!' });
   }
   const pillCls = "press px-3 py-1.5 text-sm rounded-full transition-colors";
   const pillStyle = { border: '1px solid var(--border-hairline)', color: 'var(--text-secondary)' };
   return (
     <div className="flex flex-col items-center mt-6">
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="flex items-center justify-center gap-3 flex-wrap">
         <span className="text-caption">Share</span>
         <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`}

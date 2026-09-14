@@ -1,6 +1,8 @@
 // FILE: src/components/admin/CalendarEventsManager.tsx
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 import { CALENDAR_REGIONS, prettifyRegion } from '@/lib/calendar-shared';
 
 interface CalendarAdminEvent {
@@ -17,8 +19,10 @@ interface CalendarAdminEvent {
   color?: string;
 }
 
+const DEFAULT_REGION = 'world_wide';
+
 const EMPTY_FORM = {
-  isoDate: '', region: CALENDAR_REGIONS[0] as string, event: '', description: '',
+  isoDate: '', region: DEFAULT_REGION as string, event: '', description: '',
   featured: false, slug: '', emoji: '', color: '',
 };
 
@@ -119,6 +123,8 @@ export function CalendarEventsManager() {
   const [events, setEvents] = useState<CalendarAdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -161,7 +167,7 @@ export function CalendarEventsManager() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return events.filter(ev => {
       const matchSearch = !s || ev.event.toLowerCase().includes(s) || ev.description.toLowerCase().includes(s);
-      const matchRegion = regionFilter === 'all' || ev.region === regionFilter;
+      const matchRegion = regionFilter === 'all' || (ev.region || DEFAULT_REGION) === regionFilter;
       const matchFeatured = !featuredOnly || ev.featured;
       const evDate = new Date(ev.isoDate + 'T00:00:00');
       const matchTime = timeFilter === 'all'
@@ -186,7 +192,7 @@ export function CalendarEventsManager() {
   function startEdit(ev: CalendarAdminEvent) {
     setEditingId(ev.id);
     setForm({
-      isoDate: ev.isoDate, region: ev.region, event: ev.event, description: ev.description,
+      isoDate: ev.isoDate, region: ev.region || DEFAULT_REGION, event: ev.event, description: ev.description,
       featured: ev.featured, slug: ev.slug ?? '', emoji: ev.emoji ?? '', color: ev.color ?? '',
     });
     setFormError('');
@@ -225,12 +231,19 @@ export function CalendarEventsManager() {
     }
   }
 
-  async function remove(ev: CalendarAdminEvent) {
-    if (!confirm(`Delete "${ev.event}" (${ev.rawDate})? This cannot be undone.`)) return;
-    const res = await fetch(`/api/admin/calendar-events/${encodeURIComponent(ev.id)}`, { method: 'DELETE' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { alert(data.error || 'Could not delete.'); return; }
-    setEvents(rows => rows.filter(r => r.id !== ev.id));
+  function remove(ev: CalendarAdminEvent) {
+    setConfirmDialog({
+      title: 'Delete Event',
+      message: `Delete "${ev.event}" (${ev.rawDate})? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const res = await fetch(`/api/admin/calendar-events/${encodeURIComponent(ev.id)}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { setAlertDialog({ message: data.error || 'Could not delete.' }); return; }
+        setEvents(rows => rows.filter(r => r.id !== ev.id));
+      },
+    });
   }
 
   async function toggleFeatured(ev: CalendarAdminEvent) {
@@ -244,7 +257,7 @@ export function CalendarEventsManager() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert(data.error || (!ev.featured ? 'Could not feature — does this event have a slug?' : 'Could not update.'));
+      setAlertDialog({ message: data.error || (!ev.featured ? 'Could not feature — does this event have a slug?' : 'Could not update.') });
       return;
     }
     load();
@@ -255,7 +268,7 @@ export function CalendarEventsManager() {
     try {
       parsed = JSON.parse(jsonInput);
     } catch {
-      alert('Invalid JSON — check syntax');
+      setAlertDialog({ message: 'Invalid JSON — check syntax' });
       return;
     }
     setImporting(true);
@@ -268,14 +281,14 @@ export function CalendarEventsManager() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Import failed');
+        setAlertDialog({ message: data.error || 'Import failed' });
         return;
       }
       setImportResults(data);
       if (!data.failed || data.failed.length === 0) setJsonInput('');
       load();
     } catch {
-      alert('Network error during import');
+      setAlertDialog({ message: 'Network error during import' });
     } finally {
       setImporting(false);
     }
@@ -283,6 +296,8 @@ export function CalendarEventsManager() {
 
   return (
     <div>
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Calendar Events</h2>
@@ -476,7 +491,7 @@ export function CalendarEventsManager() {
                         {ev.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{ev.description}</p>}
                         {ev.slug && <p className="text-xs text-gray-400 mt-0.5">/questions/how-long-until-{ev.slug}</p>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">{prettifyRegion(ev.region)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">{prettifyRegion(ev.region || DEFAULT_REGION)}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => toggleFeatured(ev)}

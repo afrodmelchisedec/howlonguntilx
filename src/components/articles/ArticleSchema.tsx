@@ -9,15 +9,18 @@ export function ArticleSchema({
   article,
   toolName,
   toolSlug,
+  publicPath,
 }: {
   article: any;
   toolName: string;
   toolSlug: string;
+  publicPath?: string;
 }) {
+  const resolvedPublicPath = publicPath ?? `/tools/${toolSlug}`;
   const hero = extractHeroCountdown(article.blocks as any);
   const faqItems = extractFaq(article.blocks as any);
-  const pageUrl = `${SITE_URL}/tools/${toolSlug}/${article.slug}`;
-  const toolUrl = `${SITE_URL}/tools/${toolSlug}`;
+  const pageUrl = `${SITE_URL}${resolvedPublicPath}/${article.slug}`;
+  const toolUrl = `${SITE_URL}${resolvedPublicPath}`;
 
   const graph: any[] = [
     {

@@ -2,6 +2,7 @@
 'use client';
 import { useState, Fragment } from 'react';
 import { useToast, ToastHost } from '@/components/ui/Toast';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
 import { useTheme } from '@/components/ui/ThemeProvider';
 import { CategoriesManager } from '@/components/admin/CategoriesManager';
 import { AffiliateBannersManager } from '@/components/admin/AffiliateBannersManager';
@@ -51,6 +52,7 @@ interface EventRow {
   publishedAt?: Date | null;
   content?: any;
   updatedAt?: Date;
+  isCalendar?: boolean;
 }
 interface CategoryRow { id: string; slug: string; name: string; emoji: string; parentId: string | null }
 interface ArticleRow {
@@ -497,6 +499,53 @@ function seoScoreColor(score: number): string {
   return '#D85A30'; // red
 }
 
+// A small, self-contained "hint balloon" — an iOS-style pill that pops a
+// short explainer bubble on hover/focus/tap. Used next to section headings
+// where two content types look similar but serve different purposes, so
+// nobody has to remember the distinction from memory.
+function HeaderHint({ label, description, accent = '99, 102, 241' /* indigo */ }: { label: string; description: string; accent?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex align-middle ml-3">
+      <button
+        type="button"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all duration-150 hover:scale-[1.03] active:scale-95"
+        style={{
+          background: `rgba(${accent}, 0.12)`,
+          border: `1px solid rgba(${accent}, 0.3)`,
+          color: `rgb(${accent})`,
+        }}
+      >
+        <span aria-hidden className="text-[13px] leading-none">ⓘ</span>
+        {label}
+      </button>
+      {open && (
+        <div
+          role="tooltip"
+          className="absolute left-0 top-full mt-2.5 w-72 z-30 rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-2xl backdrop-blur-xl"
+          style={{
+            background: 'var(--bg-elevated-2, rgba(24, 24, 32, 0.96))',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'var(--text-secondary, #b8b8c4)',
+          }}
+        >
+          <span
+            aria-hidden
+            className="absolute -top-1.5 left-4 w-3 h-3 rotate-45"
+            style={{ background: 'var(--bg-elevated-2, rgba(24, 24, 32, 0.96))', borderLeft: '1px solid rgba(255,255,255,0.08)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+          />
+          {description}
+        </div>
+      )}
+    </span>
+  );
+}
+
 export function AdminClient({
   isAdmin, isPremium = false,
   users = [], events = [], articles = [], categories = [], stats, reviewers = [], reviews = [],
@@ -523,6 +572,11 @@ export function AdminClient({
     created: number;
     failed: { slug: string; error?: string }[];
   } | null>(null);
+  const [articleImportResults, setArticleImportResults] = useState<{
+    updated: number;
+    created: number;
+    failed: { slug: string; error?: string }[];
+  } | null>(null);
   const [articleRows, setArticleRows] = useState(articles);
   const [eventRows, setEventRows] = useState(events);
   const [savingRow, setSavingRow] = useState<string | null>(null);
@@ -531,6 +585,11 @@ export function AdminClient({
   const [articleCategoryFilter, setArticleCategoryFilter] = useState<string | null>(null);
   const [eventSearch, setEventSearch] = useState('');
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string | null>(null);
+  const [eventCalendarOnly, setEventCalendarOnly] = useState(false);
+  const [eventPublishedOnly, setEventPublishedOnly] = useState(true);
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
+  const [bulkEventAction, setBulkEventAction] = useState('');
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [userPage, setUserPage] = useState(1);
   const [eventPage, setEventPage] = useState(1);
@@ -545,6 +604,7 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
   const [reviewSearch, setReviewSearch] = useState('');
   const [reviewPage, setReviewPage] = useState(1);
   const [reviewPageSize, setReviewPageSize] = useState(12);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
   const onUserSort = (key: string) => { setUserSort(s => toggleSort(s, key)); setUserPage(1); };
   const onEventSort = (key: string) => { setEventSort(s => toggleSort(s, key)); setEventPage(1); };
   const onArticleSort = (key: string) => { setArticleSort(s => toggleSort(s, key)); setArticlePage(1); };
@@ -601,21 +661,35 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
     window.location.reload();
   }
 
-  async function deleteUser(userId: string, email: string) {
-    if (!confirm('Delete user ' + email + '? Cannot be undone.')) return;
-    await fetch('/api/admin/users/' + userId, { method: 'DELETE' });
-    window.location.reload();
+  function deleteUser(userId: string, email: string) {
+    setConfirmDialog({
+      title: 'Delete User',
+      message: `Delete ${email || 'this user'}? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await fetch('/api/admin/users/' + userId, { method: 'DELETE' });
+        window.location.reload();
+      },
+    });
   }
 
-  async function deleteEvent(eventId: string, name: string) {
-    if (!confirm('Delete event "' + name + '"? Cannot be undone.')) return;
-    const res = await fetch('/api/admin/events/' + eventId, { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Event deleted', '🗑️');
-      setEventRows(rows => rows.filter(r => r.id !== eventId));
-    } else {
-      showToast('Could not delete event', '⚠️');
-    }
+  function deleteEvent(eventId: string, name: string) {
+    setConfirmDialog({
+      title: 'Delete Event',
+      message: `Delete "${name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const res = await fetch('/api/admin/events/' + eventId, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Event deleted', '🗑️');
+          setEventRows(rows => rows.filter(r => r.id !== eventId));
+        } else {
+          showToast('Could not delete event', '⚠️');
+        }
+      },
+    });
   }
 
   async function toggleEventPublish(eventId: string, currentPublished: boolean) {
@@ -641,6 +715,110 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
     } finally {
       setSavingEventRow(null);
     }
+  }
+
+  async function toggleEventCalendar(eventId: string, currentIsCalendar: boolean) {
+    const nextIsCalendar = !currentIsCalendar;
+    setSavingEventRow(eventId);
+    try {
+      const res = await fetch('/api/admin/events/' + eventId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isCalendar: nextIsCalendar }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setEventRows(rows => rows.map(r =>
+          r.id === eventId ? { ...r, isCalendar: updated.isCalendar } : r
+        ));
+        showToast(nextIsCalendar ? 'Added to calendar' : 'Removed from calendar', nextIsCalendar ? '📅' : '🚫');
+      } else {
+        showToast('Could not update calendar status', '⚠️');
+      }
+    } catch {
+      showToast('Network error', '⚠️');
+    } finally {
+      setSavingEventRow(null);
+    }
+  }
+
+  function toggleEventSelected(id: string) {
+    setSelectedEventIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkUpdateEvents(ids: string[], data: { published?: boolean; isCalendar?: boolean }) {
+    setBulkActionLoading(true);
+    try {
+      const results = await Promise.all(ids.map(id =>
+        fetch('/api/admin/events/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }).then(r => r.ok)
+      ));
+      const succeededIds = ids.filter((id, i) => results[i]);
+      setEventRows(rows => rows.map(r =>
+        succeededIds.includes(r.id) ? { ...r, ...data } : r
+      ));
+      const failCount = ids.length - succeededIds.length;
+      showToast(
+        failCount > 0 ? `Updated ${succeededIds.length}/${ids.length} (some failed)` : `Updated ${succeededIds.length} events`,
+        failCount > 0 ? '⚠️' : '✅'
+      );
+      setSelectedEventIds(new Set());
+    } catch {
+      showToast('Bulk update failed', '⚠️');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  }
+
+  function bulkDeleteEvents(ids: string[]) {
+    setConfirmDialog({
+      title: 'Delete Events',
+      message: `Delete ${ids.length} event${ids.length === 1 ? '' : 's'}? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => performBulkDeleteEvents(ids),
+    });
+  }
+
+  async function performBulkDeleteEvents(ids: string[]) {
+    setBulkActionLoading(true);
+    try {
+      const results = await Promise.all(ids.map(id =>
+        fetch('/api/admin/events/' + id, { method: 'DELETE' }).then(r => r.ok)
+      ));
+      const succeededIds = ids.filter((id, i) => results[i]);
+      setEventRows(rows => rows.filter(r => !succeededIds.includes(r.id)));
+      const failCount = ids.length - succeededIds.length;
+      showToast(
+        failCount > 0 ? `Deleted ${succeededIds.length}/${ids.length} (some failed)` : `Deleted ${succeededIds.length} events`,
+        failCount > 0 ? '⚠️' : '🗑️'
+      );
+      setSelectedEventIds(new Set());
+    } catch {
+      showToast('Bulk delete failed', '⚠️');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  }
+
+  async function applyBulkEventAction() {
+    const ids = Array.from(selectedEventIds);
+    if (ids.length === 0 || !bulkEventAction) return;
+    if (bulkEventAction === 'delete') {
+      await bulkDeleteEvents(ids);
+    } else if (bulkEventAction === 'unpublish') {
+      await bulkUpdateEvents(ids, { published: false });
+    } else if (bulkEventAction === 'removeFromCalendar') {
+      await bulkUpdateEvents(ids, { isCalendar: false });
+    }
+    setBulkEventAction('');
   }
 
   // Reconstructs the exact shape accepted by "Import from JSON" above.
@@ -724,24 +902,39 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
       return;
     }
     setImporting(true);
+    setArticleImportResults(null);
     try {
       const res = await fetch('/api/admin/articles/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed),
       });
-      const data = await res.json();
+
+      // Guard the parse so a non-JSON response (auth redirect, Next's HTML
+      // error page, a server crash before JSON.stringify) doesn't get
+      // swallowed as a silent "network error" with no explanation.
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        showToast(`Import failed — server returned a non-JSON response (HTTP ${res.status})`, '⚠️');
+        return;
+      }
+
       if (!res.ok) {
-        showToast(data.error ?? 'Import failed', '⚠️');
+        showToast(data.error ?? `Import failed (HTTP ${res.status})`, '⚠️');
+        return;
+      }
+
+      const { created = 0, updated = 0, failed = [] } = data;
+      setArticleImportResults({ created, updated, failed });
+
+      if (failed.length > 0) {
+        showToast(`${created} created, ${updated} updated, ${failed.length} failed — see details below`, '⚠️');
+        console.error('Import errors:', failed);
       } else {
-        const { created, updated, failed } = data;
-        if (failed && failed.length > 0) {
-          showToast(`${created} created, ${updated} updated, ${failed.length} failed`, '⚠️');
-          console.error('Import errors:', failed);
-        } else {
-          showToast(`${created} created, ${updated} updated`, '✅');
-          setJsonInput('');
-        }
+        showToast(`${created} created, ${updated} updated`, '✅');
+        setJsonInput('');
         window.location.reload();
       }
     } catch {
@@ -751,21 +944,26 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
     }
   }
   async function importEvents() {
+    console.log('[DEBUG] importEvents: function invoked');
     let parsed: unknown;
     try {
       parsed = JSON.parse(eventJsonInput);
-    } catch {
+      console.log('[DEBUG] importEvents: JSON.parse succeeded, items:', Array.isArray(parsed) ? parsed.length : typeof parsed);
+    } catch (e) {
+      console.log('[DEBUG] importEvents: JSON.parse FAILED', e);
       showToast('Invalid JSON — check syntax', '⚠️');
       return;
     }
     setImportingEvents(true);
     setEventImportResults(null);
+    console.log('[DEBUG] importEvents: about to fetch');
     try {
       const res = await fetch('/api/admin/events/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed),
       });
+      console.log('[DEBUG] importEvents: fetch resolved, status:', res.status);
 
       // The route can fail before it ever produces JSON (auth, body parse,
       // unexpected server error). Guard the parse so a non-JSON response
@@ -794,9 +992,11 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
         setEventJsonInput('');
         window.location.reload();
       }
-    } catch {
+    } catch (e) {
+      console.log('[DEBUG] importEvents: caught error', e);
       showToast('Network error during import', '⚠️');
     } finally {
+      console.log('[DEBUG] importEvents: finally block, resetting importingEvents');
       setImportingEvents(false);
     }
   }
@@ -852,15 +1052,22 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
     }
   }
 
-  async function deleteArticle(articleId: string, title: string) {
-    if (!confirm('Delete article "' + title + '"? Cannot be undone.')) return;
-    const res = await fetch('/api/admin/articles/' + articleId, { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Article deleted', '🗑️');
-      setArticleRows(rows => rows.filter(r => r.id !== articleId));
-    } else {
-      showToast('Could not delete article', '⚠️');
-    }
+  function deleteArticle(articleId: string, title: string) {
+    setConfirmDialog({
+      title: 'Delete Article',
+      message: `Delete "${title}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const res = await fetch('/api/admin/articles/' + articleId, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('Article deleted', '🗑️');
+          setArticleRows(rows => rows.filter(r => r.id !== articleId));
+        } else {
+          showToast('Could not delete article', '⚠️');
+        }
+      },
+    });
   }
 
   // Reconstructs the exact shape accepted by "Import from JSON" above.
@@ -935,7 +1142,9 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
       || (ev.category?.name ?? '').toLowerCase().includes(s)
       || (ev.subcategory?.name ?? '').toLowerCase().includes(s);
     const matchCategory = !eventCategoryFilter || ev.categoryId === eventCategoryFilter;
-    return matchSearch && matchCategory;
+    const matchCalendar = !eventCalendarOnly || !!ev.isCalendar;
+    const matchPublished = !eventPublishedOnly || !!ev.published;
+    return matchSearch && matchCategory && matchCalendar && matchPublished;
   });
 
   // Reviews filtering, sorting, and pagination
@@ -964,6 +1173,15 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
   const eventTotalPages = Math.max(1, Math.ceil(sortedEvents.length / pageSize));
   const safeEventPage = Math.min(eventPage, eventTotalPages);
   const pagedEvents = sortedEvents.slice((safeEventPage - 1) * pageSize, safeEventPage * pageSize);
+  const allPagedEventsSelected = pagedEvents.length > 0 && pagedEvents.every(ev => selectedEventIds.has(ev.id));
+  function toggleSelectAllPagedEvents() {
+    setSelectedEventIds(prev => {
+      const next = new Set(prev);
+      if (allPagedEventsSelected) { pagedEvents.forEach(ev => next.delete(ev.id)); }
+      else { pagedEvents.forEach(ev => next.add(ev.id)); }
+      return next;
+    });
+  }
 
   const sortedArticles = applySort(filteredArticles, articleSort, articleAccessor);
   const articleTotalPages = Math.max(1, Math.ceil(sortedArticles.length / pageSize));
@@ -973,6 +1191,7 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
   return (
     <div className="flex min-h-screen text-gray-900 dark:text-gray-100" style={{ colorScheme: theme }}>
       <ToastHost toast={toast} />
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
 
       {/* Sidebar */}
       <aside className="w-48 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
@@ -994,6 +1213,9 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
           </button>
         ))}
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          {isAdmin && (
+            <a href="/admin/runbook" className="block text-xs text-gray-400 hover:text-brand-500 px-2 py-1">📋 SOPs / Runbook</a>
+          )}
           <a href="/" className="block text-xs text-gray-400 hover:text-brand-500 px-2 py-1">← Home</a>
         </div>
       </aside>
@@ -1160,7 +1382,14 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
         {/* EVENTS */}
         {tab === 'events' && (
           <div>
-            <h1 className="text-xl font-medium mb-5">Events ({filteredEvents.length}{(eventSearch || eventCategoryFilter) ? ' of ' + events.length : ''})</h1>
+            <h1 className="text-xl font-medium mb-5">
+              Events ({filteredEvents.length}{(eventSearch || eventCategoryFilter || eventCalendarOnly || eventPublishedOnly) ? ' of ' + events.length : ''})
+              <HeaderHint
+                accent="99, 102, 241"
+                label="Dynamic countdowns"
+                description="Events are live countdown pages tied to a specific target date — holidays, World Cups, Olympics, or any 'how many days until X' page. The numbers change every day. If content should count down/up to a fixed date, it belongs here, not in Articles."
+              />
+            </h1>
             {/* Import box */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6">
               <h2 className="text-sm font-medium mb-3">Import from JSON (updates existing events only — matched by slug)</h2>
@@ -1172,9 +1401,10 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-xs font-mono bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500 mb-3"
               />
               <button
-                onClick={importEvents}
+                onClick={() => { console.log('[DEBUG] Import events button clicked'); importEvents(); }}
                 disabled={importingEvents || !eventJsonInput.trim()}
-                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                {importingEvents && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                 {importingEvents ? 'Importing…' : 'Import events'}
               </button>
 
@@ -1202,6 +1432,22 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                 onChange={e => { setEventSearch(e.target.value); setEventPage(1); }}
                 className="flex-1 min-w-48 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:border-brand-500"
               />
+              <label className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap px-2">
+                <input
+                  type="checkbox"
+                  checked={eventCalendarOnly}
+                  onChange={e => { setEventCalendarOnly(e.target.checked); setEventPage(1); }}
+                />
+                On calendar only
+              </label>
+                <label className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap px-2">
+                  <input
+                    type="checkbox"
+                    checked={eventPublishedOnly}
+                    onChange={e => { setEventPublishedOnly(e.target.checked); setEventPage(1); }}
+                  />
+                  Published only
+                </label>
             </div>
 
             {/* Category tag filter row */}
@@ -1228,11 +1474,39 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                 </button>
               ))}
             </div>
+            {selectedEventIds.size > 0 && (
+              <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20">
+                <span className="text-sm font-medium">{selectedEventIds.size} selected</span>
+                <select
+                  value={bulkEventAction}
+                  onChange={e => setBulkEventAction(e.target.value)}
+                  className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 focus:outline-none">
+                  <option value="">Choose bulk action…</option>
+                  <option value="unpublish">Unpublish</option>
+                  <option value="removeFromCalendar">Remove from Calendar</option>
+                  <option value="delete">Delete</option>
+                </select>
+                <button
+                  onClick={applyBulkEventAction}
+                  disabled={!bulkEventAction || bulkActionLoading}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50">
+                  {bulkActionLoading ? 'Applying…' : 'Apply'}
+                </button>
+                <button
+                  onClick={() => { setSelectedEventIds(new Set()); setBulkEventAction(''); }}
+                  className="text-xs text-gray-400 hover:text-gray-600 ml-auto">
+                  Clear selection
+                </button>
+              </div>
+            )}
 
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
+                    <th className="px-4 py-3 w-8">
+                      <input type="checkbox" checked={allPagedEventsSelected} onChange={toggleSelectAllPagedEvents} />
+                    </th>
                     <SortableTh label="#" sortKey={null} sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Event" sortKey="event" sort={eventSort} onSort={onEventSort} />
                     <SortableTh label="Status" sortKey="published" sort={eventSort} onSort={onEventSort} />
@@ -1251,10 +1525,13 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                   return (
                   <Fragment key={ev.id}>
                     <tr className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-3 w-8">
+                        <input type="checkbox" checked={selectedEventIds.has(ev.id)} onChange={() => toggleEventSelected(ev.id)} />
+                      </td>
                       <td className="px-4 py-3 text-gray-400 text-xs font-medium w-8">{i + 1}</td>
                       <td className="px-4 py-3">
-                        <a href={'/questions/how-long-until-' + ev.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{ev.name}</a>
-                        <p className="text-xs text-gray-400 mt-0.5">/questions/how-long-until-{ev.slug}</p>
+                        <a href={'/questions/' + ev.slug} target="_blank" className="font-medium hover:text-brand-500 transition-colors">{ev.name}</a>
+                        <p className="text-xs text-gray-400 mt-0.5">/questions/{ev.slug}</p>
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -1337,6 +1614,13 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             JSON
                           </button>
+                          <button
+                            onClick={() => toggleEventCalendar(ev.id, !!ev.isCalendar)}
+                            disabled={savingEventRow === ev.id}
+                            title={ev.isCalendar ? 'Remove from calendar tool, day-grid, and HeroTicker' : 'Add to calendar tool'}
+                            className={'text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50 ' + (ev.isCalendar ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800')}>
+                            {ev.isCalendar ? 'Remove from Calendar' : 'Add to Calendar'}
+                          </button>
                           <button onClick={() => deleteEvent(ev.id, ev.name)}
                             className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors">
                             Delete
@@ -1382,7 +1666,14 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
         {/* ARTICLES */}
         {tab === 'articles' && (
           <div>
-            <h1 className="text-xl font-medium mb-5">Question articles ({filteredArticles.length}{(articleSearch || articleCategoryFilter) ? ' of ' + articleRows.length : ''})</h1>
+            <h1 className="text-xl font-medium mb-5">
+              Question articles ({filteredArticles.length}{(articleSearch || articleCategoryFilter) ? ' of ' + articleRows.length : ''})
+              <HeaderHint
+                accent="16, 185, 129"
+                label="Evergreen answers"
+                description="Articles are static, evergreen reference content — general knowledge answers like 'How many days in 2 years?' that aren't tied to one specific date and don't change day to day. If it's a fixed fact rather than a live countdown, it belongs here, not in Events."
+              />
+            </h1>
 
             {/* Import box */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6">
@@ -1397,9 +1688,27 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
               <button
                 onClick={importArticles}
                 disabled={importing || !jsonInput.trim()}
-                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="bg-brand-500 text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2">
+                {importing && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                 {importing ? 'Importing…' : 'Import articles'}
               </button>
+
+              {articleImportResults && (
+                <div className="mt-4 text-sm">
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    {articleImportResults.updated} updated · {articleImportResults.created} created · {articleImportResults.failed.length} failed
+                  </p>
+                  {articleImportResults.failed.length > 0 && (
+                    <ul className="space-y-1">
+                      {articleImportResults.failed.map((f, i) => (
+                        <li key={i} className="text-red-500 dark:text-red-400 text-xs font-mono">
+                          <span className="font-semibold">{f.slug}</span>: {f.error ?? 'Unknown error'}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Search */}
@@ -1656,18 +1965,24 @@ const [userSort, setUserSort] = useState<SortState | null>(null);
                 <td className="px-4 py-3 flex items-center gap-2">
                   <button
                     onClick={() => {
-                      if (confirm('Delete this review?')) {
-                        fetch(`/api/admin/reviews/${r.id}`, { method: 'DELETE' })
-                          .then(res => {
-                            if (res.ok) {
-                              setReviewsState(prev => prev.filter(rev => rev.id !== r.id));
-                              showToast('Review deleted', '🗑️');
-                            } else {
-                              showToast('Failed to delete', '⚠️');
-                            }
-                          })
-                          .catch(() => showToast('Network error', '⚠️'));
-                      }
+                      setConfirmDialog({
+                        title: 'Delete Review',
+                        message: 'Delete this review? This cannot be undone.',
+                        confirmLabel: 'Delete',
+                        destructive: true,
+                        onConfirm: () => {
+                          return fetch(`/api/admin/reviews/${r.id}`, { method: 'DELETE' })
+                            .then(res => {
+                              if (res.ok) {
+                                setReviewsState(prev => prev.filter(rev => rev.id !== r.id));
+                                showToast('Review deleted', '🗑️');
+                              } else {
+                                showToast('Failed to delete', '⚠️');
+                              }
+                            })
+                            .catch(() => showToast('Network error', '⚠️'));
+                        },
+                      });
                     }}
                     className="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition-colors"
                   >

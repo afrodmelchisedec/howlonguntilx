@@ -1,6 +1,6 @@
 // FILE: src/components/articles/ArticleLayout.tsx
 import Link from 'next/link';
-import { ArticleBlocks, extractHeroCountdown, extractHeadings, extractFaq, extractSources } from './ArticleBlocks';
+import { ArticleBlocks, extractHeroCountdown, extractHeadings, extractFaq, extractSources, extractLeadParagraph, bodyBlocksWithoutLead, ArticleLeadParagraph } from './ArticleBlocks';
 import { CommentThread } from '@/components/community/CommentThread';
 import { RelatedArticles } from './RelatedArticles';
 import { ArticleStyles } from './ArticleStyles';
@@ -19,10 +19,26 @@ import { SourcesFooter } from '../countdown/SourcesFooter';
 import { pickDefaultImage } from '@/lib/defaultImages';
 import { getAffiliateBanner } from '@/lib/affiliateBanners';
 import { getCategoryGlowRGB } from '@/lib/categoryGlow';
+import { resolveDynamicTokensDeep } from '@/lib/dynamicTokens';
 
 // `featuredPiece` is optional and fetched by the caller — see the comment block
 // at the top of ArticleFeaturedPiece.tsx for the query shape.
-export async function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece }: { article: any; toolName: string; toolSlug: string; glow: string; featuredPiece?: any }) {
+export async function ArticleLayout({ article, toolName, toolSlug, glow, featuredPiece, publicPath }: { article: any; toolName: string; toolSlug: string; glow: string; featuredPiece?: any; publicPath?: string }) {
+  const resolvedPublicPath = publicPath ?? `/tools/${toolSlug}`;
+  // Authored block text (paragraphs, headings, and faq items) may contain
+  // {{dateNDaysAgo:90}}-style tokens (see src/lib/dynamicTokens.ts) so
+  // date-relative Articles like "what was 90 days ago" stay correct
+  // indefinitely instead of freezing at whatever date the content was written
+  // on. Resolved here, before `hero`/`headings`/`faqItems`/`leadParagraph` are
+  // derived, so every downstream consumer (ArticleBlocks, ArticleLeadParagraph,
+  // ArticleSchema) already sees live values — mirrors the Event-side fix in
+  // renderEventPage.tsx (EventPageContent, resolveDynamicTokensDeep on
+  // content.body/heroFact/quickFacts/faqs).
+  article.blocks = resolveDynamicTokensDeep(article.blocks);
+  // The dek (shortAnswer) is rendered separately from blocks below, right under
+  // the H1 -- it was missed by the blocks-only resolution above, so date-relative
+  // shortAnswers were showing raw {{token}} text instead of the live value.
+  article.dek = resolveDynamicTokensDeep(article.dek);
   const hero = extractHeroCountdown(article.blocks as any);
   // Duration-type questions (e.g. "how long until X kills you?") have no fixed
   // target date to count down to — they render a min/max range hero instead.
@@ -32,6 +48,11 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
   const headings = extractHeadings(article.blocks as any);
   const faqItems = extractFaq(article.blocks as any);
   const sources = extractSources(article.blocks as any);
+  // Pulled out so the direct-answer paragraph can render immediately under the hero
+  // image, ahead of the disclaimer/reviewer/TOC — remainingBlocks (not article.blocks)
+  // is what gets passed into <ArticleBlocks> below so it isn't rendered a second time.
+  const leadParagraph = extractLeadParagraph(article.blocks as any);
+  const remainingBlocks = bodyBlocksWithoutLead(article.blocks as any);
   const tocHeadings = faqItems && faqItems.length > 0 ? [...headings, { id: 'faq', text: 'FAQs' }] : headings;
 
   const published = article.publishedAt ? new Date(article.publishedAt) : null;
@@ -56,10 +77,10 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
   return (
     <article>
       <ArticleStyles />
-      <ArticleSchema article={article} toolName={toolName} toolSlug={toolSlug} />
+      <ArticleSchema article={article} toolName={toolName} toolSlug={toolSlug} publicPath={resolvedPublicPath} />
 
       <nav className="text-caption mb-3" style={{ color: 'var(--text-secondary)' }}>
-        <Link href="/">Home</Link> / <Link href={`/tools/${toolSlug}`}>{toolName}</Link> / <span>{article.title}</span>
+        <Link href="/">Home</Link> / <Link href={resolvedPublicPath}>{toolName}</Link> / <span>{article.title}</span>
       </nav>
 
       {/* H1 + direct answer surface above the hero image/illustration, so both
@@ -97,6 +118,11 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
         )}
 
         <img src={heroImageUrl} alt={article.heroImageAlt || article.title} className="w-full rounded-2xl mb-5 article-glow-card" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
+
+        {/* Direct-answer paragraph, immediately under the hero image — this is the
+            "answer it fast" SEO/AEO requirement. Disclaimer/reviewer/TOC follow it,
+            then the rest of the body (remainingBlocks) picks up from the 2nd block on. */}
+        {leadParagraph && <ArticleLeadParagraph block={leadParagraph} />}
 
         <div className="article-kicker flex flex-wrap items-center gap-2 mb-6">
           <p className="text-caption m-0" style={{ color: 'var(--text-secondary)' }}>
@@ -138,7 +164,7 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
 
         <ArticleTableOfContents headings={tocHeadings} glow={glow} />
 
-        <ArticleBlocks toolSlug={toolSlug} blocks={article.blocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} affiliateBanner={affiliateBanner} />
+        <ArticleBlocks toolSlug={toolSlug} blocks={remainingBlocks} glow={glow} subcategoryTools={article.subcategory?.tools ?? []} affiliateBanner={affiliateBanner} />
 
         {sources && sources.length > 0 && (
           <div className="mt-6">
@@ -150,7 +176,7 @@ export async function ArticleLayout({ article, toolName, toolSlug, glow, feature
 
         <AdSlot slotId="article-lower" />
 
-        <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} />
+        <RelatedArticles toolSlug={toolSlug} excludeSlug={article.slug} glow={glow} publicPath={resolvedPublicPath} />
 
         <div className="mt-10">
           <CommentThread subjectType="article" subjectId={article.id} glow={glow} />

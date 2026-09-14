@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 interface UserEventRow {
   id: string;
@@ -29,6 +30,7 @@ export function UserEventsModerationManager() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'REJECTED' | 'REMOVED'>('ALL');
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -57,10 +59,10 @@ export function UserEventsModerationManager() {
         body: JSON.stringify({ moderationStatus, moderationNote: moderationNote || null }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Update failed.'); return; }
+      if (!res.ok) { setAlertDialog({ message: data.error || 'Update failed.' }); return; }
       setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, ...data } : e));
     } catch {
-      alert('Network error.');
+      setAlertDialog({ message: 'Network error.' });
     } finally {
       setSavingId(null);
     }
@@ -79,6 +81,7 @@ export function UserEventsModerationManager() {
 
   return (
     <div>
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Community events ({filtered.length}{(search || statusFilter !== 'ALL') ? ' of ' + events.length : ''})</h2>
         <p className="text-xs text-gray-400 mt-0.5">User-submitted "How long until X?" events. Approve, reject, or remove.</p>

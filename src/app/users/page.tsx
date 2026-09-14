@@ -47,7 +47,7 @@ export default async function AdminPage() {
 
   const [users, events, timerCount, articles, categories, reviewers, myEvents, reviews] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: 'desc' }, include: { _count: { select: { timers: true, sessions: true } } } }),
-    prisma.event.findMany({ orderBy: { views: 'desc' }, take: 20, include: { category: true, subcategory: true, reviewer: true } }),
+    prisma.event.findMany({ orderBy: { createdAt: 'desc' }, take: 500, include: { category: true, subcategory: true, reviewer: true } }),
     prisma.timer.count(),
     prisma.article.findMany({
       where: { toolSlug: 'questions' },

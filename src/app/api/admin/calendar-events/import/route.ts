@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = importCalendarEvents(items);
+    const result = await importCalendarEvents(items);
     revalidatePath('/');
     revalidatePath('/calendar');
     return NextResponse.json(result);

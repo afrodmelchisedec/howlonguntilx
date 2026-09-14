@@ -7,7 +7,7 @@ interface Props {
     type?: 'COUNTDOWN' | 'ELAPSED' | 'RELATIVE';
     content?: unknown;
   };
-  countdown: { days_left: number; hours_left: number };
+  countdown: { days_left: number; hours_left: number; is_past?: boolean; elapsed_days?: number; elapsed_hours?: number };
 }
 
 export function FaqSchema({ event, countdown }: Props) {
@@ -19,11 +19,14 @@ export function FaqSchema({ event, countdown }: Props) {
     faqs = buildFaqList(event, countdown, content.faqs);
   } catch (e) {
     console.warn('Failed to build FAQ list:', e);
-    // Fallback to basic FAQs
-    const days = countdown.days_left;
+    // Fallback to basic FAQs — must still respect is_past, or a thrown
+    // buildFaqList call on a past-dated event regresses right back to the
+    // "How long until X ago" bug this file exists to avoid.
+    const isPast = countdown.is_past === true;
+    const days = isPast ? (countdown.elapsed_days ?? countdown.days_left) : countdown.days_left;
     faqs = [
-      { q: `How long until ${event.name}?`, a: `${days} days` },
-      { q: `When is ${event.name}?`, a: new Date(event.targetDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
+      { q: isPast ? `How long ago was ${event.name}?` : `How long until ${event.name}?`, a: isPast ? `${days} days ago` : `${days} days` },
+      { q: `When ${isPast ? 'was' : 'is'} ${event.name}?`, a: new Date(event.targetDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
     ];
   }
 

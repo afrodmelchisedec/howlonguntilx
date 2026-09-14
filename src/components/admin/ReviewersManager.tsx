@@ -2,6 +2,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ConfirmDialog, type ConfirmDialogState } from '@/components/ui/ConfirmDialog';
+import { AlertDialog, type AlertDialogState } from '@/components/ui/AlertDialog';
 
 interface Reviewer {
   id: string;
@@ -27,6 +29,8 @@ export function ReviewersManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -81,19 +85,28 @@ export function ReviewersManager() {
     }
   }
 
-  async function remove(r: Reviewer) {
-    if (!confirm(`Delete reviewer "${r.name}"? This cannot be undone.`)) return;
-    const res = await fetch(`/api/admin/reviewers/${r.id}`, { method: 'DELETE' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      alert(data.error || 'Could not delete.');
-      return;
-    }
-    load();
+  function remove(r: Reviewer) {
+    setConfirmDialog({
+      title: 'Delete Reviewer',
+      message: `Delete reviewer "${r.name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const res = await fetch(`/api/admin/reviewers/${r.id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setAlertDialog({ message: data.error || 'Could not delete.' });
+          return;
+        }
+        load();
+      },
+    });
   }
 
   return (
     <div>
+      <ConfirmDialog state={confirmDialog} onClose={() => setConfirmDialog(null)} />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Reviewers</h2>
         <p className="text-xs text-gray-400 mt-0.5">

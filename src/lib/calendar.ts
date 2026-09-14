@@ -1,84 +1,65 @@
 // FILE: src/lib/calendar.ts
-// Server-only — reads from disk. Never import this from a 'use client' file.
-import fs from 'fs';
-import path from 'path';
+// Server-only — reads calendar-flagged Event rows via Prisma.
+// Never import this from a 'use client' file.
+import { prisma } from './db';
 import type { CalendarEvent } from './calendar-shared';
 
 type CalendarMap = Record<string, CalendarEvent[]>; // "YYYY-MM-DD" -> events
 
-const MONTH_NAMES: Record<string, string> = {
-  january: '01', february: '02', march: '03', april: '04',
-  may: '05', june: '06', july: '07', august: '08',
-  september: '09', october: '10', november: '11', december: '12',
-};
-
-function parseDateString(dateStr: string, year: number): string | null {
-  const match = dateStr.trim().match(/^([A-Za-z]+)\s+(\d{1,2})/);
-  if (!match) return null;
-  const monthNum = MONTH_NAMES[match[1].toLowerCase()];
-  if (!monthNum) return null;
-  const day = match[2].padStart(2, '0');
-  return `${year}-${monthNum}-${day}`;
+function dateToIso(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-const SOURCE_DIR = path.join(process.cwd(), 'content', 'calendar', 'source');
+function toCalendarEvent(ev: {
+  region: string | null; name: string; description: string | null;
+  targetDate: Date; slug: string; emoji: string | null; color: string | null;
+  calendarFeatured: boolean;
+}): CalendarEvent {
+  return {
+    region: ev.region ?? '',
+    event: ev.name,
+    description: ev.description ?? '',
+    date: dateToIso(ev.targetDate),
+    slug: ev.slug,
+    emoji: ev.emoji ?? undefined,
+    color: ev.color ?? undefined,
+    featured: ev.calendarFeatured,
+  };
+}
 
-function loadAllSourceFiles(): CalendarMap {
+export async function getCalendarMonth(year: number, month: number): Promise<CalendarMap> {
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1));
+  const rows = await prisma.event.findMany({
+    where: { isCalendar: true, targetDate: { gte: start, lt: end } },
+    orderBy: { targetDate: 'asc' },
+  });
   const map: CalendarMap = {};
-  if (!fs.existsSync(SOURCE_DIR)) return map;
-
-  const files = fs.readdirSync(SOURCE_DIR).filter(f => f.endsWith('.json'));
-  for (const file of files) {
-    const raw = JSON.parse(fs.readFileSync(path.join(SOURCE_DIR, file), 'utf8'));
-    const year: number = raw.year ?? new Date().getFullYear();
-    for (const region of Object.keys(raw)) {
-      if (region === 'year') continue;
-      const entries = raw[region] as {
-        date: string; event: string; description?: string;
-        slug?: string; emoji?: string; color?: string; featured?: boolean;
-      }[];
-      for (const entry of entries) {
-        const isoDate = parseDateString(entry.date, year);
-        if (!isoDate) continue;
-        if (!map[isoDate]) map[isoDate] = [];
-        map[isoDate].push({
-          region,
-          event: entry.event,
-          description: entry.description ?? '',
-          date: isoDate,
-          slug: entry.slug,
-          emoji: entry.emoji,
-          color: entry.color,
-          featured: entry.featured,
-        });
-      }
-    }
+  for (const row of rows) {
+    const iso = dateToIso(row.targetDate);
+    if (!map[iso]) map[iso] = [];
+    map[iso].push(toCalendarEvent(row));
   }
   return map;
 }
 
-export function getCalendarMonth(year: number, month: number): CalendarMap {
-  const all = loadAllSourceFiles();
-  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
-  const filtered: CalendarMap = {};
-  for (const date of Object.keys(all)) {
-    if (date.startsWith(prefix)) filtered[date] = all[date];
-  }
-  return filtered;
+export async function getUpcomingEvents(limit: number = 8): Promise<CalendarEvent[]> {
+  const rows = await prisma.event.findMany({
+    where: { isCalendar: true, calendarFeatured: true, targetDate: { gt: new Date() } },
+    orderBy: { targetDate: 'asc' },
+    take: limit,
+  });
+  return rows.map(toCalendarEvent);
 }
 
-export function getUpcomingEvents(limit: number = 8): CalendarEvent[] {
-  const all = loadAllSourceFiles();
-  const now = Date.now();
-  const flat: CalendarEvent[] = [];
-  for (const date of Object.keys(all)) {
-    for (const ev of all[date]) {
-      if (!ev.featured) continue;
-      if (!ev.date) continue;
-      if (new Date(ev.date).getTime() <= now) continue;
-      flat.push(ev);
-    }
-  }
-  flat.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
-  return flat.slice(0, limit);
+// Mirrors getUpcomingEvents() but returns featured events whose date has
+// already passed, sorted most-recent-first (descending) - i.e. index 0 is
+// the closest-to-now past event, higher indices go further back in time.
+export async function getPastFeaturedEvents(limit: number = 8): Promise<CalendarEvent[]> {
+  const rows = await prisma.event.findMany({
+    where: { isCalendar: true, calendarFeatured: true, targetDate: { lte: new Date() } },
+    orderBy: { targetDate: 'desc' },
+    take: limit,
+  });
+  return rows.map(toCalendarEvent);
 }

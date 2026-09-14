@@ -208,12 +208,38 @@ export interface DiscoveryConfig {
   maxSerpCalls: number;
 }
 
+const MONTH_ABBREVIATIONS: Record<string, string> = {
+  jan: 'january', feb: 'february', mar: 'march', apr: 'april', jun: 'june',
+  jul: 'july', aug: 'august', sep: 'september', sept: 'september',
+  oct: 'october', nov: 'november', dec: 'december',
+};
+
+// Collapses near-duplicate phrasings of the same underlying question (e.g.
+// "how many days till jan 1", "how many days till january 1st", "days until
+// january 1") down to one canonical string, so the merge step below can force
+// them into the same cluster even when their SERP results happen to differ
+// enough to miss clusterBySerpOverlap's overlap threshold. Deliberately only
+// strips the handful of interchangeable question-lead-in phrases actually
+// seen in this pipeline's keyword shapes -- it is NOT a general paraphrase
+// detector, so genuinely different question types (e.g. "what day was it 90
+// days ago" vs "how many days ago was") are correctly left unmerged.
+function normalizeKeyword(keyword: string): string {
+  let kw = keyword.trim().toLowerCase();
+  kw = kw.replace(/^(how many (days|weeks|months|years)\s+(until|till|to|ago\s+was)\s*)/, '');
+  kw = kw.replace(/^(how long\s+(until|till|ago\s+was|ago)\s*)/, '');
+  kw = kw.replace(/^((days|weeks|months|years)\s+(until|till)\s*)/, '');
+  kw = kw.replace(/\b(\d{1,2})(st|nd|rd|th)\b/g, '$1');
+  kw = kw.split(/\s+/).map(word => MONTH_ABBREVIATIONS[word] ?? word).join(' ');
+  return kw.replace(/\s+/g, ' ').trim();
+}
+
 export async function runDiscovery(config: DiscoveryConfig): Promise<DiscoveryRow[]> {
   const ideas = await getKeywordIdeas(config.seed, config.country, config.language);
 
   const survivors = ideas
     .filter(i => i.volume >= config.minVolume && (i.kd === null || i.kd <= config.maxKd))
-    .sort((a, b) => b.volume - a.volume);
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, 100); // hard cap: discovery results never exceed 100 keywords/run
 
   const serpBatch = survivors.slice(0, config.maxSerpCalls);
   const keywordDomains: Record<string, string[]> = {};
@@ -228,6 +254,45 @@ export async function runDiscovery(config: DiscoveryConfig): Promise<DiscoveryRo
 
   const clusters = clusterBySerpOverlap(keywordDomains);
 
+  // Two-signal clustering over EVERY survivor, not just the cost-capped
+  // handful clusterBySerpOverlap actually analyzed (SERP calls are expensive,
+  // so only the top maxSerpCalls highest-volume keywords ever get a SERP-based
+  // cluster id -- everything below that cap previously fell through as its
+  // own solo "cluster" even when it was an obvious duplicate of something
+  // higher up, e.g. "jan 1" / "january 1" / "january 1st" all landing past
+  // the SERP-analysis cutoff). Union-find over two signals: (a) identical
+  // normalized text -- always available, no SERP cost; (b) shared SERP
+  // cluster id -- catches genuinely different phrasings whose search results
+  // happen to overlap, still useful as a secondary signal where it exists.
+  const uf: Record<string, string> = {};
+  function find(x: string): string {
+    if (uf[x] === undefined) uf[x] = x;
+    return uf[x] === x ? x : (uf[x] = find(uf[x]));
+  }
+  function union(a: string, b: string) {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) uf[ra] = rb;
+  }
+
+  const serpClusterToNorms: Record<number, Set<string>> = {};
+  for (const item of survivors) {
+    const norm = normalizeKeyword(item.keyword);
+    find(norm); // seed every normalized group, even ones with no SERP data
+    const cid = clusters[item.keyword];
+    if (cid === undefined) continue;
+    (serpClusterToNorms[cid] ??= new Set()).add(norm);
+  }
+  for (const cid in serpClusterToNorms) {
+    const norms = Array.from(serpClusterToNorms[cid]);
+    for (let i = 1; i < norms.length; i++) union(norms[0], norms[i]);
+  }
+
+  const finalClusterKeyOf: Record<string, string> = {};
+  for (const item of survivors) {
+    const norm = normalizeKeyword(item.keyword);
+    finalClusterKeyOf[item.keyword] = 'g' + find(norm).replace(/[^a-z0-9]+/g, '-');
+  }
+
   return survivors.map(item => {
     const trend = trendDirection(item.monthlySearches);
     const hadSerp = item.keyword in keywordDomains;
@@ -240,7 +305,7 @@ export async function runDiscovery(config: DiscoveryConfig): Promise<DiscoveryRo
       cpc: item.cpc,
       competition: item.competition,
       trend,
-      clusterKey: clusters[item.keyword] !== undefined ? `c${clusters[item.keyword]}` : '',
+      clusterKey: finalClusterKeyOf[item.keyword] || '',
       opportunityScore: score,
       template,
       entity,

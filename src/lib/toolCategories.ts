@@ -25,7 +25,7 @@ export const CATEGORIES: CategoryMeta[] = [
 
 export const TOOL_CATEGORY_MAP: Record<string, CategorySlug> = {
   // Tech
-  'tech-events': 'tech',
+  'upcoming-events': 'tech',
 
   // Leisure
   'dark-sky-explorer': 'leisure',
