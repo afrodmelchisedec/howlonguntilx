@@ -19,3 +19,4 @@ dev.log
 scripts/seo-pipeline/cache/
 scripts/seo-pipeline/seo_output/
 scripts/seo-pipeline/
+tsconfig.tsbuildinfo
